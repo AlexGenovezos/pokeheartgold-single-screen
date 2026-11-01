@@ -4,6 +4,8 @@
 
 #include "player_data.h"
 #include "system.h"
+#include "qol_config.h"
+#include "text.h"
 
 Options *Options_New(enum HeapID heapID) {
     Options *ret = Heap_Alloc(heapID, sizeof(Options));
@@ -52,6 +54,12 @@ void Options_SetTextSpeed(Options *options, u32 textSpeed) {
 
 u8 Options_GetTextFrameDelay(Options *options) {
     u32 textSpeed = Options_GetTextSpeed(options);
+
+#if QOL_INSTANT_TEXT
+    if (textSpeed == 3) {
+        return TEXT_SPEED_INSTANT_ASYNC;
+    }
+#endif
 
     if (textSpeed == 0) {
         return 8;

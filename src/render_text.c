@@ -384,6 +384,15 @@ void TextPrinter_SetDownArrowBaseTile(int tile) {
 static void TextPrinter_InitDownArrowCounters(TextPrinter *printer) {
     TextPrinterSubStruct *subStruct = (TextPrinterSubStruct *)(&printer->subStructFields);
 
+#if QOL_INSTANT_TEXT
+    if (subStruct->isInstant) {
+        // The print queue can run twice for the same keypad sample. Do not
+        // let the press that opened a message also dismiss its first page.
+        subStruct->waitForInputRelease = ((gSystem.heldKeys | gSystem.newKeys) & (PAD_BUTTON_A | PAD_BUTTON_B))
+            || gSystem.touchHeld || gSystem.touchNew;
+    }
+#endif
+
     if (sTextFlags.autoScroll) {
         subStruct->autoScrollDelay = 0;
     } else {
@@ -485,6 +494,16 @@ static void TextPrinter_ClearDownArrow(TextPrinter *printer) {
 
 static BOOL TextPrinter_Continue(TextPrinter *printer) {
 #pragma unused(printer)
+#if QOL_INSTANT_TEXT
+    TextPrinterSubStruct *subStruct = (TextPrinterSubStruct *)printer->subStructFields;
+    if (subStruct->waitForInputRelease) {
+        if (!((gSystem.heldKeys | gSystem.newKeys) & (PAD_BUTTON_A | PAD_BUTTON_B))
+            && !gSystem.touchHeld && !gSystem.touchNew) {
+            subStruct->waitForInputRelease = FALSE;
+        }
+        return FALSE;
+    }
+#endif
     if (TextPrinter_ContinueInputNew()) {
         PlaySE(SEQ_SE_DP_SELECT);
 

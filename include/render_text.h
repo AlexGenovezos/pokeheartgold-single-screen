@@ -20,7 +20,13 @@ typedef struct TextFlags {
 typedef struct TextPrinterSubStruct {
     u8 fontId : 4; // 0x14
     u8 hasPrintBeenSpedUp : 1;
+#if QOL_INSTANT_TEXT
+    u8 isInstant : 1;
+    u8 waitForInputRelease : 1;
+    u8 unk : 1;
+#else
     u8 unk : 3;
+#endif
     u8 downArrowDelay : 5;
     u8 downArrowYPosIdx : 2;
     u8 hasFontIdBeenSet : 1;

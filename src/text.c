@@ -4,6 +4,7 @@
 
 #include "font.h"
 #include "gf_gfx_loader.h"
+#include "render_text.h"
 #include "sys_task.h"
 
 static const struct FontInfo *sFonts;
@@ -170,6 +171,14 @@ static u8 AddTextPrinter(TextPrinterTemplate *template, u32 speed, PrinterCallba
 
     if (speed != TEXT_SPEED_NOTRANSFER && speed != TEXT_SPEED_INSTANT) {
         printer->textSpeedBottom--;
+#if QOL_INSTANT_TEXT
+        // Use spare printer bits, preserving the struct's size and normal
+        // dialog task lifecycle.
+        if (speed == TEXT_SPEED_INSTANT_ASYNC) {
+            printer->textSpeedBottom = 0;
+            ((TextPrinterSubStruct *)printer->subStructFields)->isInstant = TRUE;
+        }
+#endif
         printer->textSpeedTop = 1;
         printer->id = CreateTextPrinterSysTask((SysTaskFunc)RunTextPrinter, printer, 1);
         return printer->id;
@@ -203,12 +212,18 @@ static void RunTextPrinter(SysTask *task, TextPrinter *printer) {
         return;
     }
 
+#if QOL_INSTANT_TEXT
+    BOOL instant = ((TextPrinterSubStruct *)printer->subStructFields)->isInstant;
+    // Bound the work per tick even for unusually long or malformed messages.
+    for (u32 glyphs = 0; glyphs < (instant ? 0x400 : 1); glyphs++) {
+#endif
     if (printer->callbackResult == 0) {
         printer->callbackParam = 0;
 
         GenerateFontHalfRowLookupTable(printer->template.fgColor, printer->template.bgColor, printer->template.shadowColor);
 
-        switch (RenderFont(printer)) {
+        RenderResult result = RenderFont(printer);
+        switch (result) {
         case RENDER_PRINT:
             CopyWindowToVram(printer->template.window);
             // fallthrough
@@ -216,6 +231,11 @@ static void RunTextPrinter(SysTask *task, TextPrinter *printer) {
             if (printer->callback != NULL) {
                 printer->callbackResult = printer->callback(&printer->template, printer->callbackParam);
             }
+#if QOL_INSTANT_TEXT
+            if (instant && result == RENDER_PRINT && printer->state == 0 && printer->callbackResult == 0) {
+                break;
+            }
+#endif
             return;
         case RENDER_FINISH:
             DestroyTextPrinterSysTask(printer->id);
@@ -223,7 +243,13 @@ static void RunTextPrinter(SysTask *task, TextPrinter *printer) {
         }
     } else {
         printer->callbackResult = printer->callback(&printer->template, printer->callbackParam);
+#if QOL_INSTANT_TEXT
+        return;
+#endif
     }
+#if QOL_INSTANT_TEXT
+    }
+#endif
 }
 
 static RenderResult RenderFont(TextPrinter *printer) {

@@ -1,4 +1,5 @@
 #include "party_menu_items.h"
+#include "qol_config.h"
 
 #include "global.h"
 
@@ -901,7 +902,11 @@ void PartyMenu_LearnMoveToSlot(PartyMenu *partyMenu, Pokemon *mon, int moveIdx) 
     data = GetMoveMaxPP(partyMenu->args->moveId, 0);
     SetMonData(mon, MON_DATA_MOVE1_PP + moveIdx, &data);
     if (partyMenu->args->itemId != ITEM_NONE) {
-        if (!MoveIsHM(partyMenu->args->moveId)) {
+        if (!MoveIsHM(partyMenu->args->moveId)
+#if QOL_REUSABLE_TMS
+            && (partyMenu->args->itemId < ITEM_TM01 || partyMenu->args->itemId > ITEM_TM92)
+#endif
+        ) {
             Bag_TakeItem(partyMenu->args->bag, partyMenu->args->itemId, 1, HEAP_ID_PARTY_MENU);
         }
         MonApplyFriendshipMod(mon, FRIENDSHIP_EVENT_LEARN_TMHM, PartyMenu_GetCurrentMapSec(partyMenu));

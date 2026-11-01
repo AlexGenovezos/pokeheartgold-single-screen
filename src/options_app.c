@@ -92,7 +92,11 @@ typedef struct OptionsApp_Data {
 } OptionsApp_Data; // size: 0x32c
 
 static const s8 sOptionsApp_ClearRectXOffsets[MENU_ENTRY_COUNT] = {
+#if QOL_INSTANT_TEXT
+    -8,
+#else
     0,
+#endif
     0,
     0,
     0,
@@ -117,8 +121,12 @@ static const int sMenuEntryBorderYCoords[MENU_ENTRY_COUNT] = {
     -8, -32, -56, -80, -104, -128, -156
 };
 
-static const u16 sOptionChoiceLabelXCoords[MENU_ENTRY_COUNT][3] = {
+static const u16 sOptionChoiceLabelXCoords[MENU_ENTRY_COUNT][3 + QOL_INSTANT_TEXT] = {
+#if QOL_INSTANT_TEXT
+    { 114, 146, 178, 218 },
+#else
     { 124, 172, 220 },
+#endif
     { 124, 172, 0   },
     { 132, 212, 0   },
     { 132, 212, 0   },
@@ -127,18 +135,29 @@ static const u16 sOptionChoiceLabelXCoords[MENU_ENTRY_COUNT][3] = {
     { 0,   0,   0   },
 };
 
-static const int sActiveButtonXCoords[5][3] = {
+static const int sActiveButtonXCoords[5][3 + QOL_INSTANT_TEXT] = {
+#if QOL_INSTANT_TEXT
+    { 100, 136, 172, 208 },
+#else
     { 112, 160, 208 },
+#endif
     { 112, 160, 208 },
     { 112, 192, 0   },
     { 112, 192, 0   },
     { 112, 192, 0   },
 };
 
-static const TouchscreenHitbox sOptionsAppTouchscreenHitboxes[16] = {
+static const TouchscreenHitbox sOptionsAppTouchscreenHitboxes[16 + QOL_INSTANT_TEXT] = {
+#if QOL_INSTANT_TEXT
+    { .rect = { .top = 26, .bottom = 46, .left = 100, .right = 136 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 136, .right = 172 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 172, .right = 208 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 208, .right = 256 - 1 } },
+#else
     { .rect = { .top = 26, .bottom = 46, .left = 112, .right = 151 } },
     { .rect = { .top = 26, .bottom = 46, .left = 160, .right = 200 } },
     { .rect = { .top = 26, .bottom = 46, .left = 208, .right = 248 } },
+#endif
     { .rect = { .top = 50, .bottom = 70, .left = 112, .right = 151 } },
     { .rect = { .top = 50, .bottom = 70, .left = 160, .right = 200 } },
     { .rect = { .top = 74, .bottom = 93, .left = 112, .right = 167 } },
@@ -154,10 +173,13 @@ static const TouchscreenHitbox sOptionsAppTouchscreenHitboxes[16] = {
     { TOUCHSCREEN_RECTLIST_END },
 };
 
-static const u32 sOptionsAppHitboxEntryValues[15][2] = {
+static const u32 sOptionsAppHitboxEntryValues[15 + QOL_INSTANT_TEXT][2] = {
     { MENU_ENTRY_TEXT_SPEED,   0 },
     { MENU_ENTRY_TEXT_SPEED,   1 },
     { MENU_ENTRY_TEXT_SPEED,   2 },
+#if QOL_INSTANT_TEXT
+    { MENU_ENTRY_TEXT_SPEED,   3 },
+#endif
     { MENU_ENTRY_BATTLE_SCENE, 0 },
     { MENU_ENTRY_BATTLE_SCENE, 1 },
     { MENU_ENTRY_BATTLE_STYLE, 0 },
@@ -766,7 +788,19 @@ static void OptionsApp_LoadMenuEntriesData(OptionsApp_Data *data) {
         }
     }
 
-    data->menuEntries[MENU_ENTRY_TEXT_SPEED].value = data->options.textSpeed;
+#if QOL_INSTANT_TEXT
+    // Append rather than shifting the existing message IDs for later rows.
+    static const u16 instantLabel[] = { CHAR_I, CHAR_N, CHAR_S, CHAR_T, CHAR_A, CHAR_N, CHAR_T };
+    String *instantString = String_New(8, data->heapID);
+    for (j = 0; j < sizeof(instantLabel) / sizeof(instantLabel[0]); j++) {
+        String_AddChar(instantString, instantLabel[j]);
+    }
+    data->menuEntries[MENU_ENTRY_TEXT_SPEED].strings[3] = instantString;
+    data->menuEntries[MENU_ENTRY_TEXT_SPEED].numStrings = 4;
+#endif
+    // Safely read an Instant save when this feature is disabled again.
+    u16 maxTextSpeed = data->menuEntries[MENU_ENTRY_TEXT_SPEED].numStrings - 1;
+    data->menuEntries[MENU_ENTRY_TEXT_SPEED].value = data->options.textSpeed > maxTextSpeed ? maxTextSpeed : data->options.textSpeed;
     data->menuEntries[MENU_ENTRY_BATTLE_SCENE].value = data->options.battleScene;
     data->menuEntries[MENU_ENTRY_BATTLE_STYLE].value = data->options.battleStyle;
     data->menuEntries[MENU_ENTRY_SOUND_METHOD].value = data->options.soundMethod;
@@ -907,7 +941,7 @@ static void OptionsApp_HandleInput(OptionsApp_Data *data) {
         case -1:
             break;
 
-        case 13: // Confirm button
+        case 13 + QOL_INSTANT_TEXT: // Confirm button
             data->currentMenuEntryId = sOptionsAppHitboxEntryValues[hitboxIndex][0];
             OptionsApp_SetActiveButtonsXPosition(data);
             OptionsApp_HideBorderOnConfirmRow(data);
@@ -920,7 +954,7 @@ static void OptionsApp_HandleInput(OptionsApp_Data *data) {
             Sprite_SetAnimCtrlSeq(data->sprites[8], 3);
             break;
 
-        case 14: // Quit button
+        case 14 + QOL_INSTANT_TEXT: // Quit button
             data->currentMenuEntryId = sOptionsAppHitboxEntryValues[hitboxIndex][0];
             OptionsApp_SetActiveButtonsXPosition(data);
             OptionsApp_HideBorderOnConfirmRow(data);
@@ -938,9 +972,9 @@ static void OptionsApp_HandleInput(OptionsApp_Data *data) {
             OptionsApp_MenuEntry *entry = &data->menuEntries[data->currentMenuEntryId];
 
             u32 value = sOptionsAppHitboxEntryValues[hitboxIndex][1];
-            if (value == 3) {
+            if (data->currentMenuEntryId == MENU_ENTRY_FRAME && value == 3) {
                 OptionsApp_UpdateMenuEntryCarousel(data, data->currentMenuEntryId, entry, -1);
-            } else if (value == 4) {
+            } else if (data->currentMenuEntryId == MENU_ENTRY_FRAME && value == 4) {
                 OptionsApp_UpdateMenuEntryCarousel(data, data->currentMenuEntryId, entry, 1);
             } else {
                 entry->value = value;

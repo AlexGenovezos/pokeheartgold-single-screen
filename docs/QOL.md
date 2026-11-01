@@ -6,7 +6,9 @@ The original project remains the `upstream` remote; `origin` points to this fork
 
 ## Backlog
 
-All features below are planned, not installed in the current game.
+The patch utility and opt-in instant-text/reusable-TM source changes now have
+host regression tests. None of the gameplay changes are installed in the current
+game. See [development commands](../tools/qol/README.md).
 
 | Order | Issue | Intended behavior |
 | --- | --- | --- |
@@ -15,7 +17,7 @@ All features below are planned, not installed in the current game.
 | 2 | [Reusable TMs #3](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/3) | Teaching a move does not consume its TM; acquisition and compatibility rules still apply. |
 | 3 | [HM field actions #4](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/4) | Receiving each HM unlocks its field action without teaching a party member. Preserve normal badge, story and location requirements. |
 | 4 | [Effectiveness indicators #5](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/5) | Show move effectiveness against the selected target using the active battle rules. |
-| 5 | [Battle modernization / Fairy type #6](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/6) | Define the target generation and included mechanics before changing rules or adding a type. |
+| 5 | [Gen IX battle mechanics / Fairy type #6](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/6) | Target Generation IX rules and Fairy typing; audit and reuse existing implementations before porting mechanics. |
 
 HM coverage: Cut, Fly, Surf, Strength, Rock Smash, Waterfall, Rock Climb and
 Whirlpool. Existing saves that already contain an HM must receive the same
@@ -53,9 +55,14 @@ Preserve the clean ROM and back up saves before testing changes.
 
 ## Initial build audit (2026-11-01)
 
-The current checkout lacks `tools/mwccarm/2.0/sp2p2/mwccarm.exe`, Nitro tools and
-linker templates, and the required proprietary SDK/library sources. The
-installed native app was generated directly from the retail ROM using
+The initial checkout lacked the compiler, Nitro tools, linker templates and
+required SDK/library sources. A broader local search found the user's supplied
+compiler/SDK archives and an older iCloud checkout containing the libraries.
+The archives and public host dependencies have now been prepared in ignored
+local paths. Library retrieval from iCloud timed out: most source files remain
+marked dataless, and only a small partial copy exists locally. The build is
+not ready until these library sources are available offline. The installed
+native app was generated directly from the retail ROM using
 `ssrecomp` v0.4.2; it is not evidence that this decompilation checkout can build
 a modified ROM. Resolve the build prerequisites or validate an alternative
 native modification path before promising an installable gameplay mod.
@@ -64,3 +71,10 @@ Instant-text starting points are `src/options.c`, `include/options.h`,
 `src/options_app.c`, `src/text.c`, `src/render_text.c` and
 `src/battle/battle_system.c`. Verify text-printer callbacks and waits before
 using the existing `TEXT_SPEED_INSTANT` rendering mode.
+
+## Existing implementations
+
+[Reuse research](QOL-REUSE.md) records hg-engine and HM-patch precedents, the
+native compatibility constraint, and the source paths for the remaining HM and
+effectiveness work. Prefer porting established modern battle behavior rather
+than building a second battle engine from scratch.

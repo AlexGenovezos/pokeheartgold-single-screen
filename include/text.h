@@ -5,11 +5,13 @@
 #include "dialog_box.h"
 #include "font_types_def.h"
 #include "options.h"
+#include "qol_config.h"
 #include "sys_task_api.h"
 
 #define MAKE_TEXT_COLOR(fg, sh, bg) ((((fg) & 0xFF) << 16) | (((sh) & 0xFF) << 8) | (((bg) & 0xFF) << 0))
 
 #define TEXT_SPEED_INSTANT    0    // Transfers to VRAM
+#define TEXT_SPEED_INSTANT_ASYNC 0xFE // Instant glyphs, scheduled waits/callbacks
 #define TEXT_SPEED_NOTRANSFER 0xFF // Defers VRAM transfer
 
 #define MAX_TEXT_PRINTERS 8
