@@ -23,6 +23,7 @@ $(prog): $(OBJS)
 $(OBJS): %.o: %.c
 $(OBJS): %.o: %.c $(DEPDIR)/%.d | $(DEPDIR)
 	$(CC) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	@touch $@
 
 $(DEPDIR): ; @mkdir -p $@
 

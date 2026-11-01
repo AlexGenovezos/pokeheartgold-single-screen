@@ -35,6 +35,7 @@ msgenc: $(OBJS)
 %.o: %.cpp
 %.o: %.cpp $(DEPDIR)/%.d | $(DEPDIR)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
+	@touch $@
 
 $(DEPDIR): ; @mkdir -p $@
 

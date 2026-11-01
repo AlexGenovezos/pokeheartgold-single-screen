@@ -19,6 +19,7 @@ $(DEPDIR): ; @mkdir -p $@
 %.o: %.cpp
 %.o: %.cpp $(DEPDIR)/%.d | $(DEPDIR)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
+	@touch $@
 
 clean:
 	$(RM) -r o2narc o2narc.exe $(DEPDIR) $(CXXOBJS)

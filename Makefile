@@ -23,6 +23,21 @@ endif
 CRT0_OBJ := lib/NitroSDK/src/crt0.o
 include filesystem.mk
 
+# BEGIN GAME DEFINE TRACKING
+# Keep compiler options in a real dependency: changing QoL flags must rebuild
+# game objects, while an unchanged invocation should reuse them.
+.PHONY: force-game-defines
+$(BUILD_DIR)/game-defines.txt: force-game-defines
+	$(file >$(BUILD_DIR)/game-defines.tmp,$(DEFINES))
+	@cmp -s $(BUILD_DIR)/game-defines.tmp $@ || cp $(BUILD_DIR)/game-defines.tmp $@
+	@$(RM) $(BUILD_DIR)/game-defines.tmp
+$(ALL_GAME_OBJS): $(BUILD_DIR)/game-defines.txt
+# These C++ runtime producers validate an exact compiler profile and contain no
+# gameplay code. Keep gameplay-only flags out of their production commands.
+QOL_LIBRARY_PRODUCERS := $(addprefix $(BUILD_DIR)/src/,to91_msl_scalar_new.o to91_msl_array_new.o to91_msl_shared_ptr_char_d1.o)
+$(QOL_LIBRARY_PRODUCERS): private DEFINES = $(GF_DEFINES) $(GLB_DEFINES) $(filter-out -DQOL_%,$(CLI_DEFINES))
+# END GAME DEFINE TRACKING
+
 $(ASM_OBJS): private MWASFLAGS += -DPM_ASM
 
 $(BUILD_DIR)/asm/nitrocrypto.o:  private MWCCVER := 1.2/sp2p3
@@ -99,7 +114,7 @@ sub: ; @$(MAKE) -C sub
 ROMSPEC        := rom.rsf
 MAKEROM_FLAGS  := $(DEFINES)
 
-$(ALL_GAME_OBJS): files_for_compile
+$(ALL_GAME_OBJS): | files_for_compile
 $(ELF): files_for_compile dsprot libsyscall
 
 dsprot:
