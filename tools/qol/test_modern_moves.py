@@ -74,7 +74,7 @@ int main(void) {
         assert(Qol_GetMoveAnimation(ids[i])==ids[i]);
 #endif
     }
-    const int invalid[]={468,500,576,578,579,581,587,589,607,609,65535};
+    const int invalid[]={468,500,576,578,579,581,590,591,607,609,65535};
     for (unsigned i=0;i<NELEMS(invalid);i++) {
         assert(!Qol_IsSupportedMove(invalid[i]));
         assert(!Qol_GetExtendedMoveData(invalid[i]));
@@ -86,7 +86,7 @@ int main(void) {
     assert(Qol_IsSoundMove(577)==QOL_MODERN_MOVES);
     for (int i=0;i<NUM_MOVES;i++) assert(Qol_GetMetronomeMove(i)==i+1);
 #if QOL_MODERN_MOVES
-    assert(QOL_METRONOME_MOVE_COUNT==472);
+    assert(QOL_METRONOME_MOVE_COUNT==484);
     for(int i=0;i<5;i++) assert(Qol_GetMetronomeMove(NUM_MOVES+i)==ids[i]);
 #else
     assert(QOL_METRONOME_MOVE_COUNT==467);
@@ -122,10 +122,10 @@ int main(void) {
     LoadMoveTbl(loaded); assert(reads==1 && loaded[NUM_MOVES+1].power==0x5a);
     assert(GetMoveMaxPP(MOVE_TACKLE,3)==56 && reads==2);
 #if QOL_MODERN_MOVES
-    const int ids[]={577,580,586,588,608};
-    for(int i=0;i<5;i++) {
+    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854};
+    for(unsigned i=0;i<NELEMS(ids);i++) {
         int before=reads; MoveTbl entry; LoadMoveEntry(ids[i],&entry);
-        assert(reads==before && entry.type==9);
+        assert(reads==before && entry.pp==Qol_GetExtendedMoveData(ids[i])->pp);
         for(int attr=0;attr<=MOVEATTR_CONTEST_TYPE;attr++)
             assert(GetMoveAttr(ids[i],attr)==GetMoveTblAttr(&entry,attr));
         for(int ups=0;ups<8;ups++)
@@ -139,6 +139,100 @@ int main(void) {
 '''
         for flags in ((), ('-DQOL_MODERN_MOVES=1',), ('-DQOL_MODERN_MOVES=1','-DQOL_MODERN_TYPES=1')):
             self.compile_run(source+checks,*flags,"-Wno-pointer-to-int-cast")
+
+    def test_ordinary_batch_metadata_pp_and_sound_classification(self):
+        checks = r"""
+int main(void) {
+    const int ids[] = {587,673,670,696,532,687,898,622,621,575,589,854};
+    const int expected[][11] = {
+        {0,1,40,9,100,30,0,0,0,0x72,345},
+        {0,0,40,12,100,40,0,0,0,0x32,75},
+        {0,0,95,4,95,10,0,0,0,0x33,414},
+        {0,0,60,17,100,20,0,8,0,0x33,399},
+        {43,0,80,4,95,10,0,0,0,0x33,163},
+        {17,0,70,8,0,10,0,0,0,0x33,442},
+        {43,0,70,11,100,20,0,0,0,0x32,352},
+        {0,0,120,4,85,10,0,4,0,0x72,89},
+        {0,1,110,11,85,10,0,4,0,0x72,352},
+        {0,0,90,12,100,15,0,8,0,0x32,75},
+        {0,1,140,0,100,10,0,8,0,0x72,304},
+        {0,1,80,0,100,10,0,0,0,0x72,161}
+    };
+    for(unsigned i=0;i<NELEMS(ids);i++) {
+        const MoveTbl *entry=Qol_GetExtendedMoveData(ids[i]);
+        assert(Qol_IsSupportedMove(ids[i])==QOL_MODERN_MOVES);
+#if QOL_MODERN_MOVES
+        assert(entry);
+        const int actual[]={entry->effect,entry->category,entry->power,entry->type,
+            entry->accuracy,entry->pp,entry->effectChance,entry->range,entry->priority,entry->flags};
+        for(int j=0;j<10;j++) assert(actual[j]==expected[i][j]);
+        assert(Qol_GetMoveAnimation(ids[i])==expected[i][10]);
+        assert(Qol_GetMetronomeMove(NUM_MOVES+5+i)==ids[i]);
+#else
+        assert(!entry);
+        (void)expected;
+#endif
+        assert(Qol_IsSoundMove(ids[i])==(QOL_MODERN_MOVES && ids[i]==589));
+        assert(Qol_MoveBypassesSubstitute(ids[i])==(QOL_MODERN_MOVES && ids[i]==589));
+    }
+    return 0;
+}
+"""
+        for flags in ((), ('-DQOL_MODERN_MOVES=1',), ('-DQOL_MODERN_MOVES=1','-DQOL_MODERN_TYPES=1')):
+            self.compile_run(self.source()+checks,*flags)
+
+    def test_full_move_names_and_private_card_bank_use_real_helpers(self):
+        declarations = r"""
+#include <assert.h>
+#include <stddef.h>
+#include "qol_config.h"
+#include "constants/qol_moves.h"
+typedef unsigned int u32;
+typedef unsigned short u16;
+#include "constants/charcode.h"
+enum HeapID { HEAP_ID_BATTLE };
+enum { MSGDATA_LOAD_LAZY, NARC_msgdata_msg, NARC_msg_msg_0750_bin=750 };
+typedef struct { int capacity, bank, move; } String;
+typedef struct { int bank; } MsgData;
+static String storage;
+static MsgData messages;
+static MsgData *NewMsgDataFromNarc(int mode,int narc,int bank,enum HeapID heap) {
+    messages.bank=bank; return &messages;
+}
+static String *String_New(int capacity,enum HeapID heap) {
+    storage.capacity=capacity; return &storage;
+}
+static void ReadMsgDataIntoString(MsgData *msg,u32 move,String *out) {
+    out->bank=msg->bank; out->move=move;
+}
+static String *NewString_ReadMsgData(MsgData *msg,u32 move) {
+    String *out=String_New(32,HEAP_ID_BATTLE); ReadMsgDataIntoString(msg,move,out); return out;
+}
+static void CopyU16ArrayToString(String *out,const u16 *chars) {}
+static void DestroyMsgData(MsgData *msg) {}
+static int Qol_IsSupportedMove(u16 move) { return move<=467 || move==622 || move==577; }
+#define NUM_MOVES 467
+"""
+        actual=game.function_source('src/msgdata.c','GetMoveName')+'\n'+game.function_source(
+            'src/battle/battle_input.c','BattleInput_SingleScreen_MoveName')
+        checks=r"""
+int main(void) {
+    String *name=GetMoveName(622,HEAP_ID_BATTLE);
+    assert(name->capacity==(QOL_MODERN_MOVES?32:16));
+    assert(name->bank==750 && name->move==622);
+    const int ids[]={33,467,577,622,623};
+    for(unsigned i=0;i<sizeof(ids)/sizeof(ids[0]);i++) {
+        name=BattleInput_SingleScreen_MoveName(ids[i]);
+        int extended=QOL_MODERN_MOVES && (ids[i]==577 || ids[i]==622);
+        assert(name->bank==(extended?829:750));
+        assert(name->move==ids[i]);
+    }
+    return 0;
+}
+"""
+        for enabled in (0,1):
+            self.compile_run(declarations+actual+checks,f'-DQOL_MODERN_MOVES={enabled}',
+                             '-Wno-unused-function')
 
     def test_actual_ai_embedded_table_size_is_unchanged(self):
         header=(ROOT/'include/battle/battle.h').read_text()
@@ -177,7 +271,7 @@ int main(void) {
         self.assertIn('MOVE_DISARMING_VOICE',(ROOT/'src/battle/battle_util.c').read_text())
 
 
-    def test_real_damage_ai_and_preview_read_all_five_extended_entries(self):
+    def test_real_damage_ai_and_preview_read_all_extended_entries(self):
         declarations = r'''
 #include "constants/items.h"
 #include "constants/abilities.h"
@@ -216,11 +310,12 @@ static int GetBattlerVar(BattleContext *ctx,int battler,int field,void *unused) 
 int main(void) {
     BattleContext ctx={0}; ctx.battleMons[0].hp=ctx.battleMons[1].hp=100;
     ctx.battleMons[0].type1=ctx.battleMons[0].type2=TYPE_NONE;
-    const int ids[]={577,580,586,588,608};
+    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854};
+    const int types[]={9,9,9,9,9,9,12,4,17,4,8,11,4,11,12,0,0};
     for(unsigned i=0;i<NELEMS(ids);i++) {
         for(int type=0;type<NUMBER_OF_MON_TYPES;type++) {
             ctx.battleMons[1].type1=ctx.battleMons[1].type2=type;
-            int expected=CalculateTypeEffectiveness(TYPE_FAIRY,type,type);
+            int expected=CalculateTypeEffectiveness(types[i],type,type);
             BattleContext before=ctx;
 #if QOL_MODERN_MOVES
             assert(Qol_PreviewTypeEffectiveness(&ctx,ids[i],0,1)==expected);
@@ -241,9 +336,11 @@ int main(void) {
     ctx.battleMons[1].ability=ABILITY_SOUNDPROOF;
 #if QOL_MODERN_MOVES
     assert(Qol_PreviewTypeEffectiveness(&ctx,MOVE_DISARMING_VOICE,0,1)==0);
+    assert(Qol_PreviewTypeEffectiveness(&ctx,MOVE_BOOMBURST,0,1)==0);
     assert(Qol_PreviewTypeEffectiveness(&ctx,MOVE_MOONBLAST,0,1)==40);
     ctx.battleMons[0].ability=ABILITY_MOLD_BREAKER;
     assert(Qol_PreviewTypeEffectiveness(&ctx,MOVE_DISARMING_VOICE,0,1)==40);
+    assert(Qol_PreviewTypeEffectiveness(&ctx,MOVE_BOOMBURST,0,1)==40);
 #endif
     return 0;
 }
@@ -340,11 +437,11 @@ static void ReadWholeNarcMemberByIdPair(void *out,int narc,int id) {readId=id;}
         actual=game.function_source('src/battle/battle_util.c','ReadBattleScriptFromNarc')
         checks=r'''
 int main(void) {
-    const int ids[]={33,467,577,580,586,588,608,468,500,609,65535,65536,-1};
+    const int ids[]={33,467,577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854,468,500,609,65535,65536,-1};
     for(unsigned i=0;i<NELEMS(ids);i++) {
         BattleContext ctx={0}; int expected=ids[i];
 #if QOL_MODERN_MOVES
-        if(i>=7) expected=0;
+        if(i>=19) expected=0;
 #endif
         ReadBattleScriptFromNarc(&ctx,NARC_a_0_0_0,ids[i]);
         assert(readId==expected && sizeId==expected && ctx.scriptFileId==expected);

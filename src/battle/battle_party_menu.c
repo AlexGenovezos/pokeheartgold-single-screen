@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "global.h"
+#include "qol_config.h"
 
 #include "constants/battle.h"
 #include "constants/items.h"
@@ -2010,7 +2011,11 @@ static void BattlePartyMenu_PrintHeldItemName(BattlePartyMenu *menu, int window,
 
 static void BattlePartyMenu_PrintMoveName(BattlePartyMenu *menu, int move, int window, int msgNo, u16 fontId, u16 y, u32 color) {
     Window *win = &menu->pageWindows[window];
+#if QOL_MODERN_MOVES
+    String *string = String_New(32, menu->context->heapID);
+#else
     String *string = String_New(16, menu->context->heapID);
+#endif
     String *template = NewString_ReadMsgData(menu->msgData, msgNo);
     int x;
 

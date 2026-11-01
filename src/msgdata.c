@@ -6,6 +6,7 @@
 
 #include "heap.h"
 #include "message_format.h"
+#include "qol_config.h"
 
 static void CopyEncryptedMessage16(u16 *dest, const u16 *src, MAT_ENTRY *alloc);
 static void ReadMsgData_ExistingNarc_ExistingString(NARC *narc, u32 group, u32 num, enum HeapID heapID, String *dest);
@@ -301,7 +302,11 @@ String *GetMoveName(u32 move, enum HeapID heapno) {
     MsgData *msgData = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, NARC_msg_msg_0750_bin, heapno);
     String *ret;
     if (msgData != NULL) {
+#if QOL_MODERN_MOVES
+        ret = String_New(32, heapno);
+#else
         ret = String_New(16, heapno);
+#endif
         if (ret != NULL) {
             ReadMsgDataIntoString(msgData, move, ret);
         }

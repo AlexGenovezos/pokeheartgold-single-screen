@@ -6,6 +6,8 @@ import struct
 from game_text import game_text
 from nitro_data import pack_messages, pack_narc, unpack_messages, unpack_narc
 
+CARD_MESSAGE_BANK = 829
+
 FIELDS = ('id', 'effect', 'category', 'power', 'type', 'accuracy', 'pp',
           'chance', 'range', 'priority', 'flags', 'animation')
 PRESENTATION = {
@@ -19,6 +21,30 @@ PRESENTATION = {
               'The user attacks with moonlight.\nThis may also lower the\ntarget’s Sp. Atk stat.'),
     608: dict(name='Dazzling Gleam', card='Dazzle Gleam', description=
               'The user emits a powerful flash\nof light that damages all\nopposing Pokémon.'),
+    587: dict(name='Fairy Wind', card='Fairy Wind', description=
+              'The user stirs up a fairy wind\nto strike the target.'),
+    673: dict(name='Leafage', card='Leafage', description=
+              'The user attacks by pelting\nthe target with leaves.'),
+    670: dict(name='High Horsepower', card='High Horse', description=
+              'The user fiercely attacks the\ntarget using its entire body.'),
+    696: dict(name='Brutal Swing', card='Brutal Swing', description=
+              'The user swings its body around\nviolently to damage everything\naround it.'),
+    532: dict(name='Drill Run', card='Drill Run', description=
+              'The user rotates its body like\na drill. This move has a high\ncritical-hit ratio.'),
+    687: dict(name='Smart Strike', card='Smart Strike', description=
+              'The user stabs the target with\na sharp horn. This attack\nnever misses.'),
+    898: dict(name='Aqua Cutter', card='Aqua Cutter', description=
+              'The user cuts with pressurized\nwater. This move has a high\ncritical-hit ratio.'),
+    622: dict(name='Precipice Blades', card='Precip Blades', description=
+              'The user manifests fearsome\nstone blades to strike all\nopposing Pokémon.'),
+    621: dict(name='Origin Pulse', card='Origin Pulse', description=
+              'The user fires deep blue beams\nof light at all opposing\nPokémon.'),
+    575: dict(name='Petal Blizzard', card='Petal Storm', description=
+              'The user stirs up a violent\nblizzard of petals to damage\neverything around it.'),
+    589: dict(name='Boomburst', card='Boomburst', description=
+              'The user attacks everything\naround it with a destructive\nexplosive sound.'),
+    854: dict(name='Tera Blast', card='Tera Blast', description=
+              'The user releases energy as a\nNormal-type special attack.\nTerastallization is unavailable.'),
 }
 
 
@@ -60,7 +86,7 @@ def extended_move_resources(movedata, scripts, messages, charmap, entries):
     banks, bank_names = unpack_narc(messages)
     if len(data) != 471 or any(len(member) != 16 for member in data):
         raise ValueError('Unexpected original movedata archive')
-    if len(moves) != 501 or len(banks) <= 751:
+    if len(moves) != 501 or len(banks) != CARD_MESSAGE_BANK:
         raise ValueError('Unexpected original move script/message archive')
     ids = {row['id'] for row in entries}
     if ids != PRESENTATION.keys():
@@ -70,6 +96,8 @@ def extended_move_resources(movedata, scripts, messages, charmap, entries):
     data.extend([bytes(16)] * (count - len(data)))
     moves.extend([moves[0]] * (count - len(moves)))
     for row in entries:
+        if moves[row['animation']] != struct.pack('<I', 36):
+            raise ValueError('Expected a plain GoToEffectScript animation alias')
         data[row['id']] = struct.pack('<H6BHbB2BH', *(row[key] for key in FIELDS[1:11]), 0, 0, 0)
         moves[row['id']] = moves[row['animation']]
     for bank, field in ((749, 'description'), (750, 'name'), (751, 'name')):
@@ -83,4 +111,8 @@ def extended_move_resources(movedata, scripts, messages, charmap, entries):
                 value = value.upper()
             words[move_id] = game_text(value, charmap)
         banks[bank] = pack_messages(words, key)
+    cards = [[0xFFFF] for _ in range(count)]
+    for move_id, presentation in PRESENTATION.items():
+        cards[move_id] = game_text(presentation['card'], charmap)
+    banks.append(pack_messages(cards, 0))
     return pack_narc(data, data_names), pack_narc(moves, script_names), pack_narc(banks, bank_names)

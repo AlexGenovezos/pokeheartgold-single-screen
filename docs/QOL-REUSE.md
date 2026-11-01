@@ -191,3 +191,15 @@ integration work includes the modern combined
 final-damage modifier chain, the remaining new moves/scripts/learnsets, modern status/weather
 rules, abilities and saved-slot migration. Record each port's tests and native
 runtime evidence before enabling it in the installed app.
+
+The second ordinary-move batch expands support to17 extended moves and106
+base-form level entries. It adds Fairy Wind, Leafage, High Horsepower, Brutal
+Swing, Drill Run, Smart Strike, Aqua Cutter, Precipice Blades, Origin Pulse,
+Petal Blizzard, Boomburst and ordinary non-Terastallized Tera Blast. Full names
+stay in the existing name banks; private bank829 supplies short card labels.
+Both private full-name destinations allow32 slots with modern moves enabled,
+including the battle party menu previously limited to15 glyphs plus terminator.
+All120 host tests passed. The matching native rebuild passed1700 lockstep
+attack frames and600 Check Moves frames with zero fallbacks/guard failures,
+and rendered Precipice Blades in full. Spec and quality reviews approved the
+batch after the text-capacity regression was fixed.

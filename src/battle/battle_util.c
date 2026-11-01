@@ -3098,6 +3098,7 @@ static u16 sSoundMoves[] = {
     MOVE_CHATTER,
 #if QOL_MODERN_MOVES
     MOVE_DISARMING_VOICE,
+    MOVE_BOOMBURST,
 #endif
 };
 

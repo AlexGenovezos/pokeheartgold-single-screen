@@ -8,6 +8,7 @@
 #include "battle/battle_util.h"
 #include "qol_config.h"
 #include "constants/qol_moves.h"
+#include "qol_moves.h"
 #include "msgdata/msg/msg_0197.h"
 
 #include "gf_gfx_loader.h"
@@ -4794,19 +4795,18 @@ static void SingleScreen_PaintButton(Window *window, int x, int y, int w, int h,
 }
 
 static String *BattleInput_SingleScreen_MoveName(u16 move) {
-    String *name = GetMoveName(move, HEAP_ID_BATTLE);
 #if QOL_MODERN_MOVES
-    static const u16 voice[] = { CHAR_D, CHAR_i, CHAR_s, CHAR_a, CHAR_r, CHAR_m, CHAR_SPACE,
-        CHAR_V, CHAR_o, CHAR_i, CHAR_c, CHAR_e, EOS };
-    static const u16 gleam[] = { CHAR_D, CHAR_a, CHAR_z, CHAR_z, CHAR_l, CHAR_e, CHAR_SPACE,
-        CHAR_G, CHAR_l, CHAR_e, CHAR_a, CHAR_m, EOS };
-    if (move == MOVE_DISARMING_VOICE) {
-        CopyU16ArrayToString(name, voice);
-    } else if (move == MOVE_DAZZLING_GLEAM) {
-        CopyU16ArrayToString(name, gleam);
+    if (move > NUM_MOVES && Qol_IsSupportedMove(move)) {
+        MsgData *messages = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg,
+            QOL_MOVE_CARD_MESSAGE_BANK, HEAP_ID_BATTLE);
+        if (messages != NULL) {
+            String *name = NewString_ReadMsgData(messages, move);
+            DestroyMsgData(messages);
+            return name;
+        }
     }
 #endif
-    return name;
+    return GetMoveName(move, HEAP_ID_BATTLE);
 }
 
 typedef struct SingleScreenMenuItem {

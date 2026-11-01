@@ -87,6 +87,7 @@ BOOL Qol_IsSoundMove(u16 moveId) {
     case MOVE_CHATTER:
 #if QOL_MODERN_MOVES
     case MOVE_DISARMING_VOICE:
+    case MOVE_BOOMBURST:
 #endif
         return TRUE;
     }

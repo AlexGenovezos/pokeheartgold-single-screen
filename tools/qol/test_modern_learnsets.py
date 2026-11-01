@@ -95,7 +95,9 @@ static void DeleteBoxMonFirstMoveAndAppend(BoxPokemon *p, u16 move) {
 }
 BOOL Qol_IsSupportedMove(u16 move) {
     return move <= 467 || (QOL_MODERN_MOVES &&
-        (move==577 || move==580 || move==586 || move==588 || move==608));
+        (move==577 || move==580 || move==586 || move==588 || move==608 ||
+         move==587 || move==673 || move==670 || move==696 || move==532 || move==687 ||
+         move==898 || move==622 || move==621 || move==575 || move==589 || move==854));
 }
 static void LoadLevelUpLearnset_HandleAlternateForm(int species, int form, u16 *dest) {
     calledSpecies=species; calledForm=form;
@@ -126,7 +128,8 @@ static int contains(const QolLevelUpMove *table, int count, int move, int level)
     return 0;
 }
 int main(void) {
-    assert(sizeof(((struct EggMoveSearch *)0)->baby_learnset) / sizeof(u16) >= QOL_LEVEL_UP_LEARNSET_CAPACITY);
+    assert(sizeof(((struct EggMoveSearch *)0)->baby_learnset) / sizeof(u16) == 50);
+    assert(QOL_LEVEL_UP_LEARNSET_CAPACITY <= 50);
     struct { QolLevelUpMove table[QOL_LEVEL_UP_LEARNSET_CAPACITY]; unsigned canary; } guarded;
     guarded.canary=0xa55aa55a;
     int n=Qol_LoadLevelUpLearnset(35,0,guarded.table);
@@ -143,6 +146,12 @@ int main(void) {
     n=Qol_LoadLevelUpLearnset(282,0,guarded.table);
     assert(contains(guarded.table,n,580,12)==QOL_MODERN_MOVES);
     assert(contains(guarded.table,n,608,0)==QOL_MODERN_MOVES);
+    const int additions[][3]={{252,3,673},{143,40,670},{22,45,532},{78,0,687},
+        {475,1,898},{383,1,622},{382,1,621},{3,0,575},{295,72,589},{303,4,587}};
+    for(unsigned a=0;a<NELEMS(additions);a++) {
+        n=Qol_LoadLevelUpLearnset(additions[a][0],0,guarded.table);
+        assert(contains(guarded.table,n,additions[a][2],additions[a][1])==QOL_MODERN_MOVES);
+    }
     // Every alternate form stays on its native/form-only table.
     for(int form=1;form<32;form++) {
         n=Qol_LoadLevelUpLearnset(35,form,guarded.table);
@@ -169,6 +178,13 @@ int main(void) {
     }
     Heap_Free(eligible);
     largestLegacy=0;
+    for(int level=2;level<=3;level++) {
+        mon=(Pokemon){{252,0,level,{0}}};
+        eligible=MoveRelearner_GetEligibleLevelUpMoves(&mon,HEAP_ID_DEFAULT);
+        int leafage=0;
+        for(k=0;eligible[k]!=LEVEL_UP_LEARNSET_END;k++) leafage|=eligible[k]==673;
+        assert(leafage==(QOL_MODERN_MOVES && level==3)); Heap_Free(eligible);
+    }
     mon=(Pokemon){{35,0,44,{0}}};
     InitBoxMonMoveset(&mon.box);
     assert(mon.box.moves[0]==(QOL_MODERN_MOVES?577:10));
@@ -233,12 +249,28 @@ int main(void) {
         data = (ROOT / 'include/data/qol_learnsets.inc').read_text()
         entries = [tuple(map(int, row)) for row in
                    re.findall(r'QOL_LEVEL_UP_MOVE\((\d+), (\d+), (\d+)\)', data)]
-        self.assertEqual(len(entries), 66)
-        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED))
+        self.assertEqual(len(entries), 106)
+        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED) - {696,854})
+        self.assertEqual(set(learnset_import.SUPPORTED), {577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854})
+        self.assertIn((383, 1, 622), entries)
+        self.assertIn((295, 72, 589), entries)
+        self.assertIn((475, 1, 898), entries)
         self.assertIn((282, 0, 608), entries)
+        from collections import Counter
+        self.assertEqual(max(Counter(species for species, _, _ in entries).values()), 4)
         profile = ROOT / '.local-tools/validation/gen9-import-profile.json'
         if profile.exists():
             self.assertEqual(learnset_import.generate(json.loads(profile.read_text())), data)
+
+    def test_generator_checks_precipice_source_spelling_before_restoring_official_name(self):
+        profile_path=ROOT/'.local-tools/validation/gen9-import-profile.json'
+        if not profile_path.exists():
+            self.skipTest('Needs pinned import profile')
+        profile=json.loads(profile_path.read_text())
+        move=next(m for m in profile['moves'] if m['engine_id']==622)
+        move['caps_name']='SOME OTHER MOVE'
+        with self.assertRaises(ValueError):
+            learnset_import.generate(profile)
 
     def test_native_legacy_members_fit_temporary_buffer(self):
         narc = (ROOT / 'files/poketool/personal/wotbl.narc').read_bytes()
