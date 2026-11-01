@@ -93,7 +93,7 @@ typedef struct OptionsApp_Data {
 
 static const s8 sOptionsApp_ClearRectXOffsets[MENU_ENTRY_COUNT] = {
 #if QOL_INSTANT_TEXT
-    -8,
+    -16,
 #else
     0,
 #endif
@@ -123,7 +123,7 @@ static const int sMenuEntryBorderYCoords[MENU_ENTRY_COUNT] = {
 
 static const u16 sOptionChoiceLabelXCoords[MENU_ENTRY_COUNT][3 + QOL_INSTANT_TEXT] = {
 #if QOL_INSTANT_TEXT
-    { 114, 146, 178, 218 },
+    { 111, 140, 169, 210 },
 #else
     { 124, 172, 220 },
 #endif
@@ -135,9 +135,16 @@ static const u16 sOptionChoiceLabelXCoords[MENU_ENTRY_COUNT][3 + QOL_INSTANT_TEX
     { 0,   0,   0   },
 };
 
+#if QOL_INSTANT_TEXT
+// Coordinates in the 240px option-text window (which begins at screen x=8).
+static const u16 sTextSpeedButtonRects[4][2] = {
+    { 96, 30 }, { 128, 24 }, { 154, 30 }, { 186, 48 },
+};
+#endif
+
 static const int sActiveButtonXCoords[5][3 + QOL_INSTANT_TEXT] = {
 #if QOL_INSTANT_TEXT
-    { 100, 136, 172, 208 },
+    { 104, 136, 162, 194 },
 #else
     { 112, 160, 208 },
 #endif
@@ -149,10 +156,10 @@ static const int sActiveButtonXCoords[5][3 + QOL_INSTANT_TEXT] = {
 
 static const TouchscreenHitbox sOptionsAppTouchscreenHitboxes[16 + QOL_INSTANT_TEXT] = {
 #if QOL_INSTANT_TEXT
-    { .rect = { .top = 26, .bottom = 46, .left = 100, .right = 136 } },
-    { .rect = { .top = 26, .bottom = 46, .left = 136, .right = 172 } },
-    { .rect = { .top = 26, .bottom = 46, .left = 172, .right = 208 } },
-    { .rect = { .top = 26, .bottom = 46, .left = 208, .right = 256 - 1 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 104, .right = 134 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 136, .right = 160 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 162, .right = 192 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 194, .right = 242 } },
 #else
     { .rect = { .top = 26, .bottom = 46, .left = 112, .right = 151 } },
     { .rect = { .top = 26, .bottom = 46, .left = 160, .right = 200 } },
@@ -698,6 +705,12 @@ static void OptionsApp_SetupWindows(OptionsApp_Data *data) {
     LoadFontPal0(GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_13_OFFSET, data->heapID);
     LoadFontPal1(GF_PAL_LOCATION_MAIN_BG, GF_PAL_SLOT_12_OFFSET, data->heapID);
     LoadFontPal1(GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_12_OFFSET, data->heapID);
+#if QOL_INSTANT_TEXT
+    static const u16 speedButtonColors[] = {
+        GX_RGB(8, 16, 20), GX_RGB(4, 10, 14), GX_RGB(10, 20, 28)
+    };
+    BG_LoadPlttData(GF_BG_LYR_MAIN_1, speedButtonColors, sizeof(speedButtonColors), (13 * 16 + 3) * 2);
+#endif
 
     FillWindowPixelBuffer(&data->windows.optionsTitle, 0x00);
     FillWindowPixelBuffer(&data->windows.selectedOption, 0x00);
@@ -809,6 +822,21 @@ static void OptionsApp_LoadMenuEntriesData(OptionsApp_Data *data) {
     data->menuEntries[MENU_ENTRY_6].value = 0;
 }
 
+#if QOL_INSTANT_TEXT
+static void OptionsApp_DrawTextSpeedButtons(OptionsApp_Data *data) {
+    Window *window = &data->windows.selectedOption;
+    // Opaque pixels replace the original three-button artwork beneath this row.
+    FillWindowPixelRect(window, 5, 92, 0, 148, 24);
+    for (u16 i = 0; i < 4; i++) {
+        u16 left = sTextSpeedButtonRects[i][0];
+        u16 width = sTextSpeedButtonRects[i][1];
+        u16 fill = i == data->menuEntries[MENU_ENTRY_TEXT_SPEED].value ? 15 : 3;
+        FillWindowPixelRect(window, 4, left, 2, width, 20);
+        FillWindowPixelRect(window, fill, left + 1, 3, width - 2, 18);
+    }
+}
+#endif
+
 static void OptionsApp_UpdateMenuEntry(OptionsApp_Data *data, u16 menuEntryId) {
     u32 selectedColor = MAKE_TEXT_COLOR(1, 2, 0);
     u32 notSelectedColor = MAKE_TEXT_COLOR(15, 2, 0);
@@ -839,12 +867,22 @@ static void OptionsApp_UpdateMenuEntry(OptionsApp_Data *data, u16 menuEntryId) {
     }
 
     x = 0;
+#if QOL_INSTANT_TEXT
+    if (menuEntryId == MENU_ENTRY_TEXT_SPEED) {
+        OptionsApp_DrawTextSpeedButtons(data);
+    }
+#endif
     for (i = 0; i < data->menuEntries[menuEntryId].numStrings; i++) {
         if (i == data->menuEntries[menuEntryId].value) {
             color = selectedColor;
         } else {
             color = notSelectedColor;
         }
+#if QOL_INSTANT_TEXT
+        if (menuEntryId == MENU_ENTRY_TEXT_SPEED) {
+            color = i == data->menuEntries[menuEntryId].value ? MAKE_TEXT_COLOR(1, 2, 15) : MAKE_TEXT_COLOR(15, 2, 3);
+        }
+#endif
         // required to match a double `bls` above
         if (i == data->menuEntries[menuEntryId].numStrings - 1) {
             frameDelay = TEXT_SPEED_NOTRANSFER;
@@ -1072,6 +1110,11 @@ static void OptionsApp_SetupSprites(OptionsApp_Data *data) {
     }
 
     Sprite_SetDrawFlag(data->sprites[7], TRUE);
+#if QOL_INSTANT_TEXT
+    // The original selection sprite has a fixed width and an arrow, so it
+    // cannot highlight four differently sized choices without covering text.
+    Sprite_SetDrawFlag(data->sprites[0], FALSE);
+#endif
 }
 
 static void OptionsApp_SetActiveButtonsXPosition(OptionsApp_Data *data) {
