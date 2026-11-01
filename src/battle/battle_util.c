@@ -5767,25 +5767,25 @@ static BOOL Qol_HasPlusMinusAlly(BattleSystem *battleSystem, BattleContext *ctx,
     return FALSE;
 }
 
-// Bounded original-roster offense only: use wide intermediates, rather than
+// Bounded original-roster stats only: use wide intermediates, rather than
 // infer cartridge overflow behavior for synthetic stats. Q12 chain rounds a
 // half up; applying the completed group rounds a half down.
-static u32 Qol_ChainOffenseModifier(u32 accumulated, u32 modifier) {
+static u32 Qol_ChainStatModifier(u32 accumulated, u32 modifier) {
     return (u32)(((u64)accumulated * modifier + 2048) >> 12);
 }
 
-static u32 Qol_ApplyOffenseModifier(u32 stat, u32 modifier) {
+static u32 Qol_ApplyStatModifier(u32 stat, u32 modifier) {
     return (u32)(((u64)stat * modifier + 2047) >> 12);
 }
 
-static u16 Qol_GetOffenseBaseSpecies(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
+static u16 Qol_GetBaseSpecies(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
     if (GetBattlerVar(ctx, battlerId, BMON_DATA_STATUS2, NULL) & STATUS2_TRANSFORM) {
         return GetMonData(BattleSystem_GetPartyMon(battleSystem, battlerId, ctx->selectedMonIndex[battlerId]), MON_DATA_SPECIES, NULL);
     }
     return GetBattlerVar(ctx, battlerId, BMON_DATA_SPECIES, NULL);
 }
 
-static int Qol_CountFlowerGiftProviders(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
+static int Qol_CountFlowerGiftProviders(BattleSystem *battleSystem, BattleContext *ctx, int battlerId, int attacker) {
     int i;
     int count = 0;
     int maxBattlers = BattleSystem_GetMaxBattlers(battleSystem);
@@ -5796,14 +5796,17 @@ static int Qol_CountFlowerGiftProviders(BattleSystem *battleSystem, BattleContex
     if (battlerId < 0 || battlerId >= maxBattlers) {
         return 0;
     }
-    // Showdown's onAllyModifyAtk includes self, but only actual active, living
+    // Showdown's ally stat events include self, but only actual active, living
     // base Cherrim providers. A hypothetical AI ability cannot supply a field
     // event. Count each provider; do not collapse two Cherrim to one boost.
+    // attacker < 0 selects the offensive event; defending providers are bypass-
+    // checked only after HP, side, active ability and base-species eligibility.
     for (i = 0; i < maxBattlers; i++) {
         if (ctx->battleMons[i].hp
             && BattleSystem_GetFieldSide(battleSystem, i) == BattleSystem_GetFieldSide(battleSystem, battlerId)
             && GetBattlerAbility(ctx, i) == ABILITY_FLOWER_GIFT
-            && Qol_GetOffenseBaseSpecies(battleSystem, ctx, i) == SPECIES_CHERRIM) {
+            && Qol_GetBaseSpecies(battleSystem, ctx, i) == SPECIES_CHERRIM
+            && (attacker < 0 || CheckBattlerAbilityIfNotIgnored(ctx, attacker, i, ABILITY_FLOWER_GIFT))) {
             count++;
         }
     }
@@ -5821,24 +5824,24 @@ static u32 Qol_ModernOffenseStat(u32 stat, u8 category, u8 type, const MoveDamag
     // These exact half factors commute within priority5. Hustle modifies the
     // stage-floored stat directly, never the chain accumulator.
     if (targetReduction) {
-        modifier = Qol_ChainOffenseModifier(modifier, 2048);
+        modifier = Qol_ChainStatModifier(modifier, 2048);
     }
     if (category == CATEGORY_PHYSICAL) {
         if (user->ability == ABILITY_HUSTLE) {
             stat = stat * 3 / 2;
         }
         if (user->ability == ABILITY_HUGE_POWER || user->ability == ABILITY_PURE_POWER) {
-            modifier = Qol_ChainOffenseModifier(modifier, 8192);
+            modifier = Qol_ChainStatModifier(modifier, 8192);
         }
         if (slowStart) {
-            modifier = Qol_ChainOffenseModifier(modifier, 2048);
+            modifier = Qol_ChainStatModifier(modifier, 2048);
         }
         if (user->ability == ABILITY_GUTS && user->status) {
-            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+            modifier = Qol_ChainStatModifier(modifier, 6144);
         }
     } else if (category == CATEGORY_SPECIAL) {
         if (plusMinus || (sun && user->ability == ABILITY_SOLAR_POWER)) {
-            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+            modifier = Qol_ChainStatModifier(modifier, 6144);
         }
     }
     if ((user->hp <= user->maxHp / 3
@@ -5847,25 +5850,44 @@ static u32 Qol_ModernOffenseStat(u32 stat, u8 category, u8 type, const MoveDamag
                 || (type == TYPE_WATER && user->ability == ABILITY_TORRENT)
                 || (type == TYPE_BUG && user->ability == ABILITY_SWARM)))
         || (type == TYPE_FIRE && user->ability == ABILITY_FLASH_FIRE && flashFire)) {
-        modifier = Qol_ChainOffenseModifier(modifier, 6144);
+        modifier = Qol_ChainStatModifier(modifier, 6144);
     }
     // Flower Gift Attack priority3, then offensive held items priority1.
     if (category == CATEGORY_PHYSICAL && sun) {
         for (i = 0; i < flowerGiftProviders; i++) {
-            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+            modifier = Qol_ChainStatModifier(modifier, 6144);
         }
     }
     if ((category == CATEGORY_PHYSICAL && user->item == HOLD_EFFECT_CHOICE_ATK)
         || (category == CATEGORY_SPECIAL && user->item == HOLD_EFFECT_CHOICE_SPATK)) {
-        modifier = Qol_ChainOffenseModifier(modifier, 6144);
+        modifier = Qol_ChainStatModifier(modifier, 6144);
     }
     if ((category == CATEGORY_PHYSICAL && user->item == HOLD_EFFECT_CUBONE_ATK_UP
             && (baseSpecies == SPECIES_CUBONE || baseSpecies == SPECIES_MAROWAK))
         || (category == CATEGORY_SPECIAL && user->item == HOLD_EFFECT_CLAMPERL_SPATK && baseSpecies == SPECIES_CLAMPERL)
         || (user->item == HOLD_EFFECT_PIKA_SPATK_UP && baseSpecies == SPECIES_PIKACHU)) {
-        modifier = Qol_ChainOffenseModifier(modifier, 8192);
+        modifier = Qol_ChainStatModifier(modifier, 8192);
     }
-    stat = Qol_ApplyOffenseModifier(stat, modifier);
+    stat = Qol_ApplyStatModifier(stat, modifier);
+    return stat ? stat : 1;
+}
+
+// Selected stage and direct Snow/Sand floors have already been applied.
+// Defensive abilities precede held items: Marvel Scale6, Flower Gift4, items2.
+static u32 Qol_ModernDefenseStat(u32 stat, BOOL marvelScale, int flowerGiftProviders, BOOL scale, BOOL metalPowder) {
+    u32 modifier = 4096;
+    int i;
+
+    if (marvelScale) {
+        modifier = Qol_ChainStatModifier(modifier, 6144);
+    }
+    for (i = 0; i < flowerGiftProviders; i++) {
+        modifier = Qol_ChainStatModifier(modifier, 6144);
+    }
+    if (scale || metalPowder) {
+        modifier = Qol_ChainStatModifier(modifier, 8192);
+    }
+    stat = Qol_ApplyStatModifier(stat, modifier);
     return stat ? stat : 1;
 }
 #endif
@@ -5936,18 +5958,21 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     u8 moveType;
     u8 moveCategory;
 #if QOL_MODERN_BATTLE
-    // Keep selected/staged offense wide through the existing modifiers. Legitimate
+    // Keep selected/staged stats wide through the existing modifiers. Legitimate
     // original-roster stats fit u32; synthetic intermediate wrap parity is not
     // defined here. The native-off path retains its u16 assignment behavior.
     u32 monAtk;
     u32 monSpAtk;
+    u32 monDef;
+    u32 monSpDef;
+    u32 selectedDefense;
 #else
     u16 monAtk;
     u16 monSpAtk;
-#endif
     u16 monDef;
     u16 monSpDef;
     u16 selectedDefense;
+#endif
     s8 selectedDefenseStage;
     s8 statChangeAtk;
     s8 statChangeDef;
@@ -6112,6 +6137,8 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         monSpAtk = monSpAtk * 150 / 100;
     }
 
+    // Compatibility exception: keep Soul Dew's raw-SpDef floor before stage,
+    // weather and the modern group until both old stat bonuses migrate in D2.
     if (calcTarget.item == HOLD_EFFECT_LATI_SPECIAL && !(battleType & BATTLE_TYPE_FRONTIER) && (calcTarget.species == SPECIES_LATIOS || calcTarget.species == SPECIES_LATIAS)) {
         monSpDef = monSpDef * 150 / 100;
     }
@@ -6122,9 +6149,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (calcTarget.item == HOLD_EFFECT_CLAMPERL_SPDEF && calcTarget.species == SPECIES_CLAMPERL) {
         monSpDef *= 2;
     }
+#endif
 
 #if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_PIKA_SPATK_UP && calcAttacker.species == SPECIES_PIKACHU) {
@@ -6289,28 +6318,6 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     statChangeSpAtk += 6;
     statChangeSpDef += 6;
 
-#if QOL_MODERN_BATTLE
-    // Resolve the defensive stage before weather and defensive modifiers.
-    // Snow boosts the current Ice type's Defense, even when crit/Unaware
-    // ignores its stage. Use the caller's weather (confusion passes zero).
-    if (crit == 1 || statChangeDef < 6) {
-        monDef = monDef * sStatChangeTable[statChangeDef][0] / sStatChangeTable[statChangeDef][1];
-    }
-    statChangeDef = 6;
-    if ((fieldCondition & FIELD_CONDITION_HAIL_ALL)
-        && (calcTarget.type1 == TYPE_ICE || calcTarget.type2 == TYPE_ICE)
-        && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
-        && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {
-        monDef = monDef * 3 / 2;
-    }
-    if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MARVEL_SCALE) == TRUE && calcTarget.status) {
-        monDef = monDef * 3 / 2;
-    }
-    if (calcTarget.item == HOLD_EFFECT_DITTO_DEF_UP && calcTarget.species == SPECIES_DITTO) {
-        monDef *= 2;
-    }
-#endif
-
     if (calcAttacker.ability == ABILITY_RIVALRY && calcAttacker.gender == calcTarget.gender && calcAttacker.gender != MON_GENDERLESS && calcTarget.gender != MON_GENDERLESS) {
         movePower = movePower * 125 / 100;
     }
@@ -6331,17 +6338,21 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
             monSpAtk = monSpAtk * 15 / 10;
         }
 #endif
+#if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SANDSTORM_ALL) && (calcTarget.type1 == TYPE_ROCK || calcTarget.type2 == TYPE_ROCK)) {
             monSpDef = monSpDef * 15 / 10;
         }
+#endif
 #if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdAttacker, ABILITY_FLOWER_GIFT)) {
             monAtk = monAtk * 15 / 10;
         }
 #endif
+#if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdTarget, ABILITY_FLOWER_GIFT)) {
             monSpDef = monSpDef * 15 / 10;
         }
+#endif
     }
 
 #if QOL_MODERN_BATTLE
@@ -6358,18 +6369,60 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
             || (moveType == TYPE_FIRE
                 && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_HEATPROOF));
         BOOL flashFire = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_FLASH_FIRE, NULL) != 0;
-        int flowerGiftProviders = sun ? Qol_CountFlowerGiftProviders(battleSystem, ctx, battlerIdAttacker) : 0;
-        u16 baseSpecies = Qol_GetOffenseBaseSpecies(battleSystem, ctx, battlerIdAttacker);
+        int flowerGiftProviders = sun ? Qol_CountFlowerGiftProviders(battleSystem, ctx, battlerIdAttacker, -1) : 0;
+        u16 baseSpecies = Qol_GetBaseSpecies(battleSystem, ctx, battlerIdAttacker);
 
         monAtk = Qol_ModernOffenseStat(monAtk, CATEGORY_PHYSICAL, moveType, &calcAttacker, baseSpecies, slowStart, plusMinus, sun, flowerGiftProviders, flashFire, targetReduction);
         monSpAtk = Qol_ModernOffenseStat(monSpAtk, CATEGORY_SPECIAL, moveType, &calcAttacker, baseSpecies, slowStart, plusMinus, sun, flowerGiftProviders, flashFire, targetReduction);
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (BATTLE_MOVE_DATA(ctx, moveNo).effect == MOVE_EFFECT_HALVE_DEFENSE) {
         monDef /= 2;
     }
+#endif
 
+#if QOL_MODERN_BATTLE
+    {
+        BOOL physical = Qol_MoveUsesPhysicalDefense(moveNo, moveCategory);
+        BOOL weatherActive = !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK);
+        BOOL marvelScale;
+        BOOL scale;
+        BOOL metalPowder;
+        int flowerGiftProviders;
+
+        // Select once, without changing the category (Psyshock stays Special).
+        // Retained legacy Soul Dew has already floored raw SpDef above.
+        selectedDefense = physical ? monDef : monSpDef;
+        selectedDefenseStage = physical ? statChangeDef : statChangeSpDef;
+        if (crit == 1 || selectedDefenseStage < 6) {
+            selectedDefense = selectedDefense * sStatChangeTable[selectedDefenseStage][0] / sStatChangeTable[selectedDefenseStage][1];
+        }
+        selectedDefenseStage = 6;
+        // Direct weather uses current types and the caller's flags, not ctx's.
+        if (weatherActive
+            && ((physical && (fieldCondition & FIELD_CONDITION_HAIL_ALL)
+                    && (calcTarget.type1 == TYPE_ICE || calcTarget.type2 == TYPE_ICE))
+                || (!physical && (fieldCondition & FIELD_CONDITION_SANDSTORM_ALL)
+                    && (calcTarget.type1 == TYPE_ROCK || calcTarget.type2 == TYPE_ROCK)))) {
+            selectedDefense = selectedDefense * 3 / 2;
+        }
+        // Query only eligible selected-defense abilities: an unused Marvel
+        // Scale must not announce Mold Breaker on an ordinary special hit.
+        marvelScale = physical && calcTarget.status
+            && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MARVEL_SCALE);
+        flowerGiftProviders = !physical && weatherActive && (fieldCondition & FIELD_CONDITION_SUN_ALL)
+            ? Qol_CountFlowerGiftProviders(battleSystem, ctx, battlerIdTarget, battlerIdAttacker) : 0;
+        scale = !physical && calcTarget.item == HOLD_EFFECT_CLAMPERL_SPDEF
+            && Qol_GetBaseSpecies(battleSystem, ctx, battlerIdTarget) == SPECIES_CLAMPERL;
+        metalPowder = physical && calcTarget.item == HOLD_EFFECT_DITTO_DEF_UP
+            && calcTarget.species == SPECIES_DITTO
+            && !(GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_STATUS2, NULL) & STATUS2_TRANSFORM);
+        selectedDefense = Qol_ModernDefenseStat(selectedDefense, marvelScale, flowerGiftProviders, scale, metalPowder);
+    }
+#else
     // Select the fully processed defensive stat, without changing category.
     // Psyshock uses the same stage -> Snow -> Defense-modifier path as a
     // physical attack, while retaining special screens and damage history.
@@ -6380,6 +6433,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         selectedDefense = monSpDef;
         selectedDefenseStage = statChangeSpDef;
     }
+#endif
 
     if (moveCategory == CATEGORY_PHYSICAL) {
         if (crit > 1) {

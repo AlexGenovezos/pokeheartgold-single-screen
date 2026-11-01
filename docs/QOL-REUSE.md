@@ -909,3 +909,83 @@ initial boot is separate from those measured segments. Seven validation save
 hashes, frozen production/test hashes and all three tested artifact hashes
 remained unchanged. The253-test sweep above belongs to f673 and was not rerun
 for this C-only phase. The installed game and real save remain unchanged.
+
+## Selected defensive stat and modifier group (D1c)
+
+Modern battle now selects the defensive stat once, floors its crit/Unaware/
+ignore-stage-filtered stage, applies direct current-type Snow Defense or Sand
+SpDef, then applies one Q12 defensive modifier group and clamps the effective
+stat to at least one. Weather uses the caller's flags and living active Cloud
+Nine/Air Lock. The shared private stat helpers chain halves up and apply the
+completed group with halves down. Modern defensive locals remain wide for
+bounded original-roster arithmetic; synthetic overflow parity is not claimed.
+Battle-off retains its original u16 assignments and exact operation order.
+
+The selected group owns status Marvel Scale (Defense), base Clamperl Deep Sea
+Scale (SpDef), untransformed current Ditto Metal Powder (Defense), and each
+actual live same-side base Cherrim Flower Gift provider (SpDef), including self.
+Species items/providers use the original party species only under actual
+Transform, except Metal Powder which requires no Transform. Defensive Flower
+Gift checks each eligible provider through native suppression/Mold Breaker
+handling. Irrelevant or ineligible selected-defense abilities do not announce
+Mold Breaker. Modern Explosion/Selfdestruct no longer halve Defense. Every
+migrated old owner is disabled only under modern battle.
+
+Psyshock/Psystrike retain Special category, screens and history while selecting
+Defense. Body Press continues using its user's raw Defense and stage offensively,
+without inheriting defensive weather, Marvel Scale or Metal Powder. D1b offense
+remains shared through the renamed private numerical/base-species helpers.
+
+Soul Dew remains an explicit compatibility exception: BOTH old stat bonuses,
+the Frontier restriction and current-species ownership stay until atomic D2 BP
+migration. Its defensive raw-SpDef floor precedes selected stage, direct weather
+and the modern group; its offensive floor retains D1b placement after stage and
+before its offensive group. This is not a claim of modern Soul Dew support.
+
+Actual-C literal discriminators include stage151 -> Sand226 -> Deep Sea Scale452
+instead of454 (neutral16 vs15 at L50/SpAtk103/explicit BP140); direct Snow151 then
+Marvel Scale/Metal Powder group3 gives453 instead of452 (neutral12 vs13 at
+L50/Atk113/BP100). Both use deliberately assigned raw stats/current types and do
+not claim natural species stats or updated Overheat BP. Two eligible Flower Gift
+providers on raw101 give227, and Marvel Scale plus Metal Powder on raw101 give303.
+These are independent rational expectations executed by production
+`CalcMoveDamage`, with real `TrainerAI_CalcDamage` matrices and retained legacy
+expectations across all eight flags. Host assertions also check unchanged raw
+stats, battle mons and RNG, and expected causal Mold Breaker writes.
+
+The defensive contract, commands and evidence are recorded in
+`docs/superpowers/plans/2026-11-01-gen9-defensive-modifiers.md`. Full BP/formula/
+final/berry and AI variance ordering, hypothetical candidate-context projection,
+Flash Fire activation-flag lifecycle, delayed hits, Beat Up and confusion remain
+separate work. No ABI/context/save fields, resources, species/learnset counts,
+flag defaults or installed app/real-ROM/real-save change occurs in this phase.
+
+
+D1c implementation verification passed107 affected methods in199.654s, comprising
+94 SDK-free methods and13 existing SDK script/VM methods. The broad regression
+command accidentally included the SDK classes; root granted its already-running
+sweep exclusive lane ownership to finish. No additional SDK/global/native/build
+job was started. All10 D1c methods also passed address/undefined sanitizers in
+27.706s. Before production edits, corrected actual-C tests failed only on modern
+behavior; the expanded frozen-baseline run confirms36 expected modern assertion
+failures with zero compiler/battle-off failures. All four battle-off types/moves
+preprocessed token streams equal40aad (host assertion line metadata excluded).
+Fresh independent reviews and paired game/native GREEN proof remain root-owned
+integration gates; these host/script results alone do not establish complete
+modern damage parity or native integration.
+
+D1c integration passed the107 affected checks (94 SDK-free and13 existing SDK)
+in199.654s, plus10 D1c sanitizer checks in27.706s. Fresh independent spec and
+quality reviews each passed20 D1c/D1b methods across eight flags, verified all
+four legacy token streams, all six hashes and whitespace; quality also tested
+Transform lookup for every battler/party index. The matching SDK game/resource/
+layout/native build passed. Two fresh data-only RAM fixtures confirmed7→8
+Sand/Scale damage and13→12 Snow/Marvel Scale/Metal Powder damage with the same
+seed12, respectively19/17 RNG calls and final RNG states. Both1700-frame battle
+segments matched every ARM9 instruction with zero fallbacks, guard failures or
+evictions (3400 total); the initial boot is separate. Raw stats, stages, current
+types, abilities/items/status/weather were independently inspected and equal
+before comparisons. Seven save, frozen production/test and all three tested
+artifact hashes matched. The253-test full sweep belongs to f673; D1c uses the
+107 affected checks, sanitizer/review checks, paired build and native proofs.
+The installed app, real ROM and real save remain unchanged.

@@ -43,7 +43,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
     util=(ROOT/'src/battle/battle_util.c').read_text()
     source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly','src/battle/battle_util.c')+'#endif\n'
     source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-    source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainOffenseModifier','Qol_ApplyOffenseModifier','Qol_GetOffenseBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat'))+'#endif\n'
+    source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainStatModifier','Qol_ApplyStatModifier','Qol_GetBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat','Qol_ModernDefenseStat'))+'#endif\n'
     source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','CalcMoveDamage'))
     return source+r'''
 static BattleContext fixture(void){
@@ -341,7 +341,7 @@ int main(void){(void)BattleSystem_Random(NULL);
 '''
         self.compile_run(source,'-DQOL_MODERN_BATTLE=1','-Wno-unused-function','-Wno-sign-compare')
 
-    def test_solar_beam_snow_penalty_and_special_rock_legacy_order(self):
+    def test_solar_beam_snow_penalty_and_special_rock_selected_stage_order(self):
         source=damage_source()+r'''
 int main(void){(void)BattleSystem_Random(NULL);
  BattleContext c=fixture();c.trainerAIData.moveData[MOVE_SOLAR_BEAM]=(Move){100,TYPE_GRASS,CATEGORY_SPECIAL,0,0};
@@ -349,10 +349,10 @@ int main(void){(void)BattleSystem_Random(NULL);
  int snow=CalcMoveDamage(NULL,&c,MOVE_SOLAR_BEAM,0,FIELD_CONDITION_HAIL,0,0,0,1,1);
  assert(snow==(normal-2)/2+2);
  c.battleMons[2].ability=ABILITY_CLOUD_NINE;assert(CalcMoveDamage(NULL,&c,MOVE_SOLAR_BEAM,0,FIELD_CONDITION_HAIL,0,0,0,1,1)==normal);
- // Snow does not alter the existing Sand Sp. Def calculation or its rounding.
+ // D1c modern Sand follows the selected SpDef stage; battle-off stays native.
  c=fixture();vars[1][BMON_DATA_TYPE_2]=TYPE_ROCK;vars[1][BMON_DATA_STAT_CHANGE_SPDEF]=8;
  c.trainerAIData.moveData[MOVE_TACKLE].category=CATEGORY_SPECIAL;
- assert(damage(&c,FIELD_CONDITION_SANDSTORM,1)==expected((101*3/2)*2));
+ assert(damage(&c,FIELD_CONDITION_SANDSTORM,1)==expected(QOL_MODERN_BATTLE?(101*2)*3/2:(101*3/2)*2));
  return 0;}
 '''
         for flag in (0,1):self.compile_run(source,f'-DQOL_MODERN_BATTLE={flag}','-Wno-unused-function','-Wno-sign-compare')

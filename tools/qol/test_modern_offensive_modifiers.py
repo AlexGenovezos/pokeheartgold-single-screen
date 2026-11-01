@@ -14,14 +14,14 @@ class OffensiveModifierTests(unittest.TestCase):
         self.variants(layers.damage_source()+r'''
 int main(void){
 #if QOL_MODERN_BATTLE
- assert(Qol_ChainOffenseModifier(4097,2048)==2049); // 2048.5 ->2049
- assert(Qol_ApplyOffenseModifier(4097,2048)==2048); // 2048.5 ->2048
- assert(Qol_ApplyOffenseModifier(3,6144)==4);       // 4.5 ->4
- assert(Qol_ApplyOffenseModifier(1,6143)==1);
- assert(Qol_ApplyOffenseModifier(1,6145)==2);
- assert(Qol_ChainOffenseModifier(6144,6144)==9216);
+ assert(Qol_ChainStatModifier(4097,2048)==2049); // 2048.5 ->2049
+ assert(Qol_ApplyStatModifier(4097,2048)==2048); // 2048.5 ->2048
+ assert(Qol_ApplyStatModifier(3,6144)==4);       // 4.5 ->4
+ assert(Qol_ApplyStatModifier(1,6143)==1);
+ assert(Qol_ApplyStatModifier(1,6145)==2);
+ assert(Qol_ChainStatModifier(6144,6144)==9216);
  // Pure-helper arithmetic probe only; synthetic native wrap parity is excluded.
- assert(Qol_ApplyOffenseModifier(100000,49152)==1200000);
+ assert(Qol_ApplyStatModifier(100000,49152)==1200000);
 #endif
  return 0;}
 ''')
