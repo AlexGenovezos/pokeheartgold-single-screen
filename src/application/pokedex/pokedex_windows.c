@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pokedex_modern_types.h"
 
 #include "constants/species.h"
 
@@ -169,7 +170,12 @@ static const WindowTemplate sSearchWindowTemplates[] = {
     { .bgId = GF_BG_LYR_MAIN_0, .left = 16, .top = 14, .width = 8,  .height = 2,  .palette = 2, .baseTile = 0xE2  },
     { .bgId = GF_BG_LYR_MAIN_0, .left = 24, .top = 14, .width = 8,  .height = 2,  .palette = 2, .baseTile = 0xD2  },
     { .bgId = GF_BG_LYR_MAIN_0, .left = 0,  .top = 17, .width = 8,  .height = 2,  .palette = 2, .baseTile = 0xC2  },
+#if QOL_MODERN_TYPES
+    // Share the final window between All and Fairy; no PokedexAppData growth.
+    { .bgId = GF_BG_LYR_MAIN_0, .left = 8,  .top = 17, .width = 16, .height = 2,  .palette = 2, .baseTile = 0xA2  },
+#else
     { .bgId = GF_BG_LYR_MAIN_0, .left = 8,  .top = 17, .width = 8,  .height = 2,  .palette = 2, .baseTile = 0xB2  },
+#endif
     { .bgId = GF_BG_LYR_MAIN_0, .left = 7,  .top = 1,  .width = 6,  .height = 2,  .palette = 2, .baseTile = 0x1F4 },
     { .bgId = GF_BG_LYR_MAIN_0, .left = 15, .top = 1,  .width = 9,  .height = 2,  .palette = 2, .baseTile = 0x1E2 },
     { .bgId = GF_BG_LYR_MAIN_0, .left = 1,  .top = 5,  .width = 29, .height = 14, .palette = 2, .baseTile = 0x4C  },
@@ -808,7 +814,17 @@ void PokedexApp_DrawSearchNamePage(PokedexAppData *pokedexApp) {
     ScheduleWindowCopyToVram(&pokedexApp->windows[66]);
 }
 
-// Type page: title 44, the 18 type buttons 47-64, values 45-46.
+#if QOL_MODERN_TYPES
+static void PokedexApp_PrintSearchFairy(PokedexAppData *pokedexApp, Window *window, s32 x) {
+    // The modern resource transform supplies slot 9 in the shared type names.
+    MsgData *typeNames = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, NARC_msg_msg_0735_bin, HEAP_ID_POKEDEX_APP);
+    PokedexApp_PrintMessage(window, typeNames, TYPE_FAIRY, x, 0, 4, MAKE_TEXT_COLOR(2, 1, 0), 2);
+    DestroyMsgData(typeNames);
+}
+#endif
+
+// Type page: title 44, type buttons 47-64, values 45-46. Modern builds also
+// print Fairy into the right half of the widened final button window.
 void PokedexApp_DrawSearchTypePage(PokedexAppData *pokedexApp) {
     u32 i;
     Window *window;
@@ -827,6 +843,9 @@ void PokedexApp_DrawSearchTypePage(PokedexAppData *pokedexApp) {
         window++;
         msgNo++;
     }
+#if QOL_MODERN_TYPES
+    PokedexApp_PrintSearchFairy(pokedexApp, &pokedexApp->windows[64], 96);
+#endif
     PokedexApp_DrawSearchButton(pokedexApp, 17, msg_0802_00039);
     PokedexApp_DrawSearchButton(pokedexApp, 19, msg_0802_00040);
     PokedexApp_DrawSearchTypeValue(pokedexApp, pokedexApp->dexSearchCriteria[DEX_SEARCH_CRITERIA_TYPE1], 45, 29);
@@ -941,6 +960,12 @@ void PokedexApp_DrawSearchTypeValue(PokedexAppData *pokedexApp, u32 type, u32 wi
     if (x == -1) {
         x = GetWindowWidth(&pokedexApp->windows[windowId]) * 8 / 2;
     }
+#if QOL_MODERN_TYPES
+    if (type == DEX_SEARCH_TYPE_FAIRY) {
+        PokedexApp_PrintSearchFairy(pokedexApp, &pokedexApp->windows[windowId], x);
+        return;
+    }
+#endif
     PokedexApp_PrintMessage(&pokedexApp->windows[windowId], pokedexApp->msgData, sSearchTypeMsgIds[type], x, 0, 4, MAKE_TEXT_COLOR(2, 1, 0), 2);
 }
 

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pokedex_modern_types.h"
 
 #include "constants/sndseq.h"
 
@@ -110,7 +111,12 @@ static const TouchscreenHitbox sSearchWeightHitboxes[] = {
 
 static const int sPokedexListMenuHitResults[5] = { 6, 5, 1, 0, 2 };
 
-static const u8 sSearchTypeCursorAnims[20] = { 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 35, 35 };
+static const u8 sSearchTypeCursorAnims[] = {
+    38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 35, 35,
+#if QOL_MODERN_TYPES
+    38,
+#endif
+};
 
 static const TouchscreenHitbox sPokedexListMenuHitboxes[] = {
     { .rect = { 112, 143, 96, 160 } },
@@ -309,6 +315,9 @@ static const TouchscreenHitbox sSearchTypeHitboxes[] = {
     { .rect = { 136, 151, 67, 124 } },
     { .rect = { 164, 187, 4, 75 } },
     { .rect = { 164, 187, 180, 251 } },
+#if QOL_MODERN_TYPES
+    { .rect = { 136, 151, 131, 188 } },
+#endif
     { .rect = { TOUCHSCREEN_RECTLIST_END } },
 };
 
@@ -380,12 +389,24 @@ static const DpadMenuBox sSearchTypeDpadBoxes[] = {
     { 224, 96,  0, 0, 7,  15, 10, 8  },
     { 32,  120, 0, 0, 8,  16, 15, 13 },
     { 96,  120, 0, 0, 9,  17, 12, 14 },
+#if QOL_MODERN_TYPES
+    { 160, 120, 0, 0, 10, DEX_SEARCH_TYPE_FAIRY, 13, 15 },
+#else
     { 160, 120, 0, 0, 10, 19, 13, 15 },
+#endif
     { 224, 120, 0, 0, 11, 19, 14, 12 },
+#if QOL_MODERN_TYPES
+    { 32,  144, 0, 0, 12, 18, DEX_SEARCH_TYPE_FAIRY, 17 },
+    { 96,  144, 0, 0, 13, 18, 16, DEX_SEARCH_TYPE_FAIRY },
+#else
     { 32,  144, 0, 0, 12, 18, 17, 17 },
     { 96,  144, 0, 0, 13, 18, 16, 16 },
+#endif
     { 40,  176, 0, 0, 16, 0,  19, 19 },
     { 216, 176, 0, 0, 15, 3,  18, 18 },
+#if QOL_MODERN_TYPES
+    { 160, 144, 0, 0, 14, 19, 17, 16 },
+#endif
 };
 
 static const DpadMenuBox sSearchNameDpadBoxes[] = {
@@ -767,6 +788,15 @@ void PokedexApp_OnSearchTypeGridMove(void *data, int target, int input) {
             }
         }
     } else if (input == 19) {
+#if QOL_MODERN_TYPES
+        if (pokedexApp->prevGridInput == DEX_SEARCH_TYPE_FAIRY && (target == 3 || target == 15)) {
+            target = target == 3 ? 2 : DEX_SEARCH_TYPE_FAIRY;
+            GridInputHandler_SetNextLastReturnInputs(pokedexApp->gridInput, (u8)target, (u8)input, 19);
+        } else if (pokedexApp->prevGridInput == 2 && target == 15) {
+            target = DEX_SEARCH_TYPE_FAIRY;
+            GridInputHandler_SetNextLastReturnInputs(pokedexApp->gridInput, (u8)target, (u8)input, 19);
+        } else
+#endif
         if (target == 3) {
             s32 previous = pokedexApp->prevGridInput;
             if (previous >= 14 && previous <= 15) {

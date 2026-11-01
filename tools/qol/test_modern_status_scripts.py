@@ -87,11 +87,12 @@ class ModernStatusSourceTests(unittest.TestCase):
     def test_battle_rules_always_applies_paralysis_after_numeric_changes(self):
         from unittest.mock import patch
         import modern_rom
-        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
+        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
         numeric.assert_called_once_with(b'rom')
         electric.assert_called_once_with(b'numeric')
-        self.assertEqual(result, {'a/0/0/1': b'electric'})
+        weather.assert_called_once_with(b'electric')
+        self.assertEqual(result, {'a/0/0/1': b'finite'})
 
 
 class ModernStatusSdkTests(unittest.TestCase):

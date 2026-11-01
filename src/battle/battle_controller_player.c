@@ -2390,6 +2390,15 @@ static BOOL BattleControllerPlayer_CheckMoveImmunity(BattleSystem *battleSystem,
         switch (ctx->checkMoveImmunityState) {
         case 0:
             script = BattleContext_CheckMoveImmunityFromAbility(ctx, ctx->battlerIdAttacker, ctx->battlerIdTarget);
+#if QOL_MODERN_BATTLE
+            // Type checking precedes this hook in the native controller. An
+            // absorbing ability takes precedence over Ground's Electric immunity.
+            // Protect and semi-invulnerable failures still block it.
+            if (script == BATTLE_SUBSCRIPT_ABSORB_AND_SPEED_UP_1_STAGE
+                && (ctx->moveStatusFlag & MOVE_STATUS_DID_NOT_HIT) == MOVE_STATUS_NO_EFFECT) {
+                ctx->moveStatusFlag &= ~MOVE_STATUS_NO_EFFECT;
+            }
+#endif
             if ((script && !(ctx->moveStatusFlag & MOVE_STATUS_DID_NOT_HIT)) || script == BATTLE_SUBSCRIPT_BLOCKED_BY_SOUNDPROOF) {
                 ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, script);
                 ctx->commandNext = ctx->command;
@@ -2454,6 +2463,15 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
         moveType = BATTLE_MOVE_DATA(ctx, move).type;
     }
 
+#if QOL_MODERN_BATTLE
+    // Absorbing redirection abilities intercept their type before accuracy is
+    // rolled. Keep Protect/semi-invulnerable checks in the following phase.
+    if (battlerIdAttacker != battlerIdTarget && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER
+        && ((moveType == TYPE_ELECTRIC && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_LIGHTNINGROD)
+            || (moveType == TYPE_WATER && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_STORM_DRAIN))) {
+        return FALSE;
+    }
+#endif
     moveCategory = BATTLE_MOVE_DATA(ctx, move).category;
     attackerAccuracy = ctx->battleMons[battlerIdAttacker].statChanges[STAT_ACC] - 6;
     targetEvasion = 6 - ctx->battleMons[battlerIdTarget].statChanges[STAT_EVASION];

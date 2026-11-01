@@ -168,8 +168,26 @@ QOL_MODERN_TYPES=1 QOL_MODERN_BATTLE=1 QOL_MODERN_MOVES=1 \
     ./scripts/build-qol-native.sh ../ssrecomp-qol
 ```
 
+The next development milestone adds a selectable Fairy Pokédex search using
+current personal types, finite 5/8-turn ability weather, and modern Lightning Rod
+and Storm Drain absorption with Special Attack boosts. The native controller
+lets absorption take precedence over Ground's Electric immunity and bypasses
+the accuracy roll while preserving Protect and semi-invulnerable failures.
+The preview and AI flags recognize both immunities. Hail still uses its original
+semantics; the Generation IX Snow conversion remains separate work.
+
+Validation: 113 host tests passed and the full matching source/ROM/native build
+succeeded. Native/interpreter lockstep passed 1,700 frames in a Ground-type
+Lightning Rod battle, 1,500 selecting and running a Fairy Pokédex search, and
+300 for each of the 5/8-turn weather setups. All these comparisons had zero
+interpreter fallbacks and guard failures. The isolated test battle displayed
+Lightning Rod's Special Attack boost; Fairy search returned Clefairy. Reading
+the isolated snapshots using the compiler's struct offsets confirmed temporary
+rain with weather counters 5 without Damp Rock and 8 with it. Spec and quality
+reviews approved each scoped change.
+
 The modern build is not installed. Remaining known
-integration work includes Pokédex Fairy search/filtering, the modern combined
+integration work includes the modern combined
 final-damage modifier chain, the remaining new moves/scripts/learnsets, modern status/weather
 rules, abilities and saved-slot migration. Record each port's tests and native
 runtime evidence before enabling it in the installed app.

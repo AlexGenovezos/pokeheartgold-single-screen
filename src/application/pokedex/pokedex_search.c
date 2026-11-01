@@ -7,6 +7,8 @@
 #include "heap.h"
 #include "pokedex.h"
 #include "pokedex_util.h"
+#include "pokemon.h"
+#include "pokedex_modern_types.h"
 
 // Runs a Pokedex search: starts from the seen species of the Johto or national order and narrows the list
 // criterion by criterion; stops early when a criterion leaves nothing. The result goes to searchResults.
@@ -197,6 +199,30 @@ void PokedexApp_FilterByLetter(u32 letter, u16 *dst, u32 *dstCount, const u16 *s
 #pragma opt_propagation off
 
 void PokedexApp_FilterByType(u32 type, u16 *dst, u32 *dstCount, const u16 *src, u32 srcCount, const Pokedex *pokedex) {
+#if QOL_MODERN_TYPES
+    u32 i;
+    u32 monType;
+    BASE_STATS personal;
+
+    if (type == DEX_SEARCH_TYPE_ALL) {
+        memcpy(dst, src, srcCount * sizeof(u16));
+        *dstCount = srcCount;
+        return;
+    }
+    GF_ASSERT(type <= DEX_SEARCH_TYPE_DARK || type == DEX_SEARCH_TYPE_FAIRY);
+    monType = type == DEX_SEARCH_TYPE_FAIRY ? TYPE_FAIRY : type >= DEX_SEARCH_TYPE_FIRE ? type + 1 : type;
+    *dstCount = 0;
+    for (i = 0; i < srcCount; i++) {
+        if (Pokedex_CheckMonCaughtFlag(pokedex, src[i])) {
+            // The personal loader supplies the same base-species types as the
+            // rest of the game, including existing saves and modern overrides.
+            LoadMonPersonal(src[i], &personal);
+            if (personal.types[0] == monType || personal.types[1] == monType) {
+                dst[(*dstCount)++] = src[i];
+            }
+        }
+    }
+#else
     u16 *matches;
     u32 matchCount;
     u32 count;
@@ -264,6 +290,7 @@ void PokedexApp_FilterByType(u32 type, u16 *dst, u32 *dstCount, const u16 *src, 
     }
     PokedexApp_IntersectSpeciesLists(dst, dstCount, matches, matchCount, src, srcCount, FALSE, pokedex);
     Heap_Free(matches);
+#endif
 }
 
 #pragma opt_propagation reset

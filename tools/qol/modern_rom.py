@@ -4,9 +4,10 @@ import argparse
 from pathlib import Path
 import struct
 
-from battle_scripts import modern_paralysis_script, modern_drain_script
+from battle_scripts import modern_paralysis_script, modern_drain_script, modern_weather_script, WEATHER_SCRIPTS
 from game_text import game_text
 from move_resources import extended_move_resources, read_entries
+from absorption_scripts import modern_absorption_script
 
 from nitro_data import (lz10_decompress, lz10_literals, pack_messages, pack_narc,
                        replace_rom_files, rom_files, unpack_messages, unpack_narc)
@@ -114,6 +115,23 @@ def modern_drain_resources(archive):
     return pack_narc(members, names)
 
 
+def modern_weather_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) <= max(WEATHER_SCRIPTS):
+        raise ValueError('Battle ability-weather subscript is absent')
+    for member in WEATHER_SCRIPTS:
+        members[member] = modern_weather_script(members[member], member)
+    return pack_narc(members, names)
+
+
+def modern_absorption_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) <= 182:
+        raise ValueError('Battle ability absorption subscript is absent')
+    members[182] = modern_absorption_script(members[182])
+    return pack_narc(members, names)
+
+
 def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
     files = rom_files(rom)
     replacements = {}
@@ -130,7 +148,11 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
         updated = (*modern_type_resources(*source[:2], charmap), modern_pokedex_resources(source[2]))
         replacements.update(zip(paths, updated))
     if battle_rules:
-        replacements['a/0/0/1'] = modern_paralysis_resources(modern_battle_resources(read('a/0/0/1')))
+        archive = read('a/0/0/1')
+        for transform in (modern_battle_resources, modern_paralysis_resources,
+                          modern_weather_resources, modern_absorption_resources):
+            archive = transform(archive)
+        replacements['a/0/0/1'] = archive
     if moves:
         paths = ('a/0/1/1', 'a/0/0/0', 'a/0/2/7')
         entries = read_entries(Path(__file__).resolve().parents[2] / 'include/data/qol_move_entries.inc')

@@ -18,6 +18,45 @@ DRAIN_SOURCE = Path('files/battledata/script/subscript/subscript_0024_DrainHalfD
 # Pin the entire original source, including the Big Root and ability branches.
 _DRAIN_SOURCE_SHA256 = '9abd94d77c6cff3a3ee46aac798ae5615c16db9e084afda29c00d00d12fdff41'
 
+# Member, source name, weather flag/rock effect, and complete original-source hash.
+# Snow Warning retains hail here; the Snow rules are a separate change.
+WEATHER_SCRIPTS = {
+    183: ('Drizzle', 'RAIN', '5d576755c534d6c7473e60a923b557b680a5ce19a2794be1d39db5ea01b5c40f'),
+    184: ('SandStream', 'SANDSTORM', '40d16e34286d1a83569d1b43e033061d5221179d4971d2fe7c7088622f392b10'),
+    185: ('Drought', 'SUN', 'a5d7d8f67ec08203832a4e6bdc0df3fb63dbad9ed3dcd3d50f0840ec07b593d5'),
+    252: ('SnowWarning', 'HAIL', 'ff462c4a99f1084f342046bfeeb2d4f517a91a245eb205e0dd0631fd95cb15a9'),
+}
+
+
+def modern_weather_source(source, member):
+    """Generate finite ability weather using the source battler's active rock."""
+    if member not in WEATHER_SCRIPTS:
+        raise ValueError(f'Unknown ability-weather subscript {member}')
+    _, weather, digest = WEATHER_SCRIPTS[member]
+    if hashlib.sha256(source.encode()).hexdigest() != digest:
+        raise ValueError(f'Weather subscript {member} differs from the expected source')
+    permanent = f'FIELD_CONDITION_{weather}_PERMANENT'
+    turns = (
+        '    UpdateVar OPCODE_SET, BSCRIPT_VAR_WEATHER_TURNS, 5\n'
+        '    CheckItemHoldEffect CHECK_OPCODE_NOT_HAVE, BATTLER_CATEGORY_MSG_BATTLER_TEMP, '
+        f'HOLD_EFFECT_EXTEND_{weather}, _QolWeatherEnd\n'
+        '    UpdateVar OPCODE_SET, BSCRIPT_VAR_WEATHER_TURNS, 8\n\n'
+        '_QolWeatherEnd:\n')
+    return source.replace(permanent, f'FIELD_CONDITION_{weather}').replace('    End ', turns + '    End ', 1)
+
+
+def modern_weather_script(original, member, root=ROOT):
+    """Require exact original NARC parity before assembling finite weather."""
+    if member not in WEATHER_SCRIPTS:
+        raise ValueError(f'Unknown ability-weather subscript {member}')
+    name = WEATHER_SCRIPTS[member][0]
+    path = f'files/battledata/script/subscript/subscript_{member:04}_{name}.s'
+    source = (Path(root) / path).read_text()
+    transformed = modern_weather_source(source, member)
+    if compile_battle_script(source, root) != original:
+        raise ValueError(f'The unchanged weather source does not match NARC member {member}; check the SDK/compiler profile')
+    return compile_battle_script(transformed, root)
+
 
 def modern_drain_source(source):
     """Give move 580 three-quarter drain while preserving legacy drain paths."""

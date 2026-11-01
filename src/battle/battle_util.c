@@ -2409,6 +2409,14 @@ void CalcTypeEffectivenessFlags(BattleContext *ctx, int moveNo, int moveTypeDefa
         moveType = BATTLE_MOVE_DATA(ctx, moveNo).type;
     }
 
+#if QOL_MODERN_BATTLE
+    if (abilityAttacker != ABILITY_MOLD_BREAKER
+        && ((moveType == TYPE_ELECTRIC && abilityTarget == ABILITY_LIGHTNINGROD)
+            || (moveType == TYPE_WATER && abilityTarget == ABILITY_STORM_DRAIN))) {
+        *moveStatusFlag |= MOVE_STATUS_NO_EFFECT;
+        return;
+    }
+#endif
     if (abilityAttacker != ABILITY_MOLD_BREAKER && abilityTarget == ABILITY_LEVITATE && moveType == TYPE_GROUND && !(ctx->fieldCondition & FIELD_CONDITION_GRAVITY) && item != HOLD_EFFECT_SPEED_DOWN_GROUNDED) {
         *moveStatusFlag |= MOVE_STATUS_NO_EFFECT;
     } else {
@@ -3133,6 +3141,15 @@ int BattleContext_CheckMoveImmunityFromAbility(BattleContext *ctx, int battlerId
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MOTOR_DRIVE) == TRUE && moveType == TYPE_ELECTRIC && battlerIdAttacker != battlerIdTarget) {
         script = BATTLE_SUBSCRIPT_ABSORB_AND_SPEED_UP_1_STAGE;
     }
+#if QOL_MODERN_BATTLE
+    // The shared absorption script selects Sp. Atk for these two abilities;
+    // Motor Drive keeps its existing Speed boost. Immunity also covers status.
+    if (battlerIdAttacker != battlerIdTarget && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)
+        && ((moveType == TYPE_ELECTRIC && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_LIGHTNINGROD))
+            || (moveType == TYPE_WATER && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_STORM_DRAIN)))) {
+        script = BATTLE_SUBSCRIPT_ABSORB_AND_SPEED_UP_1_STAGE;
+    }
+#endif
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_DRY_SKIN) == TRUE && moveType == TYPE_WATER && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN) && BATTLE_MOVE_DATA(ctx, ctx->moveNoCur).power) {
         ctx->hpCalc = DamageDivide(ctx->battleMons[battlerIdTarget].maxHp, 4);
         script = BATTLE_SUBSCRIPT_ABILITY_RESTORES_HP;
@@ -3292,28 +3309,44 @@ int TryAbilityOnEntry(BattleSystem *battleSystem, BattleContext *ctx) {
                     switch (GetBattlerAbility(ctx, battlerId)) {
                     case ABILITY_DRIZZLE:
                         ctx->battleMons[battlerId].sendOutFlag = TRUE;
+#if QOL_MODERN_BATTLE
+                        if (!(ctx->fieldCondition & FIELD_CONDITION_RAIN_ALL)) {
+#else
                         if (!(ctx->fieldCondition & FIELD_CONDITION_RAIN_PERMANENT)) {
+#endif
                             script = BATTLE_SUBSCRIPT_DRIZZLE;
                             flag = TRUE;
                         }
                         break;
                     case ABILITY_SAND_STREAM:
                         ctx->battleMons[battlerId].sendOutFlag = TRUE;
+#if QOL_MODERN_BATTLE
+                        if (!(ctx->fieldCondition & FIELD_CONDITION_SANDSTORM_ALL)) {
+#else
                         if (!(ctx->fieldCondition & FIELD_CONDITION_SANDSTORM_PERMANENT)) {
+#endif
                             script = BATTLE_SUBSCRIPT_SAND_STREAM;
                             flag = TRUE;
                         }
                         break;
                     case ABILITY_DROUGHT:
                         ctx->battleMons[battlerId].sendOutFlag = TRUE;
+#if QOL_MODERN_BATTLE
+                        if (!(ctx->fieldCondition & FIELD_CONDITION_SUN_ALL)) {
+#else
                         if (!(ctx->fieldCondition & FIELD_CONDITION_SUN_PERMANENT)) {
+#endif
                             script = BATTLE_SUBSCRIPT_DROUGHT;
                             flag = TRUE;
                         }
                         break;
                     case ABILITY_SNOW_WARNING:
                         ctx->battleMons[battlerId].sendOutFlag = TRUE;
+#if QOL_MODERN_BATTLE
+                        if (!(ctx->fieldCondition & FIELD_CONDITION_HAIL_ALL)) {
+#else
                         if (!(ctx->fieldCondition & FIELD_CONDITION_HAIL_PERMANENT)) {
+#endif
                             script = BATTLE_SUBSCRIPT_SNOW_WARNING;
                             flag = TRUE;
                         }
@@ -6860,6 +6893,13 @@ int Qol_PreviewTypeEffectiveness(BattleContext *ctx, u16 moveNo, int attacker, i
             && !(ctx->battleMons[target].status & STATUS_FREEZE))) {
         return 0;
     }
+#if QOL_MODERN_BATTLE
+    if (attacker != target
+        && ((moveType == TYPE_ELECTRIC && targetAbility == ABILITY_LIGHTNINGROD)
+            || (moveType == TYPE_WATER && targetAbility == ABILITY_STORM_DRAIN))) {
+        return 0;
+    }
+#endif
     if (targetAbility == ABILITY_SOUNDPROOF) {
         for (int i = 0; i < NELEMS(sSoundMoves); i++) {
             if (sSoundMoves[i] == moveNo) {

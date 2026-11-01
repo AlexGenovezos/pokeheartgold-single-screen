@@ -1,4 +1,5 @@
 #include "constants/maps.h"
+#include "pokedex_modern_types.h"
 
 #include "application/pokedex/pokedex_internal.h"
 #include "application/pokedex/pokedex_internal_constants.h"
@@ -321,7 +322,7 @@ static const PokedexBgRect sSearchOrderOptionRects[] = {
     { 18, 14, 11, 2 },
 };
 
-static const PokedexBgRect sSearchTypeOptionRects[18] = {
+static const PokedexBgRect sSearchTypeOptionRects[] = {
     { 0,  5,  8, 2 },
     { 8,  5,  8, 2 },
     { 16, 5,  8, 2 },
@@ -340,6 +341,9 @@ static const PokedexBgRect sSearchTypeOptionRects[18] = {
     { 24, 14, 8, 2 },
     { 0,  17, 8, 2 },
     { 8,  17, 8, 2 },
+#if QOL_MODERN_TYPES
+    { 16, 17, 8, 2 },
+#endif
 };
 
 static const PokedexBgRect sSearchAreaOptionRects[] = {
@@ -1358,11 +1362,27 @@ void PokedexApp_SelectSearchOrder(PokedexAppData *pokedexApp, int index) {
 }
 
 void PokedexApp_HighlightSearchTypes(PokedexAppData *pokedexApp) {
+    u32 type1 = pokedexApp->dexSearchCriteria[DEX_SEARCH_CRITERIA_TYPE1];
+    u32 type2 = pokedexApp->dexSearchCriteria[DEX_SEARCH_CRITERIA_TYPE2];
+#if QOL_MODERN_TYPES
+    u16 *tilemap = GetBgTilemapBuffer(pokedexApp->bgConfig, GF_BG_LYR_MAIN_2);
+    // The original screen has no button in this cell. Reuse All's background
+    // before applying palettes, without altering the original archive member.
+    for (int y = 17; y < 19; y++) {
+        MI_CpuCopy16(&tilemap[32 * y + 8], &tilemap[32 * y + 16], 8 * sizeof(u16));
+    }
+    if (type1 == DEX_SEARCH_TYPE_FAIRY) {
+        type1 = 18;
+    }
+    if (type2 == DEX_SEARCH_TYPE_FAIRY) {
+        type2 = 18;
+    }
+#endif
     for (int i = 0; i < NELEMS(sSearchTypeOptionRects); ++i) {
         PokedexApp_HighlightSearchOption(pokedexApp, &sSearchTypeOptionRects[i], FALSE);
     }
-    PokedexApp_HighlightSearchOption(pokedexApp, &sSearchTypeOptionRects[pokedexApp->dexSearchCriteria[DEX_SEARCH_CRITERIA_TYPE1]], TRUE);
-    PokedexApp_HighlightSearchOption(pokedexApp, &sSearchTypeOptionRects[pokedexApp->dexSearchCriteria[DEX_SEARCH_CRITERIA_TYPE2]], TRUE);
+    PokedexApp_HighlightSearchOption(pokedexApp, &sSearchTypeOptionRects[type1], TRUE);
+    PokedexApp_HighlightSearchOption(pokedexApp, &sSearchTypeOptionRects[type2], TRUE);
 }
 
 void PokedexApp_SelectSearchArea(PokedexAppData *pokedexApp, int index) {
