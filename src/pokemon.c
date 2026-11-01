@@ -26,6 +26,7 @@
 #include "trainer_memo.h"
 #include "pokepic_anim.h"
 #include "qol_config.h"
+#include "qol_learnsets.h"
 #include "wifi_club.h"
 
 void MonEncryptSegment(void *data, u32 size, u32 key);
@@ -3085,23 +3086,23 @@ u16 GetEggSpecies(u16 species) {
 
 void InitBoxMonMoveset(BoxPokemon *boxMon) {
     BOOL decry;
-    u16 *levelUpLearnset;
-    int i;
+    QolLevelUpMove *levelUpLearnset;
+    int count;
     u16 species;
     u32 form;
     u8 level;
     u16 move;
-    levelUpLearnset = Heap_Alloc(HEAP_ID_DEFAULT, MAX_LEARNED_MOVES * sizeof(u16));
+    levelUpLearnset = Heap_Alloc(HEAP_ID_DEFAULT, QOL_LEVEL_UP_LEARNSET_CAPACITY * sizeof(QolLevelUpMove));
     decry = AcquireBoxMonLock(boxMon);
     species = (u16)GetBoxMonData(boxMon, MON_DATA_SPECIES, NULL);
     form = GetBoxMonData(boxMon, MON_DATA_FORM, NULL);
     level = (u8)CalcBoxMonLevel(boxMon);
-    LoadLevelUpLearnset_HandleAlternateForm(species, (int)form, levelUpLearnset);
-    for (i = 0; levelUpLearnset[i] != LEVEL_UP_LEARNSET_END; i++) {
-        if ((levelUpLearnset[i] & LEVEL_UP_LEARNSET_LEVEL_MASK) > (level << LEVEL_UP_LEARNSET_LEVEL_SHIFT)) {
+    count = Qol_LoadLevelUpLearnset(species, (int)form, levelUpLearnset);
+    for (int i = 0; i < count; i++) {
+        if (levelUpLearnset[i].level > level) {
             break;
         }
-        move = LEVEL_UP_LEARNSET_MOVE(levelUpLearnset[i]);
+        move = levelUpLearnset[i].move;
         if (TryAppendBoxMonMove(boxMon, move) == MOVE_APPEND_FULL) {
             DeleteBoxMonFirstMoveAndAppend(boxMon, move);
         }
@@ -3191,31 +3192,7 @@ void BoxMonSetMoveInSlot(BoxPokemon *boxMon, u16 move, u8 slot) {
 }
 
 u32 MonTryLearnMoveOnLevelUp(Pokemon *mon, int *last_i, u16 *newMove) {
-    u32 ret = 0;
-    u16 *levelUpLearnset = Heap_Alloc(HEAP_ID_DEFAULT, MAX_LEARNED_MOVES * sizeof(u16));
-    u16 species = (u16)GetMonData(mon, MON_DATA_SPECIES, NULL);
-    u32 form = GetMonData(mon, MON_DATA_FORM, NULL);
-    u8 level = (u8)GetMonData(mon, MON_DATA_LEVEL, NULL);
-    LoadLevelUpLearnset_HandleAlternateForm(species, (int)form, levelUpLearnset);
-
-    if (levelUpLearnset[*last_i] == LEVEL_UP_LEARNSET_END) {
-        Heap_Free(levelUpLearnset);
-        return 0;
-    }
-    while ((levelUpLearnset[*last_i] & LEVEL_UP_LEARNSET_LEVEL_MASK) != (level << LEVEL_UP_LEARNSET_LEVEL_SHIFT)) {
-        (*last_i)++;
-        if (levelUpLearnset[*last_i] == LEVEL_UP_LEARNSET_END) {
-            Heap_Free(levelUpLearnset);
-            return 0;
-        }
-    }
-    if ((levelUpLearnset[*last_i] & LEVEL_UP_LEARNSET_LEVEL_MASK) == (level << LEVEL_UP_LEARNSET_LEVEL_SHIFT)) {
-        *newMove = LEVEL_UP_LEARNSET_MOVE(levelUpLearnset[*last_i]);
-        (*last_i)++;
-        ret = TryAppendMonMove(mon, *newMove);
-    }
-    Heap_Free(levelUpLearnset);
-    return ret;
+    return Qol_MonTryLearnMove(mon, last_i, newMove, FALSE);
 }
 
 void MonSwapMoves(Pokemon *mon, int a, int b) {
@@ -3350,14 +3327,13 @@ s8 GetFlavorPreferenceFromPID(u32 personality, int flavor) {
 }
 
 int Species_LoadLearnsetTable(u32 species, u32 form, u16 *dest) {
-    int i;
-    u16 *levelUpLearnset = Heap_Alloc(HEAP_ID_DEFAULT, MAX_LEARNED_MOVES * sizeof(u16));
-    LoadLevelUpLearnset_HandleAlternateForm(species, (int)form, levelUpLearnset);
-    for (i = 0; levelUpLearnset[i] != LEVEL_UP_LEARNSET_END; i++) {
-        dest[i] = LEVEL_UP_LEARNSET_MOVE(levelUpLearnset[i]);
+    QolLevelUpMove *levelUpLearnset = Heap_Alloc(HEAP_ID_DEFAULT, QOL_LEVEL_UP_LEARNSET_CAPACITY * sizeof(QolLevelUpMove));
+    int count = Qol_LoadLevelUpLearnset(species, (int)form, levelUpLearnset);
+    for (int i = 0; i < count; i++) {
+        dest[i] = levelUpLearnset[i].move;
     }
     Heap_Free(levelUpLearnset);
-    return i;
+    return count;
 }
 
 void Party_GivePokerusAtRandom(Party *party) {

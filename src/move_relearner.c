@@ -3,6 +3,7 @@
 #include "global.h"
 
 #include "pokemon.h"
+#include "qol_learnsets.h"
 
 MoveRelearnerArgs *MoveRelearner_New(enum HeapID heapID) {
     MoveRelearnerArgs *ret = Heap_Alloc(heapID, sizeof(MoveRelearnerArgs));
@@ -24,37 +25,34 @@ u16 *MoveRelearner_GetEligibleLevelUpMoves(Pokemon *mon, enum HeapID heapID) {
         moves[i] = GetMonData(mon, MON_DATA_MOVE1 + i, NULL);
     }
 
-    u16 *tableFromFile = Heap_Alloc(heapID, LEVEL_UP_LEARNSET_MAX * 2);
-    u16 *returnTable = Heap_Alloc(heapID, LEVEL_UP_LEARNSET_MAX * 2);
+    QolLevelUpMove *tableFromFile = Heap_Alloc(heapID, QOL_LEVEL_UP_LEARNSET_CAPACITY * sizeof(QolLevelUpMove));
+    u16 *returnTable = Heap_Alloc(heapID, QOL_LEVEL_UP_LEARNSET_CAPACITY * sizeof(u16));
+    int count = Qol_LoadLevelUpLearnset(species, form, tableFromFile);
+    int k = 0;
 
-    LoadLevelUpLearnset_HandleAlternateForm(species, form, tableFromFile);
-
-    for (u8 i = 0, j, k = 0; i < LEVEL_UP_LEARNSET_MAX; i++) {
-        if (tableFromFile[i] == LEVEL_UP_LEARNSET_END) {
-            returnTable[k] = LEVEL_UP_LEARNSET_END;
-            break;
-        } else if (LEVEL_UP_LEARNSET_LVL(tableFromFile[i]) > level) {
+    for (int i = 0; i < count; i++) {
+        int j;
+        u16 move = tableFromFile[i].move;
+        if (tableFromFile[i].level > level) {
             continue;
-        } else {
-            tableFromFile[i] = LEVEL_UP_LEARNSET_MOVE(tableFromFile[i]);
-            for (j = 0; j < MAX_MON_MOVES; j++) {
-                if (tableFromFile[i] == moves[j]) {
+        }
+        for (j = 0; j < MAX_MON_MOVES; j++) {
+            if (move == moves[j]) {
+                break;
+            }
+        }
+        if (j == MAX_MON_MOVES) {
+            for (j = 0; j < k; j++) {
+                if (returnTable[j] == move) {
                     break;
                 }
             }
-            if (j == MAX_MON_MOVES) {
-                for (j = 0; j < k; j++) {
-                    if (returnTable[j] == tableFromFile[i]) {
-                        break;
-                    }
-                }
-                if (j == k) {
-                    returnTable[k] = tableFromFile[i];
-                    k++;
-                }
+            if (j == k) {
+                returnTable[k++] = move;
             }
         }
     }
+    returnTable[k] = LEVEL_UP_LEARNSET_END;
     Heap_Free(tableFromFile);
     return returnTable;
 }

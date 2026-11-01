@@ -4,23 +4,12 @@ import argparse
 from pathlib import Path
 import struct
 
+from battle_scripts import modern_paralysis_script, modern_drain_script
+from game_text import game_text
+from move_resources import extended_move_resources, read_entries
+
 from nitro_data import (lz10_decompress, lz10_literals, pack_messages, pack_narc,
                        replace_rom_files, rom_files, unpack_messages, unpack_narc)
-
-
-def game_text(text, charmap):
-    mapping = {'\n': 0xE000}
-    for line in Path(charmap).read_text().splitlines():
-        number, separator, character = line.partition('=')
-        if separator and len(character) == 1:
-            try:
-                mapping.setdefault(character, int(number, 16))
-            except ValueError:
-                pass
-    try:
-        return [mapping[c] for c in text] + [0xFFFF]
-    except KeyError as error:
-        raise ValueError(f'Character absent from game font: {error.args[0]!r}') from error
 
 
 def fairy_icon_pixels(width=32, colors=(5, 6, 13, 15)):
@@ -109,10 +98,28 @@ def modern_battle_resources(archive):
     return pack_narc(members, names)
 
 
-def make_modern_rom(rom, charmap, types=True, battle_rules=False):
+def modern_paralysis_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) <= 31:
+        raise ValueError('Battle paralysis subscript is absent')
+    members[31] = modern_paralysis_script(members[31])
+    return pack_narc(members, names)
+
+
+def modern_drain_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) <= 24:
+        raise ValueError('Battle drain subscript is absent')
+    members[24] = modern_drain_script(members[24])
+    return pack_narc(members, names)
+
+
+def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
     files = rom_files(rom)
     replacements = {}
     def read(path):
+        if path in replacements:
+            return replacements[path]
         try:
             return rom[files[path][1]:files[path][2]]
         except KeyError as error:
@@ -123,7 +130,13 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False):
         updated = (*modern_type_resources(*source[:2], charmap), modern_pokedex_resources(source[2]))
         replacements.update(zip(paths, updated))
     if battle_rules:
-        replacements['a/0/0/1'] = modern_battle_resources(read('a/0/0/1'))
+        replacements['a/0/0/1'] = modern_paralysis_resources(modern_battle_resources(read('a/0/0/1')))
+    if moves:
+        paths = ('a/0/1/1', 'a/0/0/0', 'a/0/2/7')
+        entries = read_entries(Path(__file__).resolve().parents[2] / 'include/data/qol_move_entries.inc')
+        updated = extended_move_resources(*(read(p) for p in paths), charmap, entries)
+        replacements.update(zip(paths, updated))
+        replacements['a/0/0/1'] = modern_drain_resources(read('a/0/0/1'))
     return replace_rom_files(rom, replacements)
 
 
@@ -134,9 +147,10 @@ def main():
     parser.add_argument('--charmap', type=Path, default=Path(__file__).resolve().parents[2] / 'charmap.txt')
     parser.add_argument('--no-types', action='store_true')
     parser.add_argument('--battle-rules', action='store_true')
+    parser.add_argument('--moves', action='store_true')
     args = parser.parse_args()
     # Exclusive creation prevents overwriting the built source, a clean ROM or a save.
-    output = make_modern_rom(args.source.read_bytes(), args.charmap, not args.no_types, args.battle_rules)
+    output = make_modern_rom(args.source.read_bytes(), args.charmap, not args.no_types, args.battle_rules, args.moves)
     with args.output.open('xb') as stream:
         stream.write(output)
     print(f'{args.output}: selected modern resources, {len(output)} bytes')

@@ -34,6 +34,7 @@
 #include "pm_string.h"
 #include "pokedex.h"
 #include "pokemon.h"
+#include "qol_learnsets.h"
 #include "pokemon_summary.h"
 #include "pokepic.h"
 #include "pokepic_anim_internal.h"
@@ -885,7 +886,7 @@ static void EvolutionScene_Run(EvolutionTaskData *data) {
     case EVO_STATE_TRY_LEARN_MOVE: {
         u16 move;
 
-        switch (MonTryLearnMoveOnLevelUp(data->mon, &data->learnsetCursor, &move)) {
+        switch (Qol_MonTryLearnMoveAfterEvolution(data->mon, &data->learnsetCursor, &move)) {
         case MOVE_NONE:
             data->state = EVO_STATE_FADE_OUT;
             break;

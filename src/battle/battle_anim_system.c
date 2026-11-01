@@ -1,3 +1,4 @@
+#include "qol_moves.h"
 #include "global.h"
 
 #include "constants/battle.h"
@@ -584,6 +585,7 @@ BOOL BattleAnimSystem_StartMove(BattleAnimSystem *system, MoveAnimData *animData
             animId = terrainAnims[system->context->terrain];
         }
     }
+    animId = Qol_GetMoveAnimation(animId);
     if (animId == MOVE_NONE || animId > NUM_MOVES) {
         animId = MOVE_POUND;
     }

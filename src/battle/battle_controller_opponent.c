@@ -1,3 +1,4 @@
+#include "qol_moves.h"
 #include "battle/battle_controller_opponent.h"
 
 #include "global.h"
@@ -1180,7 +1181,7 @@ int TrainerAI_PostKOSwitchIn(BattleSystem *battleSystem, int battler) {
                 move = GetMonData(mon, MON_DATA_MOVE1 + j, NULL);
                 moveType = TrainerAI_GetMoveType(battleSystem, ctx, mon, move);
 
-                if (move && ctx->trainerAIData.moveData[move].power != 1) {
+                if (move && BATTLE_MOVE_DATA(ctx, move).power != 1) {
                     score = CalcMoveDamage(battleSystem,
                         ctx,
                         move,
@@ -4615,7 +4616,7 @@ static void Task_RecordedSelectMove(SysTask *task, void *data) {
         BattleSystem_StopRecordingDataCorrupted(work->battleSystem);
     } else {
         u16 move = GetBattlerVar(BattleSystem_GetBattleContext(work->battleSystem), work->battlerId, BMON_DATA_MOVE1 + input - 1, NULL);
-        if (move == MOVE_NONE || move > NUM_MOVES) {
+        if (move == MOVE_NONE || !Qol_IsSupportedMove(move)) {
             BattleSystem_StopRecordingDataCorrupted(work->battleSystem);
         }
     }

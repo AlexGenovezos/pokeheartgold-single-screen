@@ -20,6 +20,9 @@ COMMON = r'''
 #include "constants/battle_subscript.h"
 #include "constants/items.h"
 #include "constants/moves.h"
+// Legacy-sized extracted-function fixtures use the production feature-off accessor.
+#define BATTLE_MOVE_DATA(ctx, moveId) ((ctx)->trainerAIData.moveData[(moveId)])
+#define Qol_IsSupportedMove(moveId) ((moveId) <= NUM_MOVES)
 #include "constants/move_effects.h"
 #include "constants/pokemon.h"
 #include "constants/species.h"

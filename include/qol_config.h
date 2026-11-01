@@ -27,4 +27,9 @@
 #define QOL_MODERN_BATTLE 0
 #endif
 
+// Extended move metadata/resources are opt-in independently of other rules.
+#ifndef QOL_MODERN_MOVES
+#define QOL_MODERN_MOVES 0
+#endif
+
 #endif

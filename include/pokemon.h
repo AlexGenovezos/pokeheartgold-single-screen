@@ -15,7 +15,7 @@
 #include "sound_chatot.h"
 
 #define LEVEL_UP_LEARNSET_END 0xFFFF
-#define LEVEL_UP_LEARNSET_MAX 21
+#define LEVEL_UP_LEARNSET_MAX MAX_LEARNED_MOVES
 
 #define LEVEL_UP_LEARNSET_MOVEID_MASK  0x01FF
 #define LEVEL_UP_LEARNSET_MOVEID_SHIFT 0
@@ -110,6 +110,7 @@ void CopyPokemonToBoxPokemon(const Pokemon *src, BoxPokemon *dest);
 s8 MonGetFlavorPreference(Pokemon *mon, int flavor);
 s8 BoxMonGetFlavorPreference(BoxPokemon *boxMon, int flavor);
 s8 GetFlavorPreferenceFromPID(u32 personality, int flavor);
+// dest must hold QOL_LEVEL_UP_LEARNSET_CAPACITY u16 moves (see qol_learnsets.h).
 int Species_LoadLearnsetTable(u32 species, u32 form, u16 *dest);
 void Party_GivePokerusAtRandom(Party *party);
 u8 Party_MaskMonsWithPokerus(Party *party, u8 mask);

@@ -6,16 +6,22 @@ native_root="${1:-$game_root/../ssrecomp-qol}"
 native_root="$(cd "$native_root" && pwd)"
 modern_types="${QOL_MODERN_TYPES:-0}"
 modern_rules="${QOL_MODERN_BATTLE:-0}"
-case "$modern_types:$modern_rules" in
-    0:0|0:1|1:0|1:1) ;;
-    *) echo 'QOL_MODERN_TYPES and QOL_MODERN_BATTLE must be 0 or 1.' >&2; exit 1 ;;
-esac
+modern_moves="${QOL_MODERN_MOVES:-0}"
+for feature_flag in "$modern_types" "$modern_rules" "$modern_moves"; do
+    case "$feature_flag" in
+        0|1) ;;
+        *) echo 'QOL_MODERN_TYPES, QOL_MODERN_BATTLE and QOL_MODERN_MOVES must be 0 or 1.' >&2; exit 1 ;;
+    esac
+done
 game_defines='-DQOL_MODS=1'
 if [[ "$modern_types" == 1 ]]; then
     game_defines+=' -DQOL_MODERN_TYPES=1'
 fi
 if [[ "$modern_rules" == 1 ]]; then
     game_defines+=' -DQOL_MODERN_BATTLE=1'
+fi
+if [[ "$modern_moves" == 1 ]]; then
+    game_defines+=' -DQOL_MODERN_MOVES=1'
 fi
 python_bin="$native_root/.venv/bin/python"
 if [[ ! -x "$python_bin" ]]; then
@@ -28,7 +34,7 @@ done
 "$game_root/scripts/build.sh" GAME_VERSION=SOULSILVER COMPARE=0 "CLI_DEFINES=$game_defines"
 game_build="$game_root/build/soulsilver.us"
 game_rom="$game_build/pokesoulsilver.us.nds"
-if [[ "$modern_types" == 1 || "$modern_rules" == 1 ]]; then
+if [[ "$modern_types" == 1 || "$modern_rules" == 1 || "$modern_moves" == 1 ]]; then
     resource_dir="$(mktemp -d "$game_build/qol-resources.XXXXXX")"
     trap 'rm -rf "$resource_dir"' EXIT
     resource_args=()
@@ -37,6 +43,9 @@ if [[ "$modern_types" == 1 || "$modern_rules" == 1 ]]; then
     fi
     if [[ "$modern_rules" == 1 ]]; then
         resource_args+=(--battle-rules)
+    fi
+    if [[ "$modern_moves" == 1 ]]; then
+        resource_args+=(--moves)
     fi
     "$python_bin" "$game_root/tools/qol/modern_rom.py" "$game_rom" "$resource_dir/modern.nds" "${resource_args[@]}"
     game_rom="$game_build/pokesoulsilver-modern.us.nds"

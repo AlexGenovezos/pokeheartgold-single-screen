@@ -1,3 +1,4 @@
+#include "qol_moves.h"
 #include "battle_record.h"
 
 #include "constants/items.h"
@@ -369,7 +370,7 @@ static BOOL BattleRecord_IsValid(SaveData *save, BattleRecord *record) {
                 return FALSE;
             }
             for (int k = 0; k < 4; k++) {
-                if (mon->moves[k] > NUM_MOVES) {
+                if (!Qol_IsSupportedMove(mon->moves[k])) {
                     return FALSE;
                 }
             }

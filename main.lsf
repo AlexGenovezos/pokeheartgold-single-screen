@@ -275,6 +275,8 @@ Static main
     Object src/field_misc_events.o
     Object src/pokemon.o
     Object src/move.o
+    Object src/qol_moves.o
+    Object src/qol_learnsets.o
     Object src/trainer_data.o
     Object src/pokemon_storage_system.o
     Object src/pokemon_icon_idx.o

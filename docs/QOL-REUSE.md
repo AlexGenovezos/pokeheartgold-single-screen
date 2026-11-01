@@ -143,10 +143,33 @@ saved Pokémon, battle structs, packets, recordings and summary layouts. Saved
 Pokémon still need a deliberate ability-slot migration, and each mapped ability
 needs real battle behavior before the updated slot is enabled.
 
-Development source currently adds the independently disabled modern-type and
-core-rule flags, source-generated global/Pokédex Fairy icons and names, and
-actual-source regressions. The modern build is not installed. Remaining known
+Development source currently adds independently disabled modern-type,
+core-rule and expanded-move flags. The first move batch implements Disarming
+Voice, Draining Kiss, Play Rough, Moonblast and Dazzling Gleam. Its private wide
+learnset adapter adds 66 level-gated entries for base forms while preserving
+original moves and the saved Pokémon/battle layouts. Creation, level-up,
+evolution, daycare, tutoring checks and relearning share the adapter. Alternate
+forms retain their original tables until separately imported. Source-generated
+resources extend the original archives without replacing their existing IDs;
+short card labels keep the effectiveness indicators readable.
+
+Draining Kiss restores three quarters of damage with the original Big Root,
+Liquid Ooze and Heal Block paths retained. Modern sound moves bypass Substitute
+for damage and move effects, while Soundproof and Mold Breaker still apply.
+The battle-resource transform also adds current Electric-type paralysis
+immunity. Original script compilation must exactly match each archive member
+before a modified source copy is assembled. Spec and code quality reviews
+approved this scoped first batch; full native validation is recorded separately.
+
+Build all three development pieces together with:
+
+```sh
+QOL_MODERN_TYPES=1 QOL_MODERN_BATTLE=1 QOL_MODERN_MOVES=1 \
+    ./scripts/build-qol-native.sh ../ssrecomp-qol
+```
+
+The modern build is not installed. Remaining known
 integration work includes Pokédex Fairy search/filtering, the modern combined
-final-damage modifier chain, new moves/scripts/learnsets, modern status/weather
+final-damage modifier chain, the remaining new moves/scripts/learnsets, modern status/weather
 rules, abilities and saved-slot migration. Record each port's tests and native
 runtime evidence before enabling it in the installed app.

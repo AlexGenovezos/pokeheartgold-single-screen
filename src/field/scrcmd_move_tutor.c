@@ -14,6 +14,7 @@
 #include "player_avatar.h"
 #include "pm_string.h"
 #include "pokemon.h"
+#include "qol_learnsets.h"
 #include "pokemon_storage_system.h"
 #include "scrcmd.h"
 #include "script.h"
@@ -344,7 +345,7 @@ BOOL ScrCmd_MonLearnsetHasMove(ScriptContext *ctx) {
     *result = FALSE;
     Party *party = SaveArray_Party_Get(ctx->fieldSystem->saveData);
     Pokemon *mon = Party_GetMonByIndex(party, slot);
-    u16 *unk = Heap_AllocAtEnd(HEAP_ID_FIELD2, 0x2c);
+    u16 *unk = Heap_AllocAtEnd(HEAP_ID_FIELD2, QOL_LEVEL_UP_LEARNSET_CAPACITY * sizeof(u16));
     u32 species = GetMonData(mon, MON_DATA_SPECIES, NULL);
     u32 form = GetMonData(mon, MON_DATA_FORM, NULL);
     s32 size = Species_LoadLearnsetTable(species, form, unk);

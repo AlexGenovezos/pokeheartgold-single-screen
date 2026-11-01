@@ -7,6 +7,7 @@
 
 #include "filesystem.h"
 #include "qol_config.h"
+#include "qol_moves.h"
 
 #if QOL_MODERN_TYPES
 // Existing move IDs/types follow hg-engine data/Moves.c at 61b510cf.
@@ -48,7 +49,7 @@ u8 GetMoveMaxPP(u16 moveId, u8 ppUps) {
     return pp + ((pp * 20 * ppUps) / 100);
 }
 
-u32 GetMoveTblAttr(MoveTbl *moveTbl, MoveAttr attr) {
+u32 GetMoveTblAttr(const MoveTbl *moveTbl, MoveAttr attr) {
     switch (attr) {
     case MOVEATTR_EFFECT:
         return moveTbl->effect;
@@ -80,6 +81,16 @@ u32 GetMoveTblAttr(MoveTbl *moveTbl, MoveAttr attr) {
 }
 
 void LoadMoveEntry(u16 moveId, MoveTbl *moveTbl) {
+#if QOL_MODERN_MOVES
+    if (moveId > NUM_MOVES) {
+        const MoveTbl *extended = Qol_GetExtendedMoveData(moveId);
+        if (extended != NULL) {
+            *moveTbl = *extended;
+            return;
+        }
+        moveId = MOVE_NONE;
+    }
+#endif
     ReadWholeNarcMemberByIdPair(moveTbl, NARC_poketool_waza_waza_tbl, moveId);
 #if QOL_MODERN_TYPES
     Qol_ApplyModernMoveType(moveId, moveTbl);

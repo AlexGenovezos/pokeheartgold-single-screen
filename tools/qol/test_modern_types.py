@@ -68,6 +68,9 @@ COMMON = r'''
 #include "constants/pokemon.h"
 #include "constants/species.h"
 #include "constants/moves.h"
+// Legacy-sized extracted-function fixtures use the production feature-off accessor.
+#define BATTLE_MOVE_DATA(ctx, moveId) ((ctx)->trainerAIData.moveData[(moveId)])
+#define Qol_IsSupportedMove(moveId) ((moveId) <= NUM_MOVES)
 typedef unsigned char u8;
 typedef signed char s8;
 typedef unsigned short u16;

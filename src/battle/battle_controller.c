@@ -1,3 +1,4 @@
+#include "qol_moves.h"
 #include "battle/battle_controller.h"
 
 #include "global.h"
@@ -1232,7 +1233,7 @@ void BattleController_InitMoveAnimData(BattleSystem *battleSystem, BattleContext
     if (ctx->movePower) {
         animData->power = ctx->movePower;
     } else {
-        animData->power = ctx->trainerAIData.moveData[move].power;
+        animData->power = BATTLE_MOVE_DATA(ctx, move).power;
     }
     animData->friendship = ctx->battleMons[attacker].friendship;
     if (!CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {

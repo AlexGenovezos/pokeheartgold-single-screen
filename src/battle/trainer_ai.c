@@ -1,3 +1,4 @@
+#include "qol_moves.h"
 #include "battle/trainer_ai.h"
 
 #include "constants/abilities.h"
@@ -12,6 +13,9 @@
 #include "battle/battle_util.h"
 
 #include "system.h"
+
+// This table is embedded in the battle ABI; later move IDs live separately.
+typedef char Qol_TrainerAIMoveTableMustRemain468[(sizeof(((TrainerAIData *)0)->moveData) == 468 * 16) ? 1 : -1];
 
 extern const u16 sNoDamageCalcMoveEffects[]; /*= {
     MOVE_EFFECT_HALVE_DEFENSE,
@@ -410,7 +414,7 @@ static u8 TrainerAI_MainDoubles(BattleSystem *battleSystem, BattleContext *ctx) 
     move = ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[moveSlot];
 
     // Override targets as needed.
-    if (ctx->trainerAIData.moveData[move].range == RANGE_SINGLE_TARGET_USER_SIDE
+    if (BATTLE_MOVE_DATA(ctx, move).range == RANGE_SINGLE_TARGET_USER_SIDE
         && BattleSystem_GetFieldSide(battleSystem, ctx->trainerAIData.selectedTarget[ctx->trainerAIData.battlerIdAttacker]) == 0) {
         ctx->trainerAIData.selectedTarget[ctx->trainerAIData.battlerIdAttacker] = ctx->trainerAIData.battlerIdAttacker;
     }
@@ -809,7 +813,7 @@ void AICmd_IfAttackerHasDamagingMoves(BattleSystem *battleSystem, BattleContext 
     int i;
     for (i = 0; i < MAX_MON_MOVES; i++) {
         if (ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i] != MOVE_NONE
-            && ctx->trainerAIData.moveData[ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i]].power) {
+            && BATTLE_MOVE_DATA(ctx, ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i]).power) {
             break;
         }
     }
@@ -826,7 +830,7 @@ void AICmd_IfAttackerHasNoDamagingMoves(BattleSystem *battleSystem, BattleContex
     int i;
     for (i = 0; i < MAX_MON_MOVES; i++) {
         if (ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i] != MOVE_NONE
-            && ctx->trainerAIData.moveData[ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i]].power) {
+            && BATTLE_MOVE_DATA(ctx, ctx->battleMons[ctx->trainerAIData.battlerIdAttacker].moves[i]).power) {
             break;
         }
     }
@@ -865,7 +869,7 @@ void AICmd_LoadTypeFrom(BattleSystem *battleSystem, BattleContext *ctx) {
         break;
 
     case LOAD_MOVE_TYPE:
-        ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.move].type;
+        ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).type;
         break;
 
     case LOAD_ATTACKER_PARTNER_TYPE_1:
@@ -910,7 +914,7 @@ void AICmd_FlagBattlerIsType(BattleSystem *battleSystem, BattleContext *ctx) {
 
 void AICmd_LoadMovePower(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.move].power;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).power;
 }
 
 void AICmd_FlagMoveDamageScore(BattleSystem *battleSystem, BattleContext *ctx) {
@@ -924,7 +928,7 @@ void AICmd_FlagMoveDamageScore(BattleSystem *battleSystem, BattleContext *ctx) {
     // Do-whiles are required to match, despite not being the case in pokeplatinum.
     int noDamageCalcIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
             break;
         }
         noDamageCalcIndex++;
@@ -932,14 +936,14 @@ void AICmd_FlagMoveDamageScore(BattleSystem *battleSystem, BattleContext *ctx) {
 
     int altPowerIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sAltPowerMoveEffects[altPowerIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sAltPowerMoveEffects[altPowerIndex]) {
             break;
         }
         altPowerIndex++;
     } while (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF);
 
     if (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF
-        || (ctx->trainerAIData.moveData[ctx->trainerAIData.move].power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
+        || (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
         int i;
         for (i = 0; i < NUM_STATS; i++) {
             ivs[i] = GetBattlerVar(ctx, ctx->trainerAIData.battlerIdAttacker, BMON_DATA_HP_IV + i, NULL);
@@ -1063,7 +1067,7 @@ void AICmd_LoadCurrentMove(BattleSystem *battleSystem, BattleContext *ctx) {
 
 void AICmd_LoadCurrentMoveEffect(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect;
 }
 
 void AICmd_LoadBattlerAbility(BattleSystem *battleSystem, BattleContext *ctx) {
@@ -1337,7 +1341,7 @@ void AICmd_IfCurrentMoveEffectEqualTo(BattleSystem *battleSystem, BattleContext 
     int expected = AIScript_Read(ctx);
     int jump = AIScript_Read(ctx);
 
-    if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == expected) {
+    if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == expected) {
         AIScript_IncrementCursor(ctx, jump);
     }
 }
@@ -1348,7 +1352,7 @@ void AICmd_IfCurrentMoveEffectNotEqualTo(BattleSystem *battleSystem, BattleConte
     int expected = AIScript_Read(ctx);
     int jump = AIScript_Read(ctx);
 
-    if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect != expected) {
+    if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect != expected) {
         AIScript_IncrementCursor(ctx, jump);
     }
 }
@@ -1424,7 +1428,7 @@ void AICmd_IfCurrentMoveKOs(BattleSystem *battleSystem, BattleContext *ctx) {
 
     int noDamageCalcIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
             break;
         }
         noDamageCalcIndex++;
@@ -1432,14 +1436,14 @@ void AICmd_IfCurrentMoveKOs(BattleSystem *battleSystem, BattleContext *ctx) {
 
     int altPowerIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sAltPowerMoveEffects[altPowerIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sAltPowerMoveEffects[altPowerIndex]) {
             break;
         }
         altPowerIndex++;
     } while (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF);
 
     if (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF
-        || (ctx->trainerAIData.moveData[ctx->trainerAIData.move].power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
+        || (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
         u8 ivs[NUM_STATS];
         for (int stat = STAT_HP; stat < NUM_STATS; stat++) {
             ivs[stat] = GetBattlerVar(ctx, ctx->trainerAIData.battlerIdAttacker, BMON_DATA_HP_IV + stat, NULL);
@@ -1476,7 +1480,7 @@ void AICmd_IfCurrentMoveDoesNotKO(BattleSystem *battleSystem, BattleContext *ctx
 
     int noDamageCalcIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
             break;
         }
         noDamageCalcIndex++;
@@ -1484,14 +1488,14 @@ void AICmd_IfCurrentMoveDoesNotKO(BattleSystem *battleSystem, BattleContext *ctx
 
     int altPowerIndex = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sAltPowerMoveEffects[altPowerIndex]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sAltPowerMoveEffects[altPowerIndex]) {
             break;
         }
         altPowerIndex++;
     } while (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF);
 
     if (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF
-        || (ctx->trainerAIData.moveData[ctx->trainerAIData.move].power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
+        || (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).power > 1 && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF)) {
         u8 ivs[NUM_STATS];
         for (int stat = STAT_HP; stat < NUM_STATS; stat++) {
             ivs[stat] = GetBattlerVar(ctx, ctx->trainerAIData.battlerIdAttacker, BMON_DATA_HP_IV + stat, NULL);
@@ -1636,7 +1640,7 @@ void AICmd_IfMoveEffectKnown(BattleSystem *battleSystem, BattleContext *ctx) {
     case AI_BATTLER_ATTACKER:
         for (i = 0; i < MAX_MON_MOVES; i++) {
             if (ctx->battleMons[battler].moves[i]
-                && ctx->trainerAIData.moveData[ctx->battleMons[battler].moves[i]].effect == effect) {
+                && BATTLE_MOVE_DATA(ctx, ctx->battleMons[battler].moves[i]).effect == effect) {
                 break;
             }
         }
@@ -1649,7 +1653,7 @@ void AICmd_IfMoveEffectKnown(BattleSystem *battleSystem, BattleContext *ctx) {
     case AI_BATTLER_DEFENDER:
         for (i = 0; i < MAX_MON_MOVES; i++) {
             if (ctx->trainerAIData.moves[battler][i]
-                && ctx->trainerAIData.moveData[ctx->trainerAIData.moves[battler][i]].effect == effect) {
+                && BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.moves[battler][i]).effect == effect) {
                 break;
             }
         }
@@ -1677,7 +1681,7 @@ void AICmd_IfMoveEffectNotKnown(BattleSystem *battleSystem, BattleContext *ctx) 
     case AI_BATTLER_ATTACKER:
         for (i = 0; i < MAX_MON_MOVES; i++) {
             if (ctx->battleMons[battler].moves[i]
-                && ctx->trainerAIData.moveData[ctx->battleMons[battler].moves[i]].effect == effect) {
+                && BATTLE_MOVE_DATA(ctx, ctx->battleMons[battler].moves[i]).effect == effect) {
                 break;
             }
         }
@@ -1690,7 +1694,7 @@ void AICmd_IfMoveEffectNotKnown(BattleSystem *battleSystem, BattleContext *ctx) 
     case AI_BATTLER_DEFENDER:
         for (i = 0; i < MAX_MON_MOVES; i++) {
             if (ctx->trainerAIData.moves[battler][i]
-                && ctx->trainerAIData.moveData[ctx->trainerAIData.moves[battler][i]].effect == effect) {
+                && BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.moves[battler][i]).effect == effect) {
                 break;
             }
         }
@@ -1915,12 +1919,12 @@ void AICmd_IfCanUseLastResort(BattleSystem *battleSystem, BattleContext *ctx) {
 
 void AICmd_LoadCurrentMoveCategory(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.move].category;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).category;
 }
 
 void AICmd_LoadDefenderLastUsedMoveCategory(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->moveNoBattlerPrev[ctx->trainerAIData.battlerIdTarget]].category;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->moveNoBattlerPrev[ctx->trainerAIData.battlerIdTarget]).category;
 }
 
 void AICmd_LoadBattlerSpeedOrderPosition(BattleSystem *battleSystem, BattleContext *ctx) {
@@ -2238,7 +2242,7 @@ void AICmd_CheckIfHighestDamageWithPartner(BattleSystem *battleSystem, BattleCon
 
     j = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sNoDamageCalcMoveEffects[j]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sNoDamageCalcMoveEffects[j]) {
             break;
         }
         j++;
@@ -2246,14 +2250,14 @@ void AICmd_CheckIfHighestDamageWithPartner(BattleSystem *battleSystem, BattleCon
 
     k = 0;
     do {
-        if (ctx->trainerAIData.moveData[ctx->trainerAIData.move].effect == sAltPowerMoveEffects[k]) {
+        if (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).effect == sAltPowerMoveEffects[k]) {
             break;
         }
         k++;
     } while (sAltPowerMoveEffects[k] != 0xFFFF);
 
     if (sAltPowerMoveEffects[k] != 0xFFFF
-        || (ctx->trainerAIData.moveData[ctx->trainerAIData.move].power > 1 && sNoDamageCalcMoveEffects[j] == 0xFFFF)) {
+        || (BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.move).power > 1 && sNoDamageCalcMoveEffects[j] == 0xFFFF)) {
         battler = ctx->trainerAIData.battlerIdAttacker;
 
         for (j = 0; j < MAX_BATTLERS_PER_SIDE; j++) {
@@ -2374,17 +2378,17 @@ void AICmd_LoadRecycleItem(BattleSystem *battleSystem, BattleContext *ctx) {
 
 void AICmd_LoadTypeOfLoadedMove(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.calcTemp].type;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.calcTemp).type;
 }
 
 void AICmd_LoadPowerOfLoadedMove(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.calcTemp].power;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.calcTemp).power;
 }
 
 void AICmd_LoadEffectOfLoadedMove(BattleSystem *battleSystem, BattleContext *ctx) {
     AIScript_IncrementCursor(ctx, 1);
-    ctx->trainerAIData.calcTemp = ctx->trainerAIData.moveData[ctx->trainerAIData.calcTemp].effect;
+    ctx->trainerAIData.calcTemp = BATTLE_MOVE_DATA(ctx, ctx->trainerAIData.calcTemp).effect;
 }
 
 void AICmd_LoadProtectSuccessChain(BattleSystem *battleSystem, BattleContext *ctx) {
@@ -2642,7 +2646,7 @@ static s32 TrainerAI_CalcAllDamage(BattleSystem *battleSystem, BattleContext *ct
     for (i = 0; i < MAX_MON_MOVES; i++) {
         int noDamageCalcIndex = 0;
         do {
-            if (ctx->trainerAIData.moveData[moves[i]].effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
+            if (BATTLE_MOVE_DATA(ctx, moves[i]).effect == sNoDamageCalcMoveEffects[noDamageCalcIndex]) {
                 break;
             }
             noDamageCalcIndex++;
@@ -2650,14 +2654,14 @@ static s32 TrainerAI_CalcAllDamage(BattleSystem *battleSystem, BattleContext *ct
 
         int altPowerIndex = 0;
         do {
-            if (ctx->trainerAIData.moveData[moves[i]].effect == sAltPowerMoveEffects[altPowerIndex]) {
+            if (BATTLE_MOVE_DATA(ctx, moves[i]).effect == sAltPowerMoveEffects[altPowerIndex]) {
                 break;
             }
             altPowerIndex++;
         } while (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF);
 
         if (sAltPowerMoveEffects[altPowerIndex] != 0xFFFF
-            || (moves[i] != MOVE_NONE && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF && ctx->trainerAIData.moveData[moves[i]].power > 1)) {
+            || (moves[i] != MOVE_NONE && sNoDamageCalcMoveEffects[noDamageCalcIndex] == 0xFFFF && BATTLE_MOVE_DATA(ctx, moves[i]).power > 1)) {
             if (varyDamage == TRUE) {
                 damageRoll = ctx->trainerAIData.moveDamageRolls[i];
             } else {
@@ -3227,7 +3231,7 @@ static BOOL AI_OnlyIneffectiveMoves(BattleSystem *battleSystem, BattleContext *c
         move = ctx->battleMons[battler].moves[i];
         type = TrainerAI_MoveType(battleSystem, ctx, battler, move);
 
-        if (move && ctx->trainerAIData.moveData[move].power) {
+        if (move && BATTLE_MOVE_DATA(ctx, move).power) {
             numMoves++;
 
             effectiveness = 0;
@@ -3283,7 +3287,7 @@ static BOOL AI_OnlyIneffectiveMoves(BattleSystem *battleSystem, BattleContext *c
                 move = GetMonData(mon, MON_DATA_MOVE1 + j, NULL);
                 type = TrainerAI_GetMoveType(battleSystem, ctx, mon, move);
 
-                if (move && ctx->trainerAIData.moveData[move].power) {
+                if (move && BATTLE_MOVE_DATA(ctx, move).power) {
                     effectiveness = 0;
                     if (ctx->battleMons[defender1].hp) {
                         CalcTypeEffectivenessFlags(ctx,
@@ -3342,7 +3346,7 @@ static BOOL AI_OnlyIneffectiveMoves(BattleSystem *battleSystem, BattleContext *c
                 move = GetMonData(mon, MON_DATA_MOVE1 + j, NULL);
                 type = TrainerAI_GetMoveType(battleSystem, ctx, mon, move);
 
-                if (move && ctx->trainerAIData.moveData[move].power) {
+                if (move && BATTLE_MOVE_DATA(ctx, move).power) {
                     effectiveness = 0;
                     if (ctx->battleMons[defender1].hp) {
                         CalcTypeEffectivenessFlags(ctx,
@@ -3497,11 +3501,11 @@ static BOOL AI_HasAbsorbAbilityInParty(BattleSystem *battleSystem, BattleContext
     }
 
     // If the last move that hit us does not deal damage, do not switch.
-    if (ctx->trainerAIData.moveData[ctx->moveNoHit[battler]].power == 0) {
+    if (BATTLE_MOVE_DATA(ctx, ctx->moveNoHit[battler]).power == 0) {
         return FALSE;
     }
 
-    moveType = ctx->trainerAIData.moveData[ctx->moveNoHit[battler]].type;
+    moveType = BATTLE_MOVE_DATA(ctx, ctx->moveNoHit[battler]).type;
     // Oversight: Dry Skin and Motor Drive are not checked.
     if (moveType == TYPE_FIRE) {
         checkAbility = ABILITY_FLASH_FIRE;
@@ -3578,7 +3582,7 @@ static BOOL AI_HasPartyMemberWithSuperEffectiveMove(BattleSystem *battleSystem, 
     }
 
     // If the last move that hit us is a status move, do not switch.
-    if (ctx->trainerAIData.moveData[ctx->moveNoHit[battler]].power == 0) {
+    if (BATTLE_MOVE_DATA(ctx, ctx->moveNoHit[battler]).power == 0) {
         return FALSE;
     }
 
@@ -3670,7 +3674,7 @@ static BOOL AI_IsAsleepWithNaturalCure(BattleSystem *battleSystem, BattleContext
 
     // If the last move that hit you is a status move, switch 50% of the time, following
     // post-KO switch logic.
-    if (ctx->trainerAIData.moveData[ctx->moveNoHit[battler]].power == 0 && (BattleSystem_Random(battleSystem) & 1)) {
+    if (BATTLE_MOVE_DATA(ctx, ctx->moveNoHit[battler]).power == 0 && (BattleSystem_Random(battleSystem) & 1)) {
         ctx->aiSwitchedPartySlot[battler] = 6;
         return TRUE;
     }

@@ -7,6 +7,7 @@
 #include "battle/battle_controller_opponent.h"
 #include "battle/battle_util.h"
 #include "qol_config.h"
+#include "constants/qol_moves.h"
 #include "msgdata/msg/msg_0197.h"
 
 #include "gf_gfx_loader.h"
@@ -4792,6 +4793,22 @@ static void SingleScreen_PaintButton(Window *window, int x, int y, int w, int h,
     }
 }
 
+static String *BattleInput_SingleScreen_MoveName(u16 move) {
+    String *name = GetMoveName(move, HEAP_ID_BATTLE);
+#if QOL_MODERN_MOVES
+    static const u16 voice[] = { CHAR_D, CHAR_i, CHAR_s, CHAR_a, CHAR_r, CHAR_m, CHAR_SPACE,
+        CHAR_V, CHAR_o, CHAR_i, CHAR_c, CHAR_e, EOS };
+    static const u16 gleam[] = { CHAR_D, CHAR_a, CHAR_z, CHAR_z, CHAR_l, CHAR_e, CHAR_SPACE,
+        CHAR_G, CHAR_l, CHAR_e, CHAR_a, CHAR_m, EOS };
+    if (move == MOVE_DISARMING_VOICE) {
+        CopyU16ArrayToString(name, voice);
+    } else if (move == MOVE_DAZZLING_GLEAM) {
+        CopyU16ArrayToString(name, gleam);
+    }
+#endif
+    return name;
+}
+
 typedef struct SingleScreenMenuItem {
     String *str;
     u8 x;
@@ -5038,7 +5055,7 @@ static int BattleInput_SingleScreen_BuildItems(BattleInput *battleInput, int kin
             if (menu->moveNo[i] == MOVE_NONE) {
                 items[count].str = String_New(1, HEAP_ID_BATTLE);
             } else {
-                items[count].str = GetMoveName(menu->moveNo[i], HEAP_ID_BATTLE);
+                items[count].str = BattleInput_SingleScreen_MoveName(menu->moveNo[i]);
             }
             items[count].x = bx;
             items[count].y = by;

@@ -45,6 +45,9 @@ class EffectivenessTests(unittest.TestCase):
 #include <string.h>
 #include "constants/pokemon.h"
 #include "constants/moves.h"
+// Legacy-sized extracted-function fixtures use the production feature-off accessor.
+#define BATTLE_MOVE_DATA(ctx, moveId) ((ctx)->trainerAIData.moveData[(moveId)])
+#define Qol_IsSupportedMove(moveId) ((moveId) <= NUM_MOVES)
 #include "constants/abilities.h"
 #include "constants/items.h"
 #include "constants/battle.h"
