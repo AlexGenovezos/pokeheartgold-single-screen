@@ -1,6 +1,7 @@
 #include "frontier/battle_hall_app.h"
 
 #include "global.h"
+#include "qol_config.h"
 
 #include "constants/pokemon.h"
 #include "constants/sndseq.h"
@@ -1069,6 +1070,18 @@ static void BattleHallApp_PrintMonName(BattleHallApp *app, Window *window, int x
     CopyWindowToVram(window);
 }
 
+static void BattleHallApp_ReadTypeName(MsgData *msgData, u32 type, String *string) {
+#if QOL_MODERN_TYPES
+    if (type == TYPE_MYSTERY) {
+        // Slot 9 is the Hall Matron cell, not another selectable type category.
+        static const u16 matronLabel[] = { 0x1AC, 0x1AC, 0x1AC, EOS };
+        CopyU16ArrayToString(string, matronLabel);
+        return;
+    }
+#endif
+    ReadMsgDataIntoString(msgData, type, string);
+}
+
 static void BattleHallApp_PrintTypeNames(BattleHallApp *app, Window *window, int fg, int shadow, u8 bg, u8 fontId) {
     int row;
     MsgData *msgData;
@@ -1087,7 +1100,7 @@ static void BattleHallApp_PrintTypeNames(BattleHallApp *app, Window *window, int
             index = column + base;
             if (BattleHall_GetCellType(index) != TYPE_CELL_EMPTY) {
                 String_SetEmpty(string);
-                ReadMsgDataIntoString(msgData, BattleHall_GetCellType(index), string);
+                BattleHallApp_ReadTypeName(msgData, BattleHall_GetCellType(index), string);
                 AddTextPrinterParameterizedWithColor(window, fontId, string, x, y, 0, MAKE_TEXT_COLOR(fg, shadow, bg), NULL);
             }
         }

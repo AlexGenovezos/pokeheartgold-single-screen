@@ -187,7 +187,7 @@ typedef struct MoveEffectData {
     u32 custapBerryFlag : 1;
     u32 quickClawFlag : 1;
     u32 meFirstFlag : 1;
-    u32 unk4_2F : 1; // unused
+    u32 protectSuccessTurnsHigh : 1; // formerly unused; preserves all field offsets
     int rechargeCount;
     int fakeOutCount;
     int slowStartTurns;

@@ -2,6 +2,8 @@
 
 #include "global.h"
 
+#include "qol_config.h"
+
 #include "constants/abilities.h"
 #include "constants/battle_menu.h"
 #include "constants/battle_subscript.h"
@@ -2092,6 +2094,12 @@ static BOOL BattleControllerPlayer_TryNoTargetScript(BattleSystem *battleSystem,
 static BOOL BattleControllerPlayer_ApplyTypeEffectiveness(BattleSystem *battleSystem, BattleContext *ctx) {
     if ((ctx->trainerAIData.moveData[ctx->moveNoCur].range != RANGE_USER && ctx->trainerAIData.moveData[ctx->moveNoCur].range != RANGE_USER_SIDE && ctx->trainerAIData.moveData[ctx->moveNoCur].power != 0 && !(ctx->battleStatus & BATTLE_STATUS_IGNORE_TYPE_IMMUNITY) && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)) || ctx->moveNoCur == MOVE_THUNDER_WAVE) {
         ctx->damage = BattleSystem_ApplyTypeEffectiveness(battleSystem, ctx, ctx->moveNoCur, ctx->moveType, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->damage, &ctx->moveStatusFlag);
+#if QOL_MODERN_BATTLE
+        // Final Sniper modifier, also used by the Pursuit script command.
+        if (ctx->criticalMultiplier == 3) {
+            ctx->damage = ctx->damage * 3 / 2;
+        }
+#endif
         if (ctx->moveStatusFlag & MOVE_STATUS_NO_EFFECT) {
             ctx->moveFail[ctx->battlerIdAttacker].noEffect = TRUE;
         }
@@ -2254,7 +2262,14 @@ static BOOL BattleControllerPlayer_CheckAttackerStatus(BattleSystem *battleSyste
             if (ctx->battleMons[ctx->battlerIdAttacker].status2 & STATUS2_CONFUSION) {
                 ctx->battleMons[ctx->battlerIdAttacker].status2 -= 1;
                 if (ctx->battleMons[ctx->battlerIdAttacker].status2 & STATUS2_CONFUSION) {
-                    if (BattleSystem_Random(battleSystem) & 1) {
+                    // hg-engine 61b510cf: one-in-three confusion self-hit.
+                    if (
+#if QOL_MODERN_BATTLE
+                        BattleSystem_Random(battleSystem) % 3 != 0
+#else
+                        BattleSystem_Random(battleSystem) & 1
+#endif
+                    ) {
                         ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_CONFUSED);
                         ctx->commandNext = ctx->command;
                         ctx->command = CONTROLLER_COMMAND_RUN_SCRIPT;
@@ -2280,7 +2295,11 @@ static BOOL BattleControllerPlayer_CheckAttackerStatus(BattleSystem *battleSyste
             }
             break;
         case 12:
-            if (ctx->battleMons[ctx->battlerIdAttacker].status & STATUS_PARALYSIS && GetBattlerAbility(ctx, ctx->battlerIdAttacker) != ABILITY_MAGIC_GUARD) {
+            if ((ctx->battleMons[ctx->battlerIdAttacker].status & STATUS_PARALYSIS)
+#if !QOL_MODERN_BATTLE
+                && GetBattlerAbility(ctx, ctx->battlerIdAttacker) != ABILITY_MAGIC_GUARD
+#endif
+            ) {
                 if (BattleSystem_Random(battleSystem) % 4 == 0) {
                     ctx->moveFail[ctx->battlerIdAttacker].paralysis = TRUE;
                     ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_FULLY_PARALYZED);

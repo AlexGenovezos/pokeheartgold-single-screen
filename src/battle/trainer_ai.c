@@ -2398,7 +2398,7 @@ void AICmd_LoadProtectSuccessChain(BattleSystem *battleSystem, BattleContext *ct
         && ctx->moveNoProtect[battler] != MOVE_ENDURE) {
         ctx->trainerAIData.calcTemp = 0;
     } else {
-        ctx->trainerAIData.calcTemp = ctx->battleMons[battler].moveEffectData.protectSuccessTurns;
+        ctx->trainerAIData.calcTemp = GetBattlerVar(ctx, battler, BMON_DATA_PROTECT_SUCCESS_COUNT, NULL);
     }
 }
 

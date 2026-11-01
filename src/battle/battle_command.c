@@ -2,6 +2,8 @@
 
 #include "global.h"
 
+#include "qol_config.h"
+
 #include "constants/abilities.h"
 #include "constants/battle.h"
 #include "constants/battle_script.h"
@@ -744,6 +746,19 @@ BOOL BtlCmd_Wait(BattleSystem *battleSystem, BattleContext *ctx) {
     return FALSE;
 }
 
+static int Qol_ApplyCriticalDamage(int damage, int criticalMultiplier) {
+#if QOL_MODERN_BATTLE
+    // hg-engine 61b510cf: critical damage floors at 1.5 before the random roll.
+    // Preserve the 1/2/3 marker for stat/screen bypass and the later Sniper step.
+    if (criticalMultiplier > 1) {
+        return damage * 3 / 2;
+    }
+    return damage;
+#else
+    return damage * criticalMultiplier;
+#endif
+}
+
 static void DamageCalcDefault(BattleSystem *battleSystem, BattleContext *ctx) {
     int type;
 
@@ -757,7 +772,7 @@ static void DamageCalcDefault(BattleSystem *battleSystem, BattleContext *ctx) {
 
     ctx->damage = CalcMoveDamage(battleSystem, ctx, ctx->moveNoCur, ctx->fieldSideConditionFlags[BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdTarget)], ctx->fieldCondition, ctx->movePower, type, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->criticalMultiplier);
 
-    ctx->damage *= ctx->criticalMultiplier;
+    ctx->damage = Qol_ApplyCriticalDamage(ctx->damage, ctx->criticalMultiplier);
 
     if (GetBattlerHeldItemEffect(ctx, ctx->battlerIdAttacker) == HOLD_EFFECT_HP_DRAIN_ON_ATK) {
         ctx->damage = ctx->damage * (100 + GetHeldItemModifier(ctx, ctx->battlerIdAttacker, 0)) / 100;
@@ -2372,6 +2387,7 @@ BOOL BtlCmd_TryConversion(BattleSystem *battleSystem, BattleContext *ctx) {
     for (i = 0; i < cnt; i++) {
         if (ctx->battleMons[ctx->battlerIdAttacker].moves[i] != MOVE_CONVERSION) {
             moveType = ctx->trainerAIData.moveData[ctx->battleMons[ctx->battlerIdAttacker].moves[i]].type;
+#if !QOL_MODERN_TYPES
             if (moveType == TYPE_MYSTERY) {
                 if (GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_1, NULL) == TYPE_GHOST || GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_2, NULL) == TYPE_GHOST) {
                     moveType = TYPE_GHOST;
@@ -2379,6 +2395,7 @@ BOOL BtlCmd_TryConversion(BattleSystem *battleSystem, BattleContext *ctx) {
                     moveType = TYPE_NORMAL;
                 }
             }
+#endif
             if (GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_1, NULL) != moveType && GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_2, NULL) != moveType) {
                 break;
             }
@@ -2393,6 +2410,7 @@ BOOL BtlCmd_TryConversion(BattleSystem *battleSystem, BattleContext *ctx) {
                 i = BattleSystem_Random(battleSystem) % cnt;
             } while (ctx->battleMons[ctx->battlerIdAttacker].moves[i] == MOVE_CONVERSION);
             moveType = ctx->trainerAIData.moveData[ctx->battleMons[ctx->battlerIdAttacker].moves[i]].type;
+#if !QOL_MODERN_TYPES
             if (moveType == TYPE_MYSTERY) {
                 if (GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_1, NULL) == TYPE_GHOST || GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_2, NULL) == TYPE_GHOST) {
                     moveType = TYPE_GHOST;
@@ -2400,6 +2418,7 @@ BOOL BtlCmd_TryConversion(BattleSystem *battleSystem, BattleContext *ctx) {
                     moveType = TYPE_NORMAL;
                 }
             }
+#endif
         } while (GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_1, NULL) == moveType || GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_TYPE_2, NULL) == moveType);
         ctx->battleMons[ctx->battlerIdAttacker].type1 = moveType;
         ctx->battleMons[ctx->battlerIdAttacker].type2 = moveType;
@@ -3117,15 +3136,37 @@ BOOL BtlCmd_TryStealItem(BattleSystem *battleSystem, BattleContext *ctx) {
 
 extern u16 sProtectSuccessChance[4];
 
+#if QOL_MODERN_BATTLE
+// hg-engine 61b510cf: BattleController_BeforeMove.c, consecutive protection.
+static const u16 sModernProtectDenominators[] = {
+    1, 3, 9, 27, 81, 243, 729
+};
+
+static BOOL Qol_TryProtection(BattleSystem *battleSystem, int turns) {
+    if (turns >= NELEMS(sModernProtectDenominators)) {
+        turns = NELEMS(sModernProtectDenominators) - 1;
+    }
+    return BattleSystem_Random(battleSystem) % sModernProtectDenominators[turns] == 0;
+}
+#endif
+
 BOOL BtlCmd_TryProtection(BattleSystem *battleSystem, BattleContext *ctx) {
     int flag;
+#if QOL_MODERN_BATTLE
+    u8 protectionTurns = GetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_PROTECT_SUCCESS_COUNT, NULL);
+#endif
 
     BattleScriptIncrementPointer(ctx, 1);
 
     int adrs = BattleScriptReadWord(ctx);
 
     if (ctx->moveNoProtect[ctx->battlerIdAttacker] != MOVE_PROTECT && ctx->moveNoProtect[ctx->battlerIdAttacker] != MOVE_DETECT && ctx->moveNoProtect[ctx->battlerIdAttacker] != MOVE_ENDURE) {
+#if QOL_MODERN_BATTLE
+        protectionTurns = 0;
+        SetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_PROTECT_SUCCESS_COUNT, &protectionTurns);
+#else
         ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns = 0;
+#endif
     }
 
     if (ctx->battlersOnField == 1) {
@@ -3134,7 +3175,13 @@ BOOL BtlCmd_TryProtection(BattleSystem *battleSystem, BattleContext *ctx) {
         flag = TRUE;
     }
 
-    if (sProtectSuccessChance[ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns] >= (u32)BattleSystem_Random(battleSystem) && flag) {
+    if (
+#if QOL_MODERN_BATTLE
+        Qol_TryProtection(battleSystem, protectionTurns)
+#else
+        sProtectSuccessChance[ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns] >= (u32)BattleSystem_Random(battleSystem)
+#endif
+        && flag) {
         if (ctx->trainerAIData.moveData[ctx->moveNoCur].effect == MOVE_EFFECT_PROTECT) {
             ctx->turnData[ctx->battlerIdAttacker].protectFlag = TRUE;
             // "{0} protected itself!"
@@ -3148,12 +3195,24 @@ BOOL BtlCmd_TryProtection(BattleSystem *battleSystem, BattleContext *ctx) {
         ctx->buffMsg.tag = TAG_NICKNAME;
         ctx->buffMsg.param[0] = CreateNicknameTag(ctx, ctx->battlerIdAttacker);
 
+#if QOL_MODERN_BATTLE
+        if (protectionTurns < NELEMS(sModernProtectDenominators) - 1) {
+            protectionTurns++;
+        }
+        SetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_PROTECT_SUCCESS_COUNT, &protectionTurns);
+#else
         if (ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns < NELEMS(sProtectSuccessChance) - 1) {
             ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns++;
         }
+#endif
 
     } else {
+#if QOL_MODERN_BATTLE
+        protectionTurns = 0;
+        SetBattlerVar(ctx, ctx->battlerIdAttacker, BMON_DATA_PROTECT_SUCCESS_COUNT, &protectionTurns);
+#else
         ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.protectSuccessTurns = 0;
+#endif
         BattleScriptIncrementPointer(ctx, adrs);
     }
 
@@ -3798,11 +3857,17 @@ BOOL BtlCmd_BeatUp(BattleSystem *battleSystem, BattleContext *ctx) {
     ctx->damage /= (u32)GetMonBaseStat_HandleAlternateForm(ctx->battleMons[ctx->battlerIdTarget].species, ctx->battleMons[ctx->battlerIdTarget].form, BASE_DEF);
     ctx->damage /= 50;
     ctx->damage += 2;
-    ctx->damage *= ctx->criticalMultiplier;
+    ctx->damage = Qol_ApplyCriticalDamage(ctx->damage, ctx->criticalMultiplier);
     if (ctx->turnData[ctx->battlerIdAttacker].helpingHandFlag) {
         ctx->damage = ctx->damage * 15 / 10;
     }
     ctx->damage = ApplyDamageRange(battleSystem, ctx, ctx->damage);
+#if QOL_MODERN_BATTLE
+    // Beat Up skips the type-effectiveness phase; finish Sniper here instead.
+    if (ctx->criticalMultiplier == 3) {
+        ctx->damage = ctx->damage * 3 / 2;
+    }
+#endif
     ctx->damage *= -1;
 
     // "{0}'s attack!"
@@ -4267,6 +4332,15 @@ BOOL BtlCmd_ApplyTypeEffectiveness(BattleSystem *battleSystem, BattleContext *ct
     BattleScriptIncrementPointer(ctx, 1);
 
     ctx->damage = BattleSystem_ApplyTypeEffectiveness(battleSystem, ctx, ctx->moveNoCur, ctx->moveType, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->damage, &ctx->moveStatusFlag);
+
+#if QOL_MODERN_BATTLE
+    // hg-engine 61b510cf: Sniper is a final 1.5 modifier, after random/STAB/type.
+    // Multiplication by 1.5 has only integer or half-integer results; C's signed
+    // division rounds half ties toward zero, i.e. down on damage magnitude.
+    if (ctx->criticalMultiplier == 3) {
+        ctx->damage = ctx->damage * 3 / 2;
+    }
+#endif
 
     return FALSE;
 }

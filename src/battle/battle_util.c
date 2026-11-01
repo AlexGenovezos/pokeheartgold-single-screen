@@ -25,6 +25,7 @@
 #include "item.h"
 #include "party.h"
 #include "pokemon.h"
+#include "qol_config.h"
 #include "comm_state.h"
 #include "ui_util.h"
 
@@ -272,6 +273,24 @@ void BattleBuffer_Clear(BattleContext *ctx, int battlerId) {
     }
 }
 
+#if QOL_MODERN_BATTLE
+// The original two low bits plus a formerly unused bit preserve the battle ABI.
+static int Qol_GetProtectSuccessTurns(const MoveEffectData *data) {
+    return data->protectSuccessTurns | (data->protectSuccessTurnsHigh << 2);
+}
+
+static void Qol_SetProtectSuccessTurns(MoveEffectData *data, int turns) {
+    if (turns < 0) {
+        turns = 0;
+    }
+    if (turns > 6) {
+        turns = 6;
+    }
+    data->protectSuccessTurns = turns & 3;
+    data->protectSuccessTurnsHigh = turns >> 2;
+}
+#endif
+
 int GetBattlerVar(BattleContext *ctx, int battlerId, u32 id, void *data) {
     BattleMon *mon = &ctx->battleMons[battlerId];
 
@@ -411,7 +430,11 @@ int GetBattlerVar(BattleContext *ctx, int battlerId, u32 id, void *data) {
     case BMON_DATA_TAUNTED_TURNS:
         return mon->moveEffectData.tauntTurns;
     case BMON_DATA_PROTECT_SUCCESS_COUNT:
+#if QOL_MODERN_BATTLE
+        return Qol_GetProtectSuccessTurns(&mon->moveEffectData);
+#else
         return mon->moveEffectData.protectSuccessTurns;
+#endif
     case BMON_DATA_PERISH_SONG_TURNS:
         return mon->moveEffectData.perishSongTurns;
     case BMON_DATA_ROLLOUT_TURNS:
@@ -662,7 +685,11 @@ void SetBattlerVar(BattleContext *ctx, int battlerId, u32 id, void *data) {
         mon->moveEffectData.tauntTurns = *data8;
         break;
     case BMON_DATA_PROTECT_SUCCESS_COUNT:
+#if QOL_MODERN_BATTLE
+        Qol_SetProtectSuccessTurns(&mon->moveEffectData, *data8);
+#else
         mon->moveEffectData.protectSuccessTurns = *data8;
+#endif
         break;
     case BMON_DATA_PERISH_SONG_TURNS:
         mon->moveEffectData.perishSongTurns = *data8;
@@ -891,7 +918,11 @@ void BattleMon_AddVar(BattleMon *mon, u32 varId, int data) {
         mon->moveEffectData.tauntTurns += data;
         break;
     case BMON_DATA_PROTECT_SUCCESS_COUNT:
+#if QOL_MODERN_BATTLE
+        Qol_SetProtectSuccessTurns(&mon->moveEffectData, Qol_GetProtectSuccessTurns(&mon->moveEffectData) + data);
+#else
         mon->moveEffectData.protectSuccessTurns += data;
+#endif
         break;
     case BMON_DATA_PERISH_SONG_TURNS:
         mon->moveEffectData.perishSongTurns += data;
@@ -1056,7 +1087,11 @@ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1
     if (ability1 == ABILITY_QUICK_FEET && ctx->battleMons[battlerId1].status & 0xFF) {
         speed1 = speed1 * 15 / 10;
     } else if (ctx->battleMons[battlerId1].status & STATUS_PARALYSIS) {
+        #if QOL_MODERN_BATTLE
+        speed1 /= 2;
+#else
         speed1 /= 4;
+#endif
     }
 
     if (ability1 == ABILITY_SLOW_START && ctx->totalTurns - ctx->battleMons[battlerId1].moveEffectData.slowStartTurns < 5) {
@@ -1115,7 +1150,11 @@ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1
     if (ability2 == ABILITY_QUICK_FEET && ctx->battleMons[battlerId2].status & 0xFF) {
         speed2 = speed2 * 15 / 10;
     } else if (ctx->battleMons[battlerId2].status & STATUS_PARALYSIS) {
+        #if QOL_MODERN_BATTLE
+        speed2 /= 2;
+#else
         speed2 /= 4;
+#endif
     }
 
     if (ability2 == ABILITY_SLOW_START && ctx->totalTurns - ctx->battleMons[battlerId2].moveEffectData.slowStartTurns < 5) {
@@ -2174,7 +2213,9 @@ static const u8 sTypeEffectiveness[][3] = {
     { TYPE_GHOST,     TYPE_NORMAL,    TYPE_MUL_NO_EFFECT       },
     { TYPE_GHOST,     TYPE_PSYCHIC,   TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_GHOST,     TYPE_DARK,      TYPE_MUL_NOT_EFFECTIVE   },
+#if !QOL_MODERN_TYPES
     { TYPE_GHOST,     TYPE_STEEL,     TYPE_MUL_NOT_EFFECTIVE   },
+#endif
     { TYPE_GHOST,     TYPE_GHOST,     TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_DRAGON,    TYPE_DRAGON,    TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_DRAGON,    TYPE_STEEL,     TYPE_MUL_NOT_EFFECTIVE   },
@@ -2182,13 +2223,31 @@ static const u8 sTypeEffectiveness[][3] = {
     { TYPE_DARK,      TYPE_PSYCHIC,   TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_DARK,      TYPE_GHOST,     TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_DARK,      TYPE_DARK,      TYPE_MUL_NOT_EFFECTIVE   },
+#if !QOL_MODERN_TYPES
     { TYPE_DARK,      TYPE_STEEL,     TYPE_MUL_NOT_EFFECTIVE   },
+#endif
     { TYPE_STEEL,     TYPE_FIRE,      TYPE_MUL_NOT_EFFECTIVE   },
     { TYPE_STEEL,     TYPE_WATER,     TYPE_MUL_NOT_EFFECTIVE   },
     { TYPE_STEEL,     TYPE_ELECTRIC,  TYPE_MUL_NOT_EFFECTIVE   },
     { TYPE_STEEL,     TYPE_ICE,       TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_STEEL,     TYPE_ROCK,      TYPE_MUL_SUPER_EFFECTIVE },
     { TYPE_STEEL,     TYPE_STEEL,     TYPE_MUL_NOT_EFFECTIVE   },
+#if QOL_MODERN_TYPES
+    // Modern matchups follow hg-engine battle_pokemon.c at 61b510cf.
+    // Keep Dragon immunity before Foresight's Ghost-only bypass sentinel.
+    { TYPE_FIGHTING,  TYPE_FAIRY,     TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_POISON,    TYPE_FAIRY,     TYPE_MUL_SUPER_EFFECTIVE },
+    { TYPE_BUG,       TYPE_FAIRY,     TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_STEEL,     TYPE_FAIRY,     TYPE_MUL_SUPER_EFFECTIVE },
+    { TYPE_DRAGON,    TYPE_FAIRY,     TYPE_MUL_NO_EFFECT       },
+    { TYPE_DARK,      TYPE_FAIRY,     TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_FAIRY,     TYPE_FIRE,      TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_FAIRY,     TYPE_FIGHTING,  TYPE_MUL_SUPER_EFFECTIVE },
+    { TYPE_FAIRY,     TYPE_POISON,    TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_FAIRY,     TYPE_STEEL,     TYPE_MUL_NOT_EFFECTIVE   },
+    { TYPE_FAIRY,     TYPE_DRAGON,    TYPE_MUL_SUPER_EFFECTIVE },
+    { TYPE_FAIRY,     TYPE_DARK,      TYPE_MUL_SUPER_EFFECTIVE },
+#endif
     { TYPE_FORESIGHT, TYPE_FORESIGHT, TYPE_MUL_NO_EFFECT       },
     { TYPE_NORMAL,    TYPE_GHOST,     TYPE_MUL_NO_EFFECT       },
     { TYPE_FIGHTING,  TYPE_GHOST,     TYPE_MUL_NO_EFFECT       },
@@ -5858,7 +5917,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         dmg /= dmg2;
         dmg /= 50;
 
-        if ((calcAttacker.status & STATUS_BURN) && calcAttacker.ability != ABILITY_GUTS) {
+        if ((calcAttacker.status & STATUS_BURN) && calcAttacker.ability != ABILITY_GUTS
+#if QOL_MODERN_BATTLE
+            && moveNo != MOVE_FACADE
+#endif
+        ) {
             dmg /= 2;
         }
 
@@ -5958,7 +6021,12 @@ int ApplyDamageRange(BattleSystem *battleSystem, BattleContext *ctx, int damage)
 }
 
 static const u8 sCritChance[] = {
+#if QOL_MODERN_BATTLE
+    // hg-engine 61b510cf: CriticalRateTable (Gen VII onward).
+    24, 8, 2, 1, 1
+#else
     16, 8, 4, 3, 2
+#endif
 };
 
 u32 TryCriticalHit(BattleSystem *battleSystem, BattleContext *ctx, int battlerIdAttacker, int battlerIdTarget, int critCnt, u32 sideCondition) {

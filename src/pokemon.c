@@ -25,6 +25,7 @@
 #include "trainer_data.h"
 #include "trainer_memo.h"
 #include "pokepic_anim.h"
+#include "qol_config.h"
 #include "wifi_club.h"
 
 void MonEncryptSegment(void *data, u32 size, u32 key);
@@ -1712,6 +1713,53 @@ static void AddBoxMonDataInternal(BoxPokemon *boxMon, int attr, int value) {
     }
 }
 
+#if QOL_MODERN_TYPES
+// Existing-roster type pairs follow hg-engine data/Species.c at 61b510cf.
+// Apply after every personal read so existing saves and open-NARC callers agree.
+static void Qol_ApplyModernMonTypes(int species, BASE_STATS *personal) {
+    switch (species) {
+    case SPECIES_CLEFAIRY:
+    case SPECIES_CLEFABLE:
+    case SPECIES_CLEFFA:
+    case SPECIES_TOGEPI:
+    case SPECIES_SNUBBULL:
+    case SPECIES_GRANBULL:
+        personal->types[0] = TYPE_FAIRY;
+        personal->types[1] = TYPE_FAIRY;
+        break;
+    case SPECIES_JIGGLYPUFF:
+    case SPECIES_WIGGLYTUFF:
+    case SPECIES_IGGLYBUFF:
+    case SPECIES_AZURILL:
+        personal->types[0] = TYPE_NORMAL;
+        personal->types[1] = TYPE_FAIRY;
+        break;
+    case SPECIES_TOGETIC:
+    case SPECIES_TOGEKISS:
+        personal->types[0] = TYPE_FAIRY;
+        personal->types[1] = TYPE_FLYING;
+        break;
+    case SPECIES_MARILL:
+    case SPECIES_AZUMARILL:
+        personal->types[0] = TYPE_WATER;
+        personal->types[1] = TYPE_FAIRY;
+        break;
+    case SPECIES_MR_MIME:
+    case SPECIES_RALTS:
+    case SPECIES_KIRLIA:
+    case SPECIES_GARDEVOIR:
+    case SPECIES_MIME_JR:
+        personal->types[0] = TYPE_PSYCHIC;
+        personal->types[1] = TYPE_FAIRY;
+        break;
+    case SPECIES_MAWILE:
+        personal->types[0] = TYPE_STEEL;
+        personal->types[1] = TYPE_FAIRY;
+        break;
+    }
+}
+#endif
+
 BASE_STATS *AllocAndLoadMonPersonal_HandleAlternateForm(int species, int form, enum HeapID heapID) {
     BASE_STATS *ret = Heap_Alloc(heapID, sizeof(BASE_STATS));
     LoadMonBaseStats_HandleAlternateForm(species, form, ret);
@@ -1857,6 +1905,9 @@ int GetMonBaseStatEx_HandleAlternateForm(NARC *narc, int species, int form, int 
     int ret;
     BASE_STATS *buf = Heap_Alloc(HEAP_ID_DEFAULT, sizeof(BASE_STATS));
     NARC_ReadWholeMember(narc, resolved, buf);
+#if QOL_MODERN_TYPES
+    Qol_ApplyModernMonTypes(resolved, buf);
+#endif
     ret = GetPersonalAttr(buf, attr);
     Heap_Free(buf);
     return ret;
@@ -3920,10 +3971,16 @@ u32 ChangePersonalityToNatureGenderAndAbility(u32 pid, u16 species, u8 nature, u
 
 void LoadMonPersonal(int species, BASE_STATS *personal) {
     ReadWholeNarcMemberByIdPair(personal, NARC_poketool_personal_personal, species);
+#if QOL_MODERN_TYPES
+    Qol_ApplyModernMonTypes(species, personal);
+#endif
 }
 
 void LoadMonBaseStats_HandleAlternateForm(int species, int form, BASE_STATS *personal) {
     ReadWholeNarcMemberByIdPair(personal, NARC_poketool_personal_personal, ResolveMonForm(species, form));
+#if QOL_MODERN_TYPES
+    Qol_ApplyModernMonTypes(ResolveMonForm(species, form), personal);
+#endif
 }
 
 void LoadMonEvolutionTable(u16 species, struct Evolution *evo) {

@@ -77,9 +77,12 @@ Togepi, Togetic, Marill, Azumarill, Snubbull, Granbull, Ralts, Kirlia,
 Gardevoir, Azurill, Mawile, Mime Jr. and Togekiss. Reference:
 `hg-engine/data/Species.c` at the reviewed revision.
 
-The move-data comparison found 109 existing moves with numeric differences:
-61 power, 30 accuracy, 29 PP, seven priority, four type and three effect-chance
-changes (some moves have several). Updating numbers alone would leave incorrect
+The corrected Gen IX comparison found 111 existing moves with numeric differences:
+61 power, 31 accuracy, 29 PP, seven priority, five target-range, four type and
+three effect-chance changes (some moves have several). The earlier 109-move
+comparison used upstream's default Champions alterations and was not a valid
+Gen IX profile. `tools/qol/hg_import.py` now exports the pinned source with all
+five Champions switches explicitly disabled. Updating numbers alone would leave incorrect
 effect scripts, abilities and AI behavior. Examples include Knock Off, Leech
 Life, Hidden Power and recovery moves. On 2026-11-01 the user explicitly approved modern moves and updated abilities
 for the existing Pokémon. No later-generation Pokémon are required. The approved
@@ -96,9 +99,54 @@ Port boundaries, to implement and validate before enabling a modern build:
 | Critical hits | `TryCriticalHit`, damage commands and AI: base chance 1/24, +1 1/8, +2 1/2, +3 guaranteed; damage 1.5× and correct Sniper multiplication/rounding. Retain stat-stage bypass, armor/Lucky Chant and RNG semantics. |
 | Status/turn rules | Burn 1/16, paralysis half speed, modern poison/Steel/Electric status immunities, powder immunity and Protect odds. Audit battle controller/scripts and AI together; do not add independent cosmetic approximations. |
 | Weather/abilities | Port finite ability weather, changed ability effects, move-specific interactions and turn ordering from established implementations with focused differential tests. Hail versus Gen IX snow needs all consumers, not a text rename. |
-| Data and save compatibility | Keep roster/story, learned-move IDs and save layout stable unless an explicit expansion requires migration. Test existing PP above newly reduced maxima, stored abilities/stats and old saves. Audit move effect/script changes alongside the 109 numeric differences. |
+| Data and save compatibility | Keep roster/story, learned-move IDs and save layout stable unless an explicit expansion requires migration. Test existing PP above newly reduced maxima, stored abilities/stats and old saves. Audit move effect/script changes alongside the 111 numeric differences. |
 
 Retain hg-engine credits/reuse terms with any actual code or asset port. Do not
 claim Generation IX parity until the individual mechanics and full native build
 have been tested. Mega Evolution, Z-Moves, Dynamax and Terastallization are
 separate features, not implied by updating the ordinary battle rules.
+
+## Approved expansion and implementation coverage
+
+The user approved modern moves and updated abilities on 2026-11-01. The
+reproducible data export is:
+
+```sh
+python3 tools/qol/hg_import.py .local-tools/hg-engine .local-tools/gen9-profile.json
+```
+
+It checks the exact Git revision/clean source, compiles an explicit Gen IX data
+profile, exports metadata and modern base-roster learnsets, and refuses to
+replace an existing output. It is data/export tooling, not automatic gameplay
+implementation. The original-roster profile excludes partner-only Let's Go
+moves, Legends-only profiles, later-generation Pokémon and custom moves.
+178 later-generation moves occur in these level/egg/machine/tutor learnsets;
+26 are flagged unimplemented by this upstream configuration. 109 share an
+original effect-script ID, but many also need calculator/controller hooks;
+69 need 59 distinct additional effect IDs. Sharing a script ID is not proof of
+implemented behavior. Neutralizing Gas also has an empty upstream entry handler
+and needs an actual suppression/reactivation implementation here.
+
+Keep original move IDs 0–467. hg-engine reserves placeholder members 468–470,
+so its later IDs are official IDs plus three (Moonblast is engine 588 / official
+585). A single explicit import mapping must cover data, names, animations,
+scripts and learnsets. Existing packed level-up entries only hold nine-bit move
+IDs; modern entries need a wider format and consumers updated together. Do not
+enlarge `TrainerAIData.moveData` casually: it is embedded in `BattleContext`
+and would move ABI offsets. Use a separate extended move accessor/table or
+fully audit and rebuild every dependent consumer.
+
+The fixed roster's standard+hidden ability union can fit existing byte fields.
+The exporter preserves legacy IDs and maps Neutralizing Gas 256→240, Wind Rider
+274→241 and Sharpness 292→242, checking for collisions. This avoids changes to
+saved Pokémon, battle structs, packets, recordings and summary layouts. Saved
+Pokémon still need a deliberate ability-slot migration, and each mapped ability
+needs real battle behavior before the updated slot is enabled.
+
+Development source currently adds the independently disabled modern-type and
+core-rule flags, source-generated global/Pokédex Fairy icons and names, and
+actual-source regressions. The modern build is not installed. Remaining known
+integration work includes Pokédex Fairy search/filtering, the modern combined
+final-damage modifier chain, new moves/scripts/learnsets, modern status/weather
+rules, abilities and saved-slot migration. Record each port's tests and native
+runtime evidence before enabling it in the installed app.

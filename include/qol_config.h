@@ -17,5 +17,14 @@
 #ifndef QOL_EFFECTIVENESS
 #define QOL_EFFECTIVENESS QOL_MODS
 #endif
+// An independently testable foundation; the current QoL build stays Gen IV.
+#ifndef QOL_MODERN_TYPES
+#define QOL_MODERN_TYPES 0
+#endif
+
+// Core modern arithmetic is opt-in independently of the installed QoL build.
+#ifndef QOL_MODERN_BATTLE
+#define QOL_MODERN_BATTLE 0
+#endif
 
 #endif

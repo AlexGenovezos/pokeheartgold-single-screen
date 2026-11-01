@@ -1,6 +1,8 @@
 #include "application/pokedex/pokedex_text_util.h"
 
 #include "global.h"
+#include "constants/pokemon.h"
+#include "qol_config.h"
 
 #include "font.h"
 #include "gf_gfx_loader.h"
@@ -28,10 +30,21 @@ void PokedexApp_PrintMessage(Window *window, MsgData *msgData, u32 msgId, u32 x,
 }
 
 u32 PokedexApp_GetTypeIconCharFile(u32 type) {
+#if QOL_MODERN_TYPES
+    if (type == TYPE_FAIRY) {
+        // Appended by the modern ROM resource transform; Normal keeps member 36.
+        return 123;
+    }
+#endif
     return sTypeIconCharFiles[type];
 }
 
 u8 PokedexApp_GetTypeIconPalette(u32 type) {
+#if QOL_MODERN_TYPES
+    if (type == TYPE_FAIRY) {
+        return 1;
+    }
+#endif
     return sTypeIconPaletteNums[type];
 }
 

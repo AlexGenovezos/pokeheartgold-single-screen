@@ -4,6 +4,19 @@ set -euo pipefail
 game_root="$(cd "$(dirname "$0")/.." && pwd)"
 native_root="${1:-$game_root/../ssrecomp-qol}"
 native_root="$(cd "$native_root" && pwd)"
+modern_types="${QOL_MODERN_TYPES:-0}"
+modern_rules="${QOL_MODERN_BATTLE:-0}"
+case "$modern_types:$modern_rules" in
+    0:0|0:1|1:0|1:1) ;;
+    *) echo 'QOL_MODERN_TYPES and QOL_MODERN_BATTLE must be 0 or 1.' >&2; exit 1 ;;
+esac
+game_defines='-DQOL_MODS=1'
+if [[ "$modern_types" == 1 ]]; then
+    game_defines+=' -DQOL_MODERN_TYPES=1'
+fi
+if [[ "$modern_rules" == 1 ]]; then
+    game_defines+=' -DQOL_MODERN_BATTLE=1'
+fi
 python_bin="$native_root/.venv/bin/python"
 if [[ ! -x "$python_bin" ]]; then
     echo "Create $native_root/.venv and install pyelftools there first." >&2
@@ -12,9 +25,16 @@ fi
 for task_file in tools/recomp.py tools/apps.py tools/make_layout.py CMakeLists.txt; do
     [[ -f "$native_root/$task_file" ]] || { echo "Missing native source: $task_file" >&2; exit 1; }
 done
-"$game_root/scripts/build.sh" GAME_VERSION=SOULSILVER COMPARE=0 CLI_DEFINES='-DQOL_MODS=1'
+"$game_root/scripts/build.sh" GAME_VERSION=SOULSILVER COMPARE=0 "CLI_DEFINES=$game_defines"
 game_build="$game_root/build/soulsilver.us"
 game_rom="$game_build/pokesoulsilver.us.nds"
+if [[ "$modern_types" == 1 ]]; then
+    resource_dir="$(mktemp -d "$game_build/qol-resources.XXXXXX")"
+    trap 'rm -rf "$resource_dir"' EXIT
+    "$python_bin" "$game_root/tools/qol/modern_rom.py" "$game_rom" "$resource_dir/modern.nds"
+    game_rom="$game_build/pokesoulsilver-modern.us.nds"
+    mv "$resource_dir/modern.nds" "$game_rom"
+fi
 layout_file="$game_build/qol-layout.json"
 generated_dir="$native_root/gen"
 (

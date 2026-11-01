@@ -3,11 +3,34 @@
 #include "global.h"
 
 #include "constants/moves.h"
+#include "constants/pokemon.h"
 
 #include "filesystem.h"
+#include "qol_config.h"
+
+#if QOL_MODERN_TYPES
+// Existing move IDs/types follow hg-engine data/Moves.c at 61b510cf.
+static void Qol_ApplyModernMoveType(u16 moveId, MoveTbl *moveTbl) {
+    switch (moveId) {
+    case MOVE_CHARM:
+    case MOVE_SWEET_KISS:
+    case MOVE_MOONLIGHT:
+        moveTbl->type = TYPE_FAIRY;
+        break;
+    case MOVE_CURSE:
+        moveTbl->type = TYPE_GHOST;
+        break;
+    }
+}
+#endif
 
 void LoadMoveTbl(MoveTbl *dest) {
     ReadFromNarcMemberByIdPair(dest, NARC_poketool_waza_waza_tbl, 0, 0, (NUM_MOVES + 1) * sizeof(MoveTbl));
+#if QOL_MODERN_TYPES
+    for (int moveId = 0; moveId <= NUM_MOVES; moveId++) {
+        Qol_ApplyModernMoveType(moveId, &dest[moveId]);
+    }
+#endif
 }
 
 u32 GetMoveAttr(u16 moveId, MoveAttr attrno) {
@@ -58,4 +81,7 @@ u32 GetMoveTblAttr(MoveTbl *moveTbl, MoveAttr attr) {
 
 void LoadMoveEntry(u16 moveId, MoveTbl *moveTbl) {
     ReadWholeNarcMemberByIdPair(moveTbl, NARC_poketool_waza_waza_tbl, moveId);
+#if QOL_MODERN_TYPES
+    Qol_ApplyModernMoveType(moveId, moveTbl);
+#endif
 }

@@ -25,6 +25,8 @@
 #define TYPE_GHOST          7
 #define TYPE_STEEL          8
 #define TYPE_MYSTERY        9
+// Modern builds reuse slot 9 without changing existing type IDs.
+#define TYPE_FAIRY          TYPE_MYSTERY
 #define TYPE_FIRE           10
 #define TYPE_WATER          11
 #define TYPE_GRASS          12

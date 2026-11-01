@@ -84,3 +84,35 @@ must not be reused after game-code changes.
 The supplied library snapshot used for this fork is
 `ctrl-cheeb-del/pokeheartgold@d414e429ec36d1ac629efdfb28c6353f470e60e5`. A newer
 library/header checkout is not interchangeable, even when filenames match.
+
+## Modern battle development
+
+The approved next target includes modern moves and updated abilities for the
+original roster. Independent development flags are default-off:
+
+```sh
+QOL_MODERN_TYPES=1 QOL_MODERN_BATTLE=1 ./scripts/build-qol-native.sh ../ssrecomp-qol
+```
+
+This currently builds a **type/core-rule foundation**, not complete Gen IX.
+The type resource transform writes a separate `pokesoulsilver-modern.us.nds`,
+leaving the built source ROM and input filesystem assets intact. It updates type
+names and both shared/Pokédex icons; Normal's shared Dex icon and Hall Matron's
+special `???` label remain intact. Runtime validation is still required before
+installation. Pokédex Fairy search and the remaining move/ability/status/weather
+ports remain tracked in issue #6 and `docs/QOL-REUSE.md`.
+
+The pinned hg-engine export tool emits review data without changing the game:
+
+```sh
+python3 tools/qol/hg_import.py .local-tools/hg-engine .local-tools/gen9-profile.json
+```
+
+Generated exports contain move/species data and stay ignored locally. This tool
+requires a host C compiler and the exact reviewed upstream revision; it disables
+the five Champions switches, records official versus engine move IDs, validates
+byte-sized ability aliases and checks wider level-up encoding. Existing native
+bit 0x20 means item-flinch eligibility; upstream's same bit marks unimplemented
+moves. Do not copy it without translation. Ability names/data are not evidence
+that their mechanics are implemented. Retain upstream credits/reuse terms in
+`docs/third-party/` when porting work.
