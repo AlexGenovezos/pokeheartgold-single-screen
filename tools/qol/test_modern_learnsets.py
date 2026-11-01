@@ -94,10 +94,15 @@ static void DeleteBoxMonFirstMoveAndAppend(BoxPokemon *p, u16 move) {
     memmove(p->moves,p->moves+1,3*sizeof(u16)); p->moves[3]=move;
 }
 BOOL Qol_IsSupportedMove(u16 move) {
-    return move <= 467 || (QOL_MODERN_MOVES &&
-        (move==577 || move==580 || move==586 || move==588 || move==608 ||
-         move==587 || move==673 || move==670 || move==696 || move==532 || move==687 ||
-         move==898 || move==622 || move==621 || move==575 || move==589 || move==854));
+    if(move<=467)return TRUE;
+#if QOL_MODERN_MOVES
+    switch(move) {
+#define QOL_EXTRA_MOVE(id,e,c,p,t,a,pp,ch,r,pr,f,an) case id:return TRUE;
+#include "data/qol_move_entries.inc"
+#undef QOL_EXTRA_MOVE
+    }
+#endif
+    return FALSE;
 }
 static void LoadLevelUpLearnset_HandleAlternateForm(int species, int form, u16 *dest) {
     calledSpecies=species; calledForm=form;
@@ -166,12 +171,12 @@ int main(void) {
         assert(guarded.table[n].move==LEVEL_UP_LEARNSET_END);
         assert(guarded.canary==0xa55aa55a);
     }
-    Pokemon mon={{282,0,100,{0}}}; // Gardevoir has all four imported wide IDs.
+    Pokemon mon={{282,0,100,{0}}}; // Gardevoir has all five imported wide IDs.
     u16 *eligible=MoveRelearner_GetEligibleLevelUpMoves(&mon,HEAP_ID_DEFAULT);
-    int k=0; while(eligible[k]!=LEVEL_UP_LEARNSET_END) { assert(k<27); k++; }
-    assert(k==(QOL_MODERN_MOVES?26:22));
-    int supported[]={577,580,588,608};
-    for(int j=0;j<4;j++) {
+    int k=0; while(eligible[k]!=LEVEL_UP_LEARNSET_END) { assert(k<28); k++; }
+    assert(k==(QOL_MODERN_MOVES?27:22));
+    int supported[]={577,580,588,608,598};
+    for(int j=0;j<5;j++) {
         int found=0;
         for(int i=0;i<k;i++) found|=eligible[i]==supported[j];
         assert(found==QOL_MODERN_MOVES);
@@ -249,15 +254,18 @@ int main(void) {
         data = (ROOT / 'include/data/qol_learnsets.inc').read_text()
         entries = [tuple(map(int, row)) for row in
                    re.findall(r'QOL_LEVEL_UP_MOVE\((\d+), (\d+), (\d+)\)', data)]
-        self.assertEqual(len(entries), 106)
-        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED) - {696,854})
-        self.assertEqual(set(learnset_import.SUPPORTED), {577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854})
+        self.assertEqual(len(entries), 209)
+        self.assertEqual(len({s for s, _, _ in entries}),160)
+        self.assertIn((133,15,611),entries)
+        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED) - {506,530,615,696,709,787,809,815,818,831,854,887,889})
+        from test_modern_next_moves import IDS
+        self.assertEqual(set(learnset_import.SUPPORTED), {577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854} | IDS)
         self.assertIn((383, 1, 622), entries)
         self.assertIn((295, 72, 589), entries)
         self.assertIn((475, 1, 898), entries)
         self.assertIn((282, 0, 608), entries)
         from collections import Counter
-        self.assertEqual(max(Counter(species for species, _, _ in entries).values()), 4)
+        self.assertEqual(max(Counter(species for species, _, _ in entries).values()), 5)
         profile = ROOT / '.local-tools/validation/gen9-import-profile.json'
         if profile.exists():
             self.assertEqual(learnset_import.generate(json.loads(profile.read_text())), data)

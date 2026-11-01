@@ -54,6 +54,13 @@
 #include "palette_blink.h"
 #include "ui_util.h"
 
+#if QOL_MODERN_BATTLE
+// GetMoveStatusChangeScript writes only bits23..31; the sole native reader
+// checks bit27, and no battle-script variable exposes this field. Bit0 lives
+// only between a stat mutation and the End of subscript12, without ABI growth.
+#define QOL_STAT_CHANGE_COMPETITIVE_PENDING (1 << 0)
+#endif
+
 int BattleScriptReadWord(BattleContext *ctx);
 static void BattleScriptIncrementPointer(BattleContext *ctx, int adrs);
 static void BattleScriptJump(BattleContext *ctx, NarcId narcId, int adrs);
@@ -1583,6 +1590,11 @@ BOOL BtlCmd_UpdateVar(BattleSystem *battleSystem, BattleContext *ctx) {
 BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
     int change, stat;
     BattleMon *mon = &ctx->battleMons[ctx->battlerIdStatChange];
+#if QOL_MODERN_BATTLE
+    int stageBefore;
+    // Clear before every early return, including immunity and floor failures.
+    ctx->statChangeFlag &= ~QOL_STAT_CHANGE_COMPETITIVE_PENDING;
+#endif
 
     BattleScriptIncrementPointer(ctx, 1);
 
@@ -1612,6 +1624,9 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
         ctx->tempData = 12;
     }
 
+#if QOL_MODERN_BATTLE
+    stageBefore = mon->statChanges[stat + 1];
+#endif
     if (change > 0) { // Stat Increase
         if (mon->statChanges[stat + 1] == 12) {
             ctx->battleStatus |= BATTLE_STATUS_FAIL_STAT_STAGE_CHANGE;
@@ -1679,7 +1694,16 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                         ctx->buffMsg.param[1] = ctx->battleMons[ctx->battlerIdStatChange].ability;
                     }
                     unkD = TRUE;
-                } else if ((CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_KEEN_EYE) == TRUE && (1 + stat) == 6) || (CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_HYPER_CUTTER) == TRUE && (1 + stat) == 1)) {
+                } else if ((
+#if QOL_MODERN_BATTLE
+                                (1 + stat) == STAT_ACC
+                                && (CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_KEEN_EYE) == TRUE
+                                    || CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_ILLUMINATE) == TRUE)
+#else
+                                CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_KEEN_EYE) == TRUE
+                                && (1 + stat) == 6
+#endif
+                                ) || (CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_HYPER_CUTTER) == TRUE && (1 + stat) == 1)) {
                     if (ctx->statChangeType == 3) {
                         // "{0}'s {1} suppressed {2}'s {3}!"
                         ctx->buffMsg.id = msg_0197_00727;
@@ -1765,6 +1789,28 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
         }
     }
 
+#if QOL_MODERN_BATTLE
+    if (ctx->battlerIdStatChange >= 0
+        && ctx->battlerIdStatChange < BattleSystem_GetMaxBattlers(battleSystem)
+        && mon->statChanges[stat + 1] < stageBefore
+        && mon->hp && GetBattlerAbility(ctx, ctx->battlerIdStatChange) == ABILITY_COMPETITIVE
+        && ctx->battlerIdAttacker >= 0
+        && ctx->battlerIdAttacker < BattleSystem_GetMaxBattlers(battleSystem)
+        && BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdAttacker)
+            != BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdStatChange)
+        && (ctx->statChangeType == SIDE_EFFECT_TYPE_DIRECT
+            || ctx->statChangeType == SIDE_EFFECT_TYPE_INDIRECT
+            || (ctx->statChangeType == SIDE_EFFECT_TYPE_ABILITY
+                && GetBattlerAbility(ctx, ctx->battlerIdAttacker) == ABILITY_INTIMIDATE
+                && ctx->scriptStackDepth > 0
+                && ctx->scriptStackNarcId[ctx->scriptStackDepth - 1] == NARC_a_0_0_1
+                && ctx->scriptStackFileId[ctx->scriptStackDepth - 1] == BATTLE_SUBSCRIPT_INTIMIDATE))) {
+        // Reactive abilities do not borrow the attacker's Mold Breaker check.
+        // Capture the causal source now: Intimidate restores attacker later,
+        // and Memento's source can already have fainted.
+        ctx->statChangeFlag |= QOL_STAT_CHANGE_COMPETITIVE_PENDING;
+    }
+#endif
     return FALSE;
 }
 
@@ -5876,6 +5922,29 @@ BOOL BtlCmd_223(BattleSystem *battleSystem, BattleContext *ctx) {
 }
 
 BOOL BtlCmd_EndScript(BattleSystem *battleSystem, BattleContext *ctx) {
+#if QOL_MODERN_BATTLE
+    if (ctx->scriptNarcId == NARC_a_0_0_1 && ctx->scriptFileId == BATTLE_SUBSCRIPT_UPDATE_STAT_STAGE) {
+        int pending = ctx->statChangeFlag & QOL_STAT_CHANGE_COMPETITIVE_PENDING;
+        ctx->statChangeFlag &= ~QOL_STAT_CHANGE_COMPETITIVE_PENDING;
+        if (pending && ctx->battlerIdStatChange >= 0
+            && ctx->battlerIdStatChange < BattleSystem_GetMaxBattlers(battleSystem)) {
+            BattleMon *mon = &ctx->battleMons[ctx->battlerIdStatChange];
+            if (mon->hp && GetBattlerAbility(ctx, ctx->battlerIdStatChange) == ABILITY_COMPETITIVE
+                && mon->statChanges[STAT_SPATK] < 12) {
+                int change = mon->statChanges[STAT_SPATK] == 11 ? 1 : 2;
+                mon->statChanges[STAT_SPATK] += change;
+                ctx->buffMsg.id = change == 1 ? msg_0197_00750 : msg_0197_00753;
+                ctx->buffMsg.tag = TAG_NICKNAME_STAT;
+                ctx->buffMsg.param[0] = CreateNicknameTag(ctx, ctx->battlerIdStatChange);
+                ctx->buffMsg.param[1] = STAT_SPATK;
+                // Replace completed subscript12. Its original caller remains on
+                // the native four-frame stack even when that stack is already full.
+                ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_COMPETITIVE);
+                return FALSE;
+            }
+        }
+    }
+#endif
     ctx->battleContinueFlag = TRUE;
 
     return BattleScript_Return(ctx);

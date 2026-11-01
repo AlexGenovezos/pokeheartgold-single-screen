@@ -245,3 +245,190 @@ zero guard failures. The broader boot fixture had1.63% fallback and54 overlay
 evictions, so the zero-fallback observation applies to the stable battle
 comparison. Save hashes remained unchanged; installed artifacts and the real
 save were not replaced.
+
+## Competitive development milestone
+
+Competitive172 now follows each actual opposed stat reduction with a two-stage
+Special Attack increase, including each separate Tickle/Memento reduction and
+Intimidate recipients. The native stat command checks final clamped stages;
+blocked reductions, allies, self reductions, unowned side effects and fainted or
+suppressed holders do not activate it. Reactive Competitive remains active
+against Mold Breaker. Intimidate provenance is checked while its owner is the
+causal attacker, before its script restores the original attacker.
+
+The implementation uses bit0 of native statChangeFlag: its original producer
+masks to bits23–31, its original reader checks bit27, and no script variable
+exposes it. The marker is cleared before every stat-command early return and
+consumed only at subscript12's End. Presentation298 replaces the completed12
+without growing the native four-frame stack. Native layouts and Easy Chat's
+original ability count remain unchanged. Names/descriptions extend banks720,
+721 and722 through172; unused IDs retain placeholders, Cursed Body130 survives,
+and original source hashes and SDK/binary parity guard resource generation.
+
+All three personal loaders expose [Cute Charm, Competitive] for Jigglypuff,
+Wigglytuff and Igglybuff, and [Marvel Scale, Competitive] for Milotic. The save
+getter reads the raw personality directly and converts only base-form odd-PID
+original standard ability bytes. Other stored bytes, forms and species remain
+unchanged; no saved data is rewritten. Gengar's existing Cursed Body adapter
+continues to apply.
+
+Behavior was cross-checked against BluRosie's hg-engine revision
+`61b510cfb6cf7d77c3b083150fad3499f82fd326`, particularly
+`src/individual/btl_scr_cmd_33_statbuffchange.c`,
+`src/battle/battle_script_commands.c` and subscript12, and the
+rh-hideout pokeemerald-expansion revision
+`c460a8661dfa0598ae25d42a968c690ecbf489c6` Competitive script handler.
+This milestone uses new native-layout integration rather than their expanded
+battle state, opcode tables or addresses. Existing upstream credits and reuse
+terms remain applicable to the broader project.
+
+Focused host tests execute native stat mutation/return commands and the original
+SDK Tickle, Memento and Intimidate bytecode. They cover per-stat ordering, two
+Intimidate opponents, restored attacker, full stack depth, clipped boosts and
+message1087 revealing the correct ability holder to trainer AI. This is ability
+knowledge integration; no Competitive-specific AI scoring is claimed. A complete
+matching ROM/native build and copied-save gameplay validation passed with the
+combined52-move milestone recorded below. Installation awaits the complete
+modern ruleset.
+
+The final serialized host/SDK suite passed149 tests in260.647s, including the
+inactive-recipient regression found during spec review and real presentation298
+returns at depths0–4. All36 progress-tool tests also passed. Evidence is in
+`.local-tools/validation/gen9-competitive-tests.log`; the isolated storage-harness
+compile regression and strict nonmutation checks are recorded in
+`gen9-competitive-storage-regression.log`. The installed game remains separate from these development artifacts.
+
+## Targeted original-ability calculations and Flash Fire
+
+Under `QOL_MODERN_BATTLE`, Keen Eye and Illuminate ignore all target evasion
+stages while retaining the user's accuracy stages and other accuracy factors.
+Illuminate also shares Keen Eye's accuracy-drop protection, including native
+suppression and Mold Breaker handling. Their bank722 summary descriptions now
+state both battle effects, with original source/binary parity and font bounds
+still checked. Name banks and ability IDs are unchanged by this batch.
+
+Plus and Minus accept either ability on a distinct living active ally. The
+shared damage calculation bounds its scan to actual battler slots and excludes
+the user, inactive slots, fainted partners, opposing battlers and suppressed
+abilities. This also covers callers that estimate damage for trainer AI without
+inventing an ally in singles or changing native battle layouts.
+
+Flash Fire absorbs damaging Fire moves and Will-O-Wisp while frozen and before
+accuracy is rolled. The following controller phase still blocks absorption for
+Protect and semi-invulnerable states. Normalize, dynamic move-type overrides,
+suppression, Mold Breaker and charge turns retain their native handling. The
+read-only effectiveness preview agrees about frozen Flash Fire without changing
+Mold Breaker flags. The unchanged original subscript179 handles first and repeated
+activations; SDK assembly must match the original archive before execution tests.
+
+Behavior references and credits: rh-hideout pokeemerald-expansion
+`c460a8661dfa0598ae25d42a968c690ecbf489c6`, `src/battle_util.c` (evasion,
+Plus/Minus and Flash Fire) and `src/battle_stat_change.c` (Illuminate), and
+BluRosie's hg-engine `61b510cfb6cf7d77c3b083150fad3499f82fd326` damage and
+Flash Fire handlers. The implementation adapts these rules to the retained
+native SoulSilver structures rather than importing expanded battle state.
+Existing upstream credits and reuse terms remain applicable. This batch does
+not implement later original-ability updates or change species ability pairs.
+
+Both independent review stages approved this batch. The final156-test
+host/SDK suite passed in271.518s, including a regression ensuring unrelated
+stat drops cannot announce a Keen Eye/Illuminate Mold Breaker bypass. Modern
+mode checks accuracy before querying those abilities; default mode retains
+the original ordering. Combined native validation is recorded below.
+
+## Next 35 ordinary modern moves
+
+The development move adapter now supports52 extended IDs: the prior17 plus
+Sludge Wave, Low Sweep, Scald, Inferno, Volt Switch, Struggle Bug, Electroweb,
+Wild Charge, Dual Chop, Razor Shell, Leaf Tornado, Snarl, Icicle Crash, Play Nice,
+Mystical Fire, Baby-Doll Eyes, Nuzzle, Power-Up Punch, Dragon Ascent, Lunge,
+Psychic Fangs, Liquidation, Breaking Swipe, Skitter Smack, Flip Turn,
+Dual Wingbeat, Scorching Sands, Psyshield Bash, Raging Fury, Wave Crash,
+Headlong Rush, Raging Bull, Pounce, Chilling Water and Twin Beam.
+
+The shared literal rows retain hg-engine revision
+61b510cfb6cf7d77c3b083150fad3499f82fd326 and its existing reuse credits/terms.
+Three corrections are explicit: Wild Charge uses native effect48 for quarter
+recoil (Wave Crash retains198 for one third); Scorching Sands uses125 so both
+native frozen-attacker branches recognize self thaw; Psychic Fangs has15PP,
+verified against pokeemerald-expansion revision
+c460a8661dfa0598ae25d42a968c690ecbf489c6 rather than hg-engine's10PP.
+All35 aliases contain only GoToEffectScript. Native King's Rock flags are
+translated explicitly rather than copied from the upstream flag namespace.
+
+Snarl is registered in both sound consumers and bypasses Substitute; Play Nice
+has an explicit visual Substitute bypass, Protect bypass and Magic Coat
+eligibility. Power-Up Punch and Headlong Rush use Iron Fist. The eight native
+Metronome exclusions follow the Mimic sentinel, retaining Mimic legality.
+Modern screen-breaking attacks leave screens intact on immunity, protection
+and misses; successful screen breaks still run before HP damage, and their
+native damage effect bypasses screen reduction. Successful Scald and
+Scorching Sands hits thaw frozen targets only after actual HP damage. Completed
+pivot protection uses the flag set by native subscript175 after withdrawal:
+called pivots and intervening Pursuit can leave both move IDs naming the caller,
+so the replacement Pokémon must not acquire the caller's Choice lock. The
+subscript's contact and item timing and the completed-pivot Cursed Body guard
+remain intact. A later multi-hit strike that reaches actual Pokémon HP clears
+only the stale Substitute-hit marker, so contact abilities and reactive items
+can activate after the first strike breaks Substitute. The marker still blocks
+the breaking strike, other self-turn flags remain intact, and feature-off
+behavior is preserved.
+
+The reproducible pinned-profile overlay contains209 rows across160 base
+species, with at most5 additions (Gardevoir). The preliminary193-row/149-species
+audit omitted16 legitimate Baby-Doll Eyes rows by not converting its name's
+hyphen to an underscore. The actual original NARC plus overlay needs at most22
+moves and a sentinel (23 records), within capacity28. Original packed learnset
+members, saved IDs, native467 move limit, sixteen-byte MoveTbl and embedded
+468-entry AI table remain unchanged. Full names, uppercase names, descriptions
+and compact card labels use the existing private resource adapters.
+
+Eleven new moves have no base-roster level rows in this profile: Scald,
+Electroweb, Power-Up Punch, Psychic Fangs, Breaking Swipe, Skitter Smack,
+Flip Turn, Scorching Sands, Psyshield Bash, Pounce and Chilling Water. The
+prior Brutal Swing and Tera Blast also lack level rows. Battle support does
+not imply TM, tutor or egg accessibility, or completion of all178 imported
+candidates. Raging Bull implements base Tauros's Normal attack; Paldean
+breeds are outside the roster. Future Sharpness and Strong Jaw handlers must
+classify Razor Shell as slicing and Psychic Fangs as biting; the native flag
+byte cannot express these classifications. No powder move is added here.
+
+Deferred candidates retain their audited limits: Eerie Impulse's native61
+script is empty; Tail Slap needs the modern multi-hit distribution; Infestation
+needs modern binding damage/duration; Bulldoze needs Grassy Terrain handling;
+Solar Blade needs its charge preamble and adverse-weather handling. These IDs
+remain unsupported. The combined validation below covers this scoped milestone;
+the installed app and real save remain unchanged.
+
+
+## Combined52-move and ability validation
+
+Both independent review stages approved Competitive, the targeted original
+ability changes, and the35-move batch, including the post-Substitute regression
+fix. The final177-test host/SDK suite passed in702.580s. The matching source ROM,
+resource transforms, native layout/code generation and macOS native build passed.
+A frozen source-hash record matched throughout verification.
+
+Copied-save native/interpreter comparisons passed:
+
+| Fixture | Measured result | Comparison frames |
+| --- | --- | ---: |
+| Odd-PID legacy Cute Charm Jigglypuff | Competitive172; Intimidate Attack−1, Special Attack+2 |2500|
+| Even-PID legacy Cute Charm control | Cute Charm56; Attack−1, Special Attack unchanged |2500|
+| Frozen Flash Fire Flareon versus Will-O-Wisp | Boost activated; freeze0x20 retained; HP24/24 |1700|
+| Power-Up Punch | Attack+1 after a successful hit |1700|
+| Twin Beam | Two-hit message/count2; target HP40→34 |1700|
+| Wild Charge | Target damage10, user recoil2, matching quarter recoil |1700|
+
+The four stable battle comparisons had zero interpreter fallbacks and zero
+guard failures. The two entry comparisons include overworld-to-battle loading:
+all instructions matched with0.38% fallback and14/13 overlay evictions. These
+metrics must not be presented as zero fallback across all six runs. Snapshot
+fields were decoded using the matching compiler's DWARF offsets. Original and
+fixture save hashes remained unchanged after all runs, which used `--no-save`.
+
+Evidence lives in ignored `.local-tools/validation/gen9-52-moves-tests.log`,
+`gen9-52-moves-build.log`, fixture lockstep logs and matching artifact manifest.
+The implemented52 moves and ability checkpoints remain a subset of the approved
+Gen IX conversion;126 additional imported move IDs and other rules still need
+work. No modern development artifacts have replaced the playable installed game.

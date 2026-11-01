@@ -119,7 +119,7 @@ int main(void) {
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',return_value=b'absorption') as absorb, \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'rom',None,types=False,battle_rules=True)

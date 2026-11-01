@@ -2472,11 +2472,15 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
     }
 
 #if QOL_MODERN_BATTLE
-    // Absorbing redirection abilities intercept their type before accuracy is
-    // rolled. Keep Protect/semi-invulnerable checks in the following phase.
-    if (battlerIdAttacker != battlerIdTarget && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER
-        && ((moveType == TYPE_ELECTRIC && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_LIGHTNINGROD)
-            || (moveType == TYPE_WATER && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_STORM_DRAIN))) {
+    // Absorption precedes accuracy, including frozen Flash Fire. Keep Protect
+    // and semi-invulnerable checks in the following phase. These read-only
+    // ability checks must not announce Mold Breaker during the accuracy phase.
+    if (GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER
+        && ((battlerIdAttacker != battlerIdTarget
+                && ((moveType == TYPE_ELECTRIC && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_LIGHTNINGROD)
+                    || (moveType == TYPE_WATER && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_STORM_DRAIN)))
+            || (moveType == TYPE_FIRE && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_FLASH_FIRE
+                && (BATTLE_MOVE_DATA(ctx, move).power || move == MOVE_WILL_O_WISP)))) {
         return FALSE;
     }
 #endif
@@ -2499,6 +2503,14 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
     if (GetBattlerAbility(ctx, battlerIdAttacker) == ABILITY_UNAWARE) {
         targetEvasion = 0;
     }
+
+#if QOL_MODERN_BATTLE
+    // Ignore both evasion boosts and drops; the user's accuracy still applies.
+    if (GetBattlerAbility(ctx, battlerIdAttacker) == ABILITY_KEEN_EYE
+        || GetBattlerAbility(ctx, battlerIdAttacker) == ABILITY_ILLUMINATE) {
+        targetEvasion = 0;
+    }
+#endif
 
     if (((ctx->battleMons[battlerIdTarget].status2 & STATUS2_FORESIGHT) || (ctx->battleMons[battlerIdTarget].moveEffectFlags & MOVE_EFFECT_FLAG_MIRACLE_EYE)) && targetEvasion < 0) {
         targetEvasion = 0;
@@ -2882,6 +2894,11 @@ static void BattleControllerPlayer_HpCalc(BattleSystem *battleSystem, BattleCont
             ctx->command = CONTROLLER_COMMAND_RUN_SCRIPT;
             ctx->commandNext = CONTROLLER_COMMAND_29;
         } else {
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+            // A later strike can hit the holder after breaking its Substitute.
+            // On-hit abilities, items and secondary effects concern this hit.
+            ctx->selfTurnData[ctx->battlerIdTarget].statusFlags &= ~8;
+#endif
             // False Swipe
             if (BATTLE_MOVE_DATA(ctx, ctx->moveNoCur).effect == MOVE_EFFECT_LEAVE_WITH_1_HP && ctx->battleMons[ctx->battlerIdTarget].hp + ctx->damage <= 0) {
                 ctx->damage = (ctx->battleMons[ctx->battlerIdTarget].hp - 1) * -1;
@@ -3172,10 +3189,17 @@ void BattleControllerPlayer_AfterMoveEffects(BattleSystem *battleSystem, BattleC
         if (ctx->battlerIdTarget != BATTLER_NONE
             && (ctx->battleMons[ctx->battlerIdTarget].status & STATUS_FREEZE)
             && !(ctx->moveStatusFlag & MOVE_STATUS_MULTI_HIT_DISRUPTED)
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+            && !(ctx->moveStatusFlag & MOVE_STATUS_FAIL)
+#endif
             && ctx->battlerIdTarget != ctx->battlerIdAttacker
             && (ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage != 0 || ctx->selfTurnData[ctx->battlerIdTarget].specialDamage != 0)
             && ctx->battleMons[ctx->battlerIdTarget].hp != 0
-            && moveType == TYPE_FIRE) {
+            && (moveType == TYPE_FIRE
+#if QOL_MODERN_MOVES
+                || ctx->moveNoCur == MOVE_SCALD || ctx->moveNoCur == MOVE_SCORCHING_SANDS
+#endif
+                )) {
             ctx->battlerIdTemp = ctx->battlerIdTarget;
             ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_THAW_OUT);
             ctx->commandNext = ctx->command;
@@ -3343,7 +3367,16 @@ static void BattleControllerPlayer_UpdateMoveHistory(BattleSystem *battleSystem,
     u8 item = GetBattlerHeldItemEffect(ctx, ctx->battlerIdAttacker);
     if (ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN || ctx->battleStatus2 & BATTLE_STATUS2_DISPLAY_ATTACK_MESSAGE) {
         if (item == HOLD_EFFECT_CHOICE_ATK || item == HOLD_EFFECT_CHOICE_SPEED || item == HOLD_EFFECT_CHOICE_SPATK) {
-            if (!(ctx->moveNoTemp == MOVE_STRUGGLE || (ctx->moveNoTemp == MOVE_U_TURN && ctx->battleStatus2 & BATTLE_STATUS2_UTURN) || (ctx->moveNoTemp == MOVE_BATON_PASS && ctx->battleStatus2 & BATTLE_STATUS2_MOVE_SUCCEEDED))) {
+            if (!(ctx->moveNoTemp == MOVE_STRUGGLE || (
+#if QOL_MODERN_MOVES
+                        // Only pivot subscript175 sets UTURN, after withdrawing
+                        // the user. Both move IDs can name a calling move after
+                        // Metronome/Copycat plus Pursuit; protect the replacement.
+                        ctx->battleStatus2 & BATTLE_STATUS2_UTURN
+#else
+                        ctx->moveNoTemp == MOVE_U_TURN && ctx->battleStatus2 & BATTLE_STATUS2_UTURN
+#endif
+                        ) || (ctx->moveNoTemp == MOVE_BATON_PASS && ctx->battleStatus2 & BATTLE_STATUS2_MOVE_SUCCEEDED))) {
                 ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.moveNoChoice = ctx->moveNoTemp;
             }
         } else {

@@ -300,6 +300,7 @@
 #define BATTLE_SUBSCRIPT_OVERWORLD_TRICK_ROOM             295
 #define BATTLE_SUBSCRIPT_GIRATINA_FORM_CHANGE             296
 #define BATTLE_SUBSCRIPT_CURSED_BODY                     297
+#define BATTLE_SUBSCRIPT_COMPETITIVE                     298
 
 #define MOVE_SUBSCRIPT_PTR_NONE                             0
 #define MOVE_SUBSCRIPT_PTR_SLEEP                            1

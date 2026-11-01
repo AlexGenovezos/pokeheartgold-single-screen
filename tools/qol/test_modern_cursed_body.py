@@ -290,7 +290,8 @@ enum {HEAP_ID_DEFAULT,NARC_poketool_personal_personal};
 typedef struct {u8 abilities[2];} BASE_STATS;
 typedef int NARC;
 '''+f'static const u8 original[][2]={{{original}}};\n'
-        source+=test_modern_moves.no_includes((ROOT/'src/qol_abilities.c').read_text())+r'''
+        adapter=(ROOT/'src/qol_abilities.c').read_text()
+        source+=test_modern_moves.no_includes(adapter)+r'''
 static int ResolveMonForm(int species,int form){return species==SPECIES_GIRATINA&&form==1?501:species;}
 static void ReadWholeNarcMemberByIdPair(BASE_STATS *p,int narc,int species){memcpy(p->abilities,original[species],2);}
 static void NARC_ReadWholeMember(NARC *n,int species,BASE_STATS *p){ReadWholeNarcMemberByIdPair(p,0,species);}
@@ -302,28 +303,43 @@ static int GetPersonalAttr(BASE_STATS *p,int attr){return p->abilities[attr==BAS
             source+=game.function_source('src/pokemon.c',function)+'\n'
         getter=(ROOT/'src/pokemon.c').read_text().split('static u32 GetBoxMonDataInternal(BoxPokemon *boxMon, int attr, void *dest) {',1)[1]
         ability_case=getter.split('    case MON_DATA_ABILITY:\n',1)[1].split('    case ',1)[0]
-        source+='\nstatic int stored(int species,int form,int ability) {\nstruct {int species,ability;} a={species,ability},*blockA=&a;\nstruct {int form;} b={form},*blockB=&b;int ret=0;\nswitch(0){case 0:\n'+ability_case+'}\n(void)blockB;return ret;}\n'
+        source+='\nstatic int stored(int species,int form,int ability,u32 personality) {\nstruct {u32 personality;} box={personality},*boxMon=&box;\nstruct {int species,ability;} a={species,ability},*blockA=&a;\nstruct {int form;} b={form},*blockB=&b;int ret=0;\nswitch(0){case 0:\n'+ability_case+'}\n(void)blockB;(void)boxMon;assert(a.ability==ability&&a.species==species&&b.form==form&&box.personality==personality);return ret;}\n'
         source+=r'''
 int main(void) {
     for(unsigned species=0;species<sizeof(original)/sizeof(original[0]);species++) {
         BASE_STATS p;LoadMonPersonal(species,&p);
         for(int slot=0;slot<2;slot++) {
-            int expected=QOL_MODERN_BATTLE&&species==SPECIES_GENGAR?130:original[species][slot];
+            int expected=original[species][slot];
+            if(QOL_MODERN_BATTLE) {
+                if(species==SPECIES_GENGAR)expected=130;
+                if(slot==1&&(species==SPECIES_JIGGLYPUFF||species==SPECIES_WIGGLYTUFF||species==SPECIES_IGGLYBUFF||species==SPECIES_MILOTIC))expected=172;
+            }
             assert(p.abilities[slot]==expected);
             assert(GetMonBaseStatEx_HandleAlternateForm(NULL,species,0,slot?BASE_ABILITY_2:BASE_ABILITY_1)==expected);
         }
         LoadMonBaseStats_HandleAlternateForm(species,0,&p);
-        assert(p.abilities[0]==(QOL_MODERN_BATTLE&&species==SPECIES_GENGAR?130:original[species][0]));
+        for(int slot=0;slot<2;slot++) {
+            int expected=original[species][slot];
+            if(QOL_MODERN_BATTLE) {
+                if(species==SPECIES_GENGAR)expected=130;
+                if(slot==1&&(species==SPECIES_JIGGLYPUFF||species==SPECIES_WIGGLYTUFF||species==SPECIES_IGGLYBUFF||species==SPECIES_MILOTIC))expected=172;
+            }
+            assert(p.abilities[slot]==expected);
+        }
     }
     // Alternate records stay native, including Giratina's ability form switch.
     BASE_STATS p;LoadMonBaseStats_HandleAlternateForm(SPECIES_GIRATINA,1,&p);
     assert(!memcmp(p.abilities,original[501],2));
-    for(int species=1;species<=493;species++)for(int form=0;form<2;form++)for(int ability=0;ability<256;ability++) {
+    for(int species=1;species<=493;species++)for(int form=0;form<2;form++)for(int ability=0;ability<256;ability++)for(u32 pid=0;pid<4;pid++) {
         int expected=QOL_MODERN_BATTLE&&species==SPECIES_GENGAR&&form==0&&ability==26?130:ability;
-        assert(Qol_GetStoredAbility(species,form,ability)==expected);
-        assert(stored(species,form,ability)==expected);
+        if(QOL_MODERN_BATTLE&&form==0&&(pid&1)) {
+            if((species==SPECIES_JIGGLYPUFF||species==SPECIES_WIGGLYTUFF||species==SPECIES_IGGLYBUFF)&&ability==56)expected=172;
+            if(species==SPECIES_MILOTIC&&ability==63)expected=172;
+        }
+        assert(Qol_GetStoredAbility(species,form,ability,pid)==expected);
+        assert(stored(species,form,ability,pid)==expected);
     }
-    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&id==130)));
+    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&(id==130||id==172))));
     assert(NUM_ABILITIES==123);
     return 0;
 }
@@ -349,6 +365,9 @@ class CursedBodySdkTests(unittest.TestCase):
 
     def test_native_script_stack_trigger_messages_and_ai_revelation(self):
         source=hit_source()
+        source=source.replace('int hp,maxHp,ability,', 'int statChanges[8];int hp,maxHp,ability,')
+        source=source.replace('Mon battleMons[4];', 'Mon battleMons[4];int statChangeFlag;struct {int id,tag,param[6];} buffMsg;')
+        source=source.replace('} Mon;', '} Mon;typedef Mon BattleMon;')
         source=source.replace('tempData,pos,words[4],fieldCondition;',
             'tempData,scriptSeqNo,fieldCondition,scriptStackDepth,battleContinueFlag,selectedMonIndex[4],switchMonIndex[4];\n'
             '    int scriptStackNarcId[4],scriptStackFileId[4],scriptStackSeqNo[4];u32 battleScriptBuffer[400];')
@@ -356,6 +375,10 @@ class CursedBodySdkTests(unittest.TestCase):
         source=re.sub(r'static int BattleScriptReadWord\([^\n]+\n','',source)
         source+=r'''
 #include "constants/message_tags.h"
+#define QOL_STAT_CHANGE_COMPETITIVE_PENDING 1
+enum {msg_0197_00750=750,msg_0197_00753=753};
+static int CreateNicknameTag(BattleContext *c,int b){return b;}
+static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}
 #define GF_ASSERT assert
 typedef int NarcId;
 typedef struct {int id,tag,params[6];} BattleMessageData;

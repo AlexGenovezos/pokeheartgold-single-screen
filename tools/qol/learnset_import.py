@@ -15,7 +15,43 @@ SUPPORTED = {577: 'MOVE_DISARMING_VOICE', 580: 'MOVE_DRAINING_KISS',
              587: 'MOVE_FAIRY_WIND', 673: 'MOVE_LEAFAGE', 670: 'MOVE_HIGH_HORSEPOWER',
              696: 'MOVE_BRUTAL_SWING', 532: 'MOVE_DRILL_RUN', 687: 'MOVE_SMART_STRIKE',
              898: 'MOVE_AQUA_CUTTER', 622: 'MOVE_PRECIPICE_BLADES', 621: 'MOVE_ORIGIN_PULSE',
-             575: 'MOVE_PETAL_BLIZZARD', 589: 'MOVE_BOOMBURST', 854: 'MOVE_TERA_BLAST'}
+             575: 'MOVE_PETAL_BLIZZARD', 589: 'MOVE_BOOMBURST', 854: 'MOVE_TERA_BLAST',
+             485: 'MOVE_SLUDGE_WAVE',
+             493: 'MOVE_LOW_SWEEP',
+             506: 'MOVE_SCALD',
+             520: 'MOVE_INFERNO',
+             524: 'MOVE_VOLT_SWITCH',
+             525: 'MOVE_STRUGGLE_BUG',
+             530: 'MOVE_ELECTROWEB',
+             531: 'MOVE_WILD_CHARGE',
+             533: 'MOVE_DUAL_CHOP',
+             537: 'MOVE_RAZOR_SHELL',
+             539: 'MOVE_LEAF_TORNADO',
+             558: 'MOVE_SNARL',
+             559: 'MOVE_ICICLE_CRASH',
+             592: 'MOVE_PLAY_NICE',
+             598: 'MOVE_MYSTICAL_FIRE',
+             611: 'MOVE_BABY_DOLL_EYES',
+             612: 'MOVE_NUZZLE',
+             615: 'MOVE_POWER_UP_PUNCH',
+             623: 'MOVE_DRAGON_ASCENT',
+             682: 'MOVE_LUNGE',
+             709: 'MOVE_PSYCHIC_FANGS',
+             713: 'MOVE_LIQUIDATION',
+             787: 'MOVE_BREAKING_SWIPE',
+             809: 'MOVE_SKITTER_SMACK',
+             815: 'MOVE_FLIP_TURN',
+             817: 'MOVE_DUAL_WINGBEAT',
+             818: 'MOVE_SCORCHING_SANDS',
+             831: 'MOVE_PSYSHIELD_BASH',
+             836: 'MOVE_RAGING_FURY',
+             837: 'MOVE_WAVE_CRASH',
+             841: 'MOVE_HEADLONG_RUSH',
+             876: 'MOVE_RAGING_BULL',
+             887: 'MOVE_POUNCE',
+             889: 'MOVE_CHILLING_WATER',
+             891: 'MOVE_TWIN_BEAM',
+             }
 
 
 def generate(profile):
@@ -30,7 +66,7 @@ def generate(profile):
         move = next(m for m in profile['moves'] if m['engine_id'] == move_id)
         # The source abbreviates this full name to fit its legacy string limit.
         expected_constant = ('MOVE_PRECIPICEBLADES' if move_id == 622 else constant)
-        if 'MOVE_' + move['caps_name'].replace(' ', '_') != expected_constant:
+        if 'MOVE_' + move['caps_name'].replace('-', '_').replace(' ', '_') != expected_constant:
             raise ValueError(f'move ID {move_id} has changed')
     ids = {name: move_id for move_id, name in SUPPORTED.items()}
     rows = sorted({(s['species'], entry['Level'], ids[entry['Move']])

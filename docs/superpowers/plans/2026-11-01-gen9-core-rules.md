@@ -21,7 +21,9 @@ is not installed in the player's current app.
 - [x] Preserve the legacy behavior with the flag off, and keep the type flag
   independent. Conversion's old Curse/slot-9 rewrite cannot affect Fairy.
 - [x] Independent spec and code-quality review approved this scoped foundation.
-- [ ] Complete full ROM/native build and copied-save instruction/runtime checks.
+- [x] Complete full ROM/native build and copied-save instruction/runtime checks.
+  The combined52-move/ability milestone passed177 host tests and six scoped
+  native comparisons; see `docs/QOL-REUSE.md` for their coverage and limits.
 - [ ] Port the remaining modern combined final-damage modifier chain. Filter,
   Expert Belt, Life Orb, Metronome and other modifiers still follow legacy
   positions/rounding. Do not infer exact Gen IX combinations from isolated tests.

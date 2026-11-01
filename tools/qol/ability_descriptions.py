@@ -13,15 +13,22 @@ ABILITY_BANKS = {
     721: ('7981861e435067d245dc4802e0947649f1b8d31f38f0c11d68781c08175a9251', 'CURSED BODY'),
     722: (SOURCE_SHA256, 'May disable a move that\nhits this Pokémon.'),
 }
+COMPETITIVE_BANKS = {
+    720: 'Competitive',
+    721: 'COMPETITIVE',
+    722: 'Stat loss from a foe\nsharply raises Sp. Atk.',
+}
 DESCRIPTIONS = {
     5: 'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
     31: 'Draws in Electric moves.\nAbsorbs them for Sp. Atk.',
+    35: 'Prevents accuracy loss.\nIgnores evasion changes.',
+    51: 'Prevents accuracy loss.\nIgnores evasion changes.',
     114: 'Draws in Water moves.\nAbsorbs them for Sp. Atk.',
 }
 
 
 def modern_ability_description_source(source, charmap):
-    """Encode the pinned original source and the three modern replacements."""
+    """Encode the pinned original source and the modern replacements."""
     if hashlib.sha256(source.encode()).hexdigest() != SOURCE_SHA256:
         raise ValueError('Ability descriptions differ from the expected source')
     rows = ET.fromstring(source).findall('row')
@@ -31,6 +38,8 @@ def modern_ability_description_source(source, charmap):
         updated[ability] = game_text(text, charmap)
     updated.extend([game_text(' -', charmap)] * 6)
     updated.append(game_text(ABILITY_BANKS[722][1], charmap))
+    updated.extend([game_text(' -', charmap)] * 41)
+    updated.append(game_text(COMPETITIVE_BANKS[722], charmap))
     return original, updated
 
 
@@ -50,6 +59,7 @@ def modern_ability_description_resources(archive, charmap, root=ROOT):
         if bank == 722:
             _, updated = modern_ability_description_source(source, charmap)
         else:
-            updated = original + [game_text(' -', charmap)] * 6 + [game_text(label, charmap)]
+            updated = (original + [game_text(' -', charmap)] * 6 + [game_text(label, charmap)]
+                       + [game_text(' -', charmap)] * 41 + [game_text(COMPETITIVE_BANKS[bank], charmap)])
         banks[bank] = pack_messages(updated, key)
     return pack_narc(banks, names)

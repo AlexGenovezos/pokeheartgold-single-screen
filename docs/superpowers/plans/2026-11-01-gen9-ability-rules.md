@@ -45,7 +45,12 @@ Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
   Both independent reviews, all140 host tests and the paired native build passed.
   Copied-save Gengar activated Cursed Body against Water Gun, with the expected
   disabled move55 and three residual phases remaining after that turn.
-- [ ] Implement Competitive (172), Neutralizing Gas (internal 240), Wind Rider
+- [x] Implement Competitive (172), its four standard pairs, odd-PID original-save
+  adapter and extended banks through172. Native stat reductions tail-dispatch
+  presentation298 without stack/layout growth. Host/SDK verification is recorded
+  in `2026-11-01-gen9-competitive.md`; independent review and native validation
+  remain required before installation.
+- [ ] Implement Neutralizing Gas (internal 240), Wind Rider
   (241) and Sharpness (242), including ability suppression,
   reactivation, move classifications, AI and descriptions. Upstream's empty
   Neutralizing Gas handler is not an implementation.

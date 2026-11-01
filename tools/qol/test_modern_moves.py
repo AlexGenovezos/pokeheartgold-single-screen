@@ -86,7 +86,7 @@ int main(void) {
     assert(Qol_IsSoundMove(577)==QOL_MODERN_MOVES);
     for (int i=0;i<NUM_MOVES;i++) assert(Qol_GetMetronomeMove(i)==i+1);
 #if QOL_MODERN_MOVES
-    assert(QOL_METRONOME_MOVE_COUNT==484);
+    assert(QOL_METRONOME_MOVE_COUNT==519);
     for(int i=0;i<5;i++) assert(Qol_GetMetronomeMove(NUM_MOVES+i)==ids[i]);
 #else
     assert(QOL_METRONOME_MOVE_COUNT==467);

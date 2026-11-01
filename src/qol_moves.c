@@ -88,6 +88,7 @@ BOOL Qol_IsSoundMove(u16 moveId) {
 #if QOL_MODERN_MOVES
     case MOVE_DISARMING_VOICE:
     case MOVE_BOOMBURST:
+    case MOVE_SNARL:
 #endif
         return TRUE;
     }
@@ -95,6 +96,12 @@ BOOL Qol_IsSoundMove(u16 moveId) {
 }
 
 BOOL Qol_MoveBypassesSubstitute(u16 moveId) {
+#if QOL_MODERN_MOVES
+    // Play Nice is a visual status move, not sound, but ignores Substitute.
+    if (moveId == MOVE_PLAY_NICE) {
+        return TRUE;
+    }
+#endif
 #if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
     return Qol_IsSoundMove(moveId);
 #else

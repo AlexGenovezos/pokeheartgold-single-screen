@@ -260,7 +260,7 @@ int main(void) {
         declarations = r'''
 typedef struct { int power,type,category,effect,range; } Move;
 typedef struct {
-    struct { int moveEffectFlags; } battleMons[4];
+    struct { int moveEffectFlags,hp; } battleMons[4];
     struct { int helpingHandFlag; } turnData[4];
     struct { Move moveData[NUM_MOVES+1]; int calcTemp; } trainerAIData;
     int powerMultiplier;
@@ -271,6 +271,10 @@ int GetBattlerAbility(BattleContext *ctx,int id) { return abilities[id]; }
 static int GetBattlerHeldItem(BattleContext *ctx,int id) { return 0; }
 static int GetItemVar(BattleContext *ctx,int item,int field) { return 0; }
 static int BattleSystem_GetBattleType(BattleSystem *bs) { return 0; }
+#if QOL_MODERN_BATTLE
+static int BattleSystem_GetMaxBattlers(BattleSystem *bs) { return 2; }
+static int BattleSystem_GetFieldSide(BattleSystem *bs,int id) { return id&1; }
+#endif
 static int BattleContext_Get(BattleSystem *bs,BattleContext *ctx,int field,int id) { return 10; }
 static int CheckAbilityActive(BattleSystem *bs,BattleContext *ctx,int scope,int id,int ability) { return 0; }
 static int CheckBattlerAbilityIfNotIgnored(BattleContext *ctx,int a,int d,int ability) { return abilities[d]==ability; }
@@ -279,7 +283,7 @@ static int GetMonsHitCount(BattleSystem *bs,BattleContext *ctx,int side,int id) 
 '''
         source = (ROOT / UTIL).read_text()
         structure = source[source.index('typedef struct MoveDamageCalc {'):source.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-        actual = structure + array('sStatChangeTable') + array('sTypeEnhancingItems') + array('sPunchingMoves') + game.function_source(UTIL, 'CalcMoveDamage')
+        actual = '#if QOL_MODERN_BATTLE\n' + helper('Qol_HasPlusMinusAlly', UTIL) + '#endif\n' + structure + array('sStatChangeTable') + array('sTypeEnhancingItems') + array('sPunchingMoves') + game.function_source(UTIL, 'CalcMoveDamage')
         checks = r'''
 int main(void) {
     // Force linkage of the common RNG stub; base damage itself does not roll.

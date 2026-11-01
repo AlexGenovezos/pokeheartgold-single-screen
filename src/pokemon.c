@@ -550,7 +550,7 @@ static u32 GetBoxMonDataInternal(BoxPokemon *boxMon, int attr, void *dest) {
         break;
     case MON_DATA_ABILITY:
 #if QOL_MODERN_BATTLE
-        ret = Qol_GetStoredAbility(blockA->species, blockB->form, blockA->ability);
+        ret = Qol_GetStoredAbility(blockA->species, blockB->form, blockA->ability, boxMon->personality);
 #else
         ret = blockA->ability;
 #endif

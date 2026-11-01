@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class MoveResourceTests(unittest.TestCase):
     def test_numeric_rows_share_the_game_source_and_reject_unexpected_syntax(self):
         entries = move_resources.read_entries(ROOT / 'include/data/qol_move_entries.inc')
-        self.assertEqual([e['id'] for e in entries], [577, 580, 586, 588, 608, 587, 673, 670, 696, 532, 687, 898, 622, 621, 575, 589, 854])
+        from test_modern_next_moves import ROWS
+        self.assertEqual([e['id'] for e in entries], [577, 580, 586, 588, 608, 587, 673, 670, 696, 532, 687, 898, 622, 621, 575, 589, 854] + [r[0] for r in ROWS])
         self.assertEqual({e['id'] for e in entries}, set(move_resources.PRESENTATION))
         self.assertEqual(entries[3]['chance'], 30)
         self.assertEqual(entries[1]['effect'], 3)
@@ -158,7 +159,7 @@ class MoveResourceTests(unittest.TestCase):
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
              patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all messages')) as extended, \

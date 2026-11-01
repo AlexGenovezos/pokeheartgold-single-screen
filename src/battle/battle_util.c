@@ -1311,7 +1311,12 @@ BOOL BattleSystem_TryDirectSideEffect(BattleSystem *battleSystem, BattleContext 
         }
     } else if (ctx->sideEffectFlagsDirect) {
         *out = GetMoveStatusChangeScript(ctx, 1, ctx->sideEffectFlagsDirect);
-        if (ctx->battleMons[ctx->battlerIdStatChange].hp && (!(ctx->moveStatusFlag & MOVE_STATUS_FAIL) || ((ctx->sideEffectFlagsDirect & (1 << 23)) && (ctx->moveStatusFlag & 0x40008)) || ((ctx->sideEffectFlagsDirect & (1 << 28)) && (ctx->moveStatusFlag & 0x10001)))) {
+        if (ctx->battleMons[ctx->battlerIdStatChange].hp && (!(ctx->moveStatusFlag & MOVE_STATUS_FAIL)
+#if !(QOL_MODERN_BATTLE || QOL_MODERN_MOVES)
+                // Gen IV also broke screens on type/Wonder Guard immunity.
+                || ((ctx->sideEffectFlagsDirect & (1 << 23)) && (ctx->moveStatusFlag & 0x40008))
+#endif
+                || ((ctx->sideEffectFlagsDirect & (1 << 28)) && (ctx->moveStatusFlag & 0x10001)))) {
             ret = TRUE;
         }
         ctx->sideEffectFlagsDirect = 0;
@@ -3099,6 +3104,7 @@ static u16 sSoundMoves[] = {
 #if QOL_MODERN_MOVES
     MOVE_DISARMING_VOICE,
     MOVE_BOOMBURST,
+    MOVE_SNARL,
 #endif
 };
 
@@ -3126,7 +3132,11 @@ int BattleContext_CheckMoveImmunityFromAbility(BattleContext *ctx, int battlerId
         script = BATTLE_SUBSCRIPT_ABILITY_RESTORES_HP;
     }
     int moveNoCur = ctx->moveNoCur;
-    if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_FLASH_FIRE) == TRUE && moveType == TYPE_FIRE && !(ctx->battleMons[battlerIdTarget].status & STATUS_FREEZE) && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)) {
+    if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_FLASH_FIRE) == TRUE && moveType == TYPE_FIRE
+#if !QOL_MODERN_BATTLE
+        && !(ctx->battleMons[battlerIdTarget].status & STATUS_FREEZE)
+#endif
+        && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)) {
         if (BATTLE_MOVE_DATA(ctx, ctx->moveNoCur).power || ctx->moveNoCur == MOVE_WILL_O_WISP) {
             script = BATTLE_SUBSCRIPT_ABSORB_AND_BOOST_FIRE_TYPE_MOVES;
         }
@@ -3713,8 +3723,8 @@ BOOL CheckAbilityEffectOnHit(BattleSystem *battleSystem, BattleContext *ctx, int
 
     if (BattlerCheckSubstitute(ctx, ctx->battlerIdTarget) == TRUE
 #if QOL_MODERN_BATTLE
-        // The native Substitute marker lasts for the whole action. A later
-        // multihit strike can damage the holder after breaking its Substitute.
+        // Keep the real-HP check for paths retaining the native Substitute
+        // marker. Modern controller-managed HP hits clear it in HpCalc.
         && (GetBattlerAbility(ctx, ctx->battlerIdTarget) != ABILITY_CURSED_BODY
             || (!ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage
                 && !ctx->selfTurnData[ctx->battlerIdTarget].specialDamage))
@@ -5696,8 +5706,39 @@ static const u16 sPunchingMoves[] = {
     MOVE_SHADOW_PUNCH,
     MOVE_DRAIN_PUNCH,
     MOVE_BULLET_PUNCH,
-    MOVE_SKY_UPPERCUT
+    MOVE_SKY_UPPERCUT,
+#if QOL_MODERN_MOVES
+    MOVE_POWER_UP_PUNCH,
+    MOVE_HEADLONG_RUSH,
+#endif
 };
+
+#if QOL_MODERN_BATTLE
+static BOOL Qol_HasPlusMinusAlly(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
+    int i;
+    int ability;
+    int maxBattlers = BattleSystem_GetMaxBattlers(battleSystem);
+
+    if (maxBattlers > BATTLER_MAX) {
+        maxBattlers = BATTLER_MAX;
+    }
+    if (battlerId < 0 || battlerId >= maxBattlers) {
+        return FALSE;
+    }
+    // CHECK_ABILITY_SAME_SIDE_HP includes the user. Scan only distinct active
+    // allies so singles and hypothetical AI users cannot supply their own boost.
+    for (i = 0; i < maxBattlers; i++) {
+        if (i != battlerId && ctx->battleMons[i].hp
+            && BattleSystem_GetFieldSide(battleSystem, i) == BattleSystem_GetFieldSide(battleSystem, battlerId)) {
+            ability = GetBattlerAbility(ctx, i);
+            if (ability == ABILITY_PLUS || ability == ABILITY_MINUS) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+#endif
 
 int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit) {
     int i;
@@ -5875,6 +5916,12 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         monDef = monDef * 150 / 100;
     }
 
+#if QOL_MODERN_BATTLE
+    if ((calcAttacker.ability == ABILITY_PLUS || calcAttacker.ability == ABILITY_MINUS)
+        && Qol_HasPlusMinusAlly(battleSystem, ctx, battlerIdAttacker)) {
+        monSpAtk = monSpAtk * 150 / 100;
+    }
+#else
     if (calcAttacker.ability == ABILITY_PLUS && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdAttacker, ABILITY_MINUS)) {
         monSpAtk = monSpAtk * 150 / 100;
     }
@@ -5882,6 +5929,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     if (calcAttacker.ability == ABILITY_MINUS && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdAttacker, ABILITY_PLUS)) {
         monSpAtk = monSpAtk * 150 / 100;
     }
+#endif
 
     if (moveType == TYPE_ELECTRIC && CheckMoveEffectOnField(battleSystem, ctx, MOVE_EFFECT_FLAG_MUD_SPORT)) {
         movePower /= 2;
@@ -6196,6 +6244,17 @@ static const u16 sMetronomeUnuseableMoves[] = {
     MOVE_COPYCAT,
     MOVE_ME_FIRST,
     MOVE_SWITCHEROO,
+#if QOL_MODERN_MOVES
+    // Keep these after 0xFFFE: Metronome bans must not change Mimic legality.
+    MOVE_SNARL,
+    MOVE_DRAGON_ASCENT,
+    MOVE_BREAKING_SWIPE,
+    MOVE_RAGING_FURY,
+    MOVE_RAGING_BULL,
+    MOVE_POUNCE,
+    MOVE_CHILLING_WATER,
+    MOVE_TWIN_BEAM,
+#endif
     0xFFFF
 };
 
@@ -6943,7 +7002,10 @@ int Qol_PreviewTypeEffectiveness(BattleContext *ctx, u16 moveNo, int attacker, i
             && (targetAbility == ABILITY_VOLT_ABSORB || targetAbility == ABILITY_MOTOR_DRIVE))
         || (moveType == TYPE_WATER && (targetAbility == ABILITY_WATER_ABSORB || targetAbility == ABILITY_DRY_SKIN))
         || (moveType == TYPE_FIRE && targetAbility == ABILITY_FLASH_FIRE
-            && !(ctx->battleMons[target].status & STATUS_FREEZE))) {
+#if !QOL_MODERN_BATTLE
+            && !(ctx->battleMons[target].status & STATUS_FREEZE)
+#endif
+            )) {
         return 0;
     }
 #if QOL_MODERN_BATTLE

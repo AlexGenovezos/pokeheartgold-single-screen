@@ -87,7 +87,7 @@ class ModernStatusSourceTests(unittest.TestCase):
     def test_battle_rules_always_applies_paralysis_after_numeric_changes(self):
         from unittest.mock import patch
         import modern_rom
-        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
+        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
         numeric.assert_called_once_with(b'rom')
         electric.assert_called_once_with(b'numeric')
@@ -239,6 +239,8 @@ static void run(BattleContext *c,const u32 *script,int length){
 }
 static BattleContext fixture(int t1,int t2,int effect,int status,int ability,int flags){
  BattleContext c={0};c.battleMons[0]=(BattleMon){status,(flags&1)?(1<<24):0,100,t1,t2};
+ // Nuzzle uses the indirect paralysis script and never bypasses Substitute.
+ c.moveNoCur=612;c.statChangeType=effect;
  c.ability=ability;c.ignored=!!(flags&16);
  c.vars[BSCRIPT_VAR_SIDE_EFFECT_TYPE]=effect;
  c.vars[BSCRIPT_VAR_SIDE_CONDITION_STAT_CHANGE]=(flags&2)?SIDE_CONDITION_SAFEGUARD:0;

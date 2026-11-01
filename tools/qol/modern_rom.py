@@ -10,6 +10,7 @@ from move_resources import extended_move_resources, read_entries
 from absorption_scripts import modern_absorption_script
 from sturdy_scripts import STURDY_SCRIPTS, modern_sturdy_script
 from ability_descriptions import modern_ability_description_resources
+from competitive_scripts import COMPETITIVE_SUBSCRIPT, modern_competitive_script
 from cursed_body_scripts import ORIGINAL_SUBSCRIPT_COUNT, modern_cursed_body_script
 
 from nitro_data import (lz10_decompress, lz10_literals, pack_messages, pack_narc,
@@ -152,6 +153,14 @@ def modern_cursed_body_resources(archive):
     return pack_narc(members, names)
 
 
+def modern_competitive_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) != COMPETITIVE_SUBSCRIPT:
+        raise ValueError('Competitive requires exactly 298 battle subscripts after Cursed Body')
+    members.append(modern_competitive_script(members[12]))
+    return pack_narc(members, names)
+
+
 def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
     files = rom_files(rom)
     replacements = {}
@@ -171,7 +180,7 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
         archive = read('a/0/0/1')
         for transform in (modern_battle_resources, modern_paralysis_resources,
                           modern_weather_resources, modern_absorption_resources,
-                          modern_sturdy_resources, modern_cursed_body_resources):
+                          modern_sturdy_resources, modern_cursed_body_resources, modern_competitive_resources):
             archive = transform(archive)
         replacements['a/0/0/1'] = archive
         replacements['a/0/2/7'] = modern_ability_description_resources(read('a/0/2/7'), charmap)

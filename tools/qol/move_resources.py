@@ -45,6 +45,77 @@ PRESENTATION = {
               'The user attacks everything\naround it with a destructive\nexplosive sound.'),
     854: dict(name='Tera Blast', card='Tera Blast', description=
               'The user releases energy as a\nNormal-type special attack.\nTerastallization is unavailable.'),
+    485: dict(name='Sludge Wave', card='Sludge Wave', description=
+              'A wave of sludge strikes\neverything around the user.\nIt may poison those hit.'),
+    493: dict(name='Low Sweep', card='Low Sweep', description=
+              'The user strikes the target’s\nlegs, lowering its Speed.'),
+    506: dict(name='Scald', card='Scald', description=
+              'The user attacks with boiling\nwater. It may burn the target\nand thaws frozen Pokémon.'),
+    520: dict(name='Inferno', card='Inferno', description=
+              'An intense fire engulfs the\ntarget, leaving it with a burn\nif the attack hits.'),
+    524: dict(name='Volt Switch', card='Volt Switch', description=
+              'After an electric attack, the\nuser switches places with a\nPokémon in the party.'),
+    525: dict(name='Struggle Bug', card='Struggle Bug', description=
+              'The user attacks all opposing\nPokémon, lowering their\nSp. Atk stats.'),
+    530: dict(name='Electroweb', card='Electroweb', description=
+              'An electric net strikes all\nopposing Pokémon, lowering\ntheir Speed stats.'),
+    531: dict(name='Wild Charge', card='Wild Charge', description=
+              'The user makes an electric\ntackle, taking recoil equal to\na quarter of the damage dealt.'),
+    533: dict(name='Dual Chop', card='Dual Chop', description=
+              'The user strikes the target\ntwice in a row.'),
+    537: dict(name='Razor Shell', card='Razor Shell', description=
+              'The user cuts with sharp\nshells. This may also lower\nthe target’s Defense stat.'),
+    539: dict(name='Leaf Tornado', card='Leaf Tornado', description=
+              'Sharp leaves circle the\ntarget. This may also lower\nthe target’s accuracy.'),
+    558: dict(name='Snarl', card='Snarl', description=
+              'A menacing bark strikes all\nopposing Pokémon, lowering\ntheir Sp. Atk stats.'),
+    559: dict(name='Icicle Crash', card='Icicle Crash', description=
+              'Icicles crash into the target.\nThis may also make the\ntarget flinch.'),
+    592: dict(name='Play Nice', card='Play Nice', description=
+              'The user befriends the target\nto lower its Attack. It bypasses\nProtect and Substitute.'),
+    598: dict(name='Mystical Fire', card='Mystic Fire', description=
+              'A special fire strikes the\ntarget, lowering its\nSp. Atk stat.'),
+    611: dict(name='Baby-Doll Eyes', card='Baby Eyes', description=
+              'The user’s endearing gaze\nlowers the target’s Attack.\nThis move has priority.'),
+    612: dict(name='Nuzzle', card='Nuzzle', description=
+              'The user nuzzles the target\nwith electrified cheeks,\nleaving it with paralysis.'),
+    615: dict(name='Power-Up Punch', card='Power Punch', description=
+              'A punch strikes the target\nand raises the user’s\nAttack stat.'),
+    623: dict(name='Dragon Ascent', card='Drgn Ascent', description=
+              'The user dives from the sky\nto attack. This also lowers\nits Defense and Sp. Def.'),
+    682: dict(name='Lunge', card='Lunge', description=
+              'The user lunges at the\ntarget, lowering its\nAttack stat.'),
+    709: dict(name='Psychic Fangs', card='Psy Fangs', description=
+              'A psychic bite attacks and\nbreaks the target’s\nReflect and Light Screen.'),
+    713: dict(name='Liquidation', card='Liquidation', description=
+              'The user slams into the target\nwith water. This may also\nlower the target’s Defense.'),
+    787: dict(name='Breaking Swipe', card='Break Swipe', description=
+              'A sweeping tail strikes all\nopposing Pokémon, lowering\ntheir Attack stats.'),
+    809: dict(name='Skitter Smack', card='Skitter Hit', description=
+              'The user skitters behind\nthe target to attack,\nlowering its Sp. Atk stat.'),
+    815: dict(name='Flip Turn', card='Flip Turn', description=
+              'After a water attack, the\nuser switches places with a\nPokémon in the party.'),
+    817: dict(name='Dual Wingbeat', card='Dual Wingbeat', description=
+              'The user strikes the target\nwith its wings twice in a row.'),
+    818: dict(name='Scorching Sands', card='Scorch Sands', description=
+              'Hot sand may burn the target.\nThis move also thaws\nfrozen Pokémon.'),
+    831: dict(name='Psyshield Bash', card='Psy Bash', description=
+              'A psychic bash strikes the\ntarget and raises the\nuser’s Defense stat.'),
+    836: dict(name='Raging Fury', card='Raging Fury', description=
+              'The user rampages with flames\nfor two to three turns, then\nbecomes confused.'),
+    837: dict(name='Wave Crash', card='Wave Crash', description=
+              'The user slams into the target\nwith water, taking recoil of\none third of the damage dealt.'),
+    841: dict(name='Headlong Rush', card='Headlong', description=
+              'The user attacks at full force.\nThis also lowers the user’s\nDefense and Sp. Def.'),
+    876: dict(name='Raging Bull', card='Raging Bull', description=
+              'A Normal-type tackle breaks\nthe target’s Reflect and\nLight Screen.'),
+    887: dict(name='Pounce', card='Pounce', description=
+              'The user pounces on the\ntarget, lowering its\nSpeed stat.'),
+    889: dict(name='Chilling Water', card='Chill Water', description=
+              'Cold water showers the\ntarget, lowering its\nAttack stat.'),
+    891: dict(name='Twin Beam', card='Twin Beam', description=
+              'The user fires two mystical\nbeams at the target,\nstriking twice in a row.'),
+
 }
 
 
