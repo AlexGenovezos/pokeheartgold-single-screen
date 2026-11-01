@@ -6,7 +6,7 @@ The original project remains the `upstream` remote; `origin` points to this fork
 
 ## Backlog
 
-The patch utility and opt-in instant-text/reusable-TM source changes now have
+The patch utility and opt-in instant-text/reusable-TM/HM-action source changes now have
 host regression tests. None of the gameplay changes are installed in the current
 game. See [development commands](../tools/qol/README.md).
 
@@ -21,8 +21,11 @@ game. See [development commands](../tools/qol/README.md).
 
 HM coverage: Cut, Fly, Surf, Strength, Rock Smash, Waterfall, Rock Climb and
 Whirlpool. Existing saves that already contain an HM must receive the same
-field-action access. There is no universal first-badge license and no early
-grant of all field actions.
+field-action access. Field prompts work as before; currently usable HMs also
+appear on any non-egg party member's action menu, including Fly. The member is
+only the animation actor and needs no learned move. The action menu retains its
+four field-action slots; available HMs take priority over learned non-HM actions.
+There is no universal first-badge license and no early grant of all field actions.
 
 ## Source and build boundaries
 
@@ -59,13 +62,13 @@ The initial checkout lacked the compiler, Nitro tools, linker templates and
 required SDK/library sources. A broader local search found the user's supplied
 compiler/SDK archives and an older iCloud checkout containing the libraries.
 The archives and public host dependencies have now been prepared in ignored
-local paths. Library retrieval from iCloud timed out: most source files remain
-marked dataless, and only a small partial copy exists locally. The build is
-not ready until these library sources are available offline. The installed
+local paths. Library retrieval from iCloud subsequently completed: all 1,133
+supplied library files are now copied into the local ignored `lib/` directory.
+The first full QoL ROM build is in progress. The installed
 native app was generated directly from the retail ROM using
 `ssrecomp` v0.4.2; it is not evidence that this decompilation checkout can build
-a modified ROM. Resolve the build prerequisites or validate an alternative
-native modification path before promising an installable gameplay mod.
+a modified ROM. Complete the ROM build and matching native generation before
+installing gameplay changes.
 
 Instant-text starting points are `src/options.c`, `include/options.h`,
 `src/options_app.c`, `src/text.c`, `src/render_text.c` and

@@ -11,5 +11,8 @@
 #ifndef QOL_INSTANT_TEXT
 #define QOL_INSTANT_TEXT QOL_MODS
 #endif
+#ifndef QOL_HM_ACTIONS
+#define QOL_HM_ACTIONS QOL_MODS
+#endif
 
 #endif

@@ -12,6 +12,7 @@
 #include "save_arrays.h"
 #include "scrcmd.h"
 #include "script_pokemon_util.h"
+#include "qol_field_moves.h"
 #include "field_misc_util.h"
 
 FS_EXTERN_OVERLAY(npc_trade);
@@ -132,6 +133,15 @@ BOOL ScrCmd_GetPartySlotWithMove(ScriptContext *ctx) {
     u16 *slot = ScriptGetVarPointer(ctx);
     u16 move = ScriptGetVar(ctx);
     u8 i;
+
+#if QOL_HM_ACTIONS
+    u16 *script = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_ACTIVE_SCRIPT_NUMBER);
+    if (Qol_IsHmFieldScript(*script, move)) {
+        u8 actor = Qol_GetHmFieldActor(fieldSystem->saveData, move);
+        *slot = actor == 0xFF ? PARTY_SIZE : actor;
+        return FALSE;
+    }
+#endif
 
     u8 partyCount = Party_GetCount(SaveArray_Party_Get(fieldSystem->saveData));
     for (i = 0, *slot = PARTY_SIZE; i < partyCount; i++) {

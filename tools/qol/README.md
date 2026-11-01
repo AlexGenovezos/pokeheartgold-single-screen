@@ -27,7 +27,8 @@ and game assets documented in INSTALL.md are supplied:
 ./scripts/build.sh GAME_VERSION=SOULSILVER COMPARE=0 CLI_DEFINES="-DQOL_MODS=1"
 ```
 
-`QOL_MODS=1` currently enables `QOL_INSTANT_TEXT` and `QOL_REUSABLE_TMS`.
+`QOL_MODS=1` currently enables `QOL_INSTANT_TEXT`, `QOL_REUSABLE_TMS` and
+`QOL_HM_ACTIONS`.
 Override either macro individually with 0 or 1 to test it in isolation.
 Select the new Instant text-speed choice in the in-game Options menu; this is
 not automatic dialog advancement. HM changes and battle modernization are not

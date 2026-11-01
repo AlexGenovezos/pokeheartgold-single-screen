@@ -43,6 +43,7 @@
 #include "safari_zone.h"
 #include "save_pokegear.h"
 #include "script_pokemon_util.h"
+#include "qol_field_moves.h"
 #include "sound_system.h"
 #include "start_menu.h"
 #include "sys_flags.h"
@@ -229,7 +230,11 @@ int FieldInput_Process(FieldInput *fieldInput, FieldSystem *fieldSystem) {
         playerEvent |= PLAYER_EVENT_USED_STRENGTH;
     }
 
+#if QOL_HM_ACTIONS
+    if (Qol_GetHmFieldActor(fieldSystem->saveData, MOVE_WATERFALL) != 0xFF) {
+#else
     if (GetIdxOfFirstPartyMonWithMove(SaveArray_Party_Get(fieldSystem->saveData), MOVE_WATERFALL) != 0xFF) {
+#endif
         playerEvent |= PLAYER_EVENT_USED_WATERFALL;
     }
 
@@ -607,7 +612,12 @@ static u16 GetInteractedMetatileScript(FieldSystem *fieldSystem, u8 metatileBeha
         return std_field_rock_climb;
     } else if (PlayerAvatar_GetState(fieldSystem->playerAvatar) != PLAYER_STATE_SURFING) {
         PlayerProfile *profile = Save_PlayerData_GetProfile(fieldSystem->saveData);
-        if (Field_PlayerCanSurfOnTile(fieldSystem->playerAvatar, standingTile, metatileBehavior) && PlayerProfile_TestBadgeFlag(profile, BADGE_FOG) && GetIdxOfFirstPartyMonWithMove(SaveArray_Party_Get(fieldSystem->saveData), MOVE_SURF) != 0xFF) {
+        if (Field_PlayerCanSurfOnTile(fieldSystem->playerAvatar, standingTile, metatileBehavior) && PlayerProfile_TestBadgeFlag(profile, BADGE_FOG)
+#if QOL_HM_ACTIONS
+            && Qol_GetHmFieldActor(fieldSystem->saveData, MOVE_SURF) != 0xFF) {
+#else
+            && GetIdxOfFirstPartyMonWithMove(SaveArray_Party_Get(fieldSystem->saveData), MOVE_SURF) != 0xFF) {
+#endif
             return std_field_surf;
         } else if (FieldSystem_CanPlaceSafariObject(fieldSystem) && SafariZone_CanPlaceObjectOnLand(metatileBehavior, FieldSystem_FacingTileHasCollision(fieldSystem))) {
             return std_safari_place_object;

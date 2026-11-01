@@ -1,4 +1,5 @@
 #include "party_menu.h"
+#include "qol_field_moves.h"
 
 #include "constants/maps.h"
 #include "constants/moves.h"
@@ -1632,11 +1633,35 @@ static u8 PartyMenu_SetContextMenuItems_Field(PartyMenu *partyMenu, u8 *buf) {
             ++count;
             buf[count] = PARTY_MON_CONTEXT_MENU_QUIT;
             ++count;
+#if QOL_HM_ACTIONS
+            // Context-sensitive HMs come first. The menu has four field labels
+            // and eight entries total; never add every owned HM unconditionally.
+            for (i = 0; i < 8 && fieldMoveIndex < MAX_MON_MOVES; ++i) {
+                move = sFieldMoves[i];
+                if (Qol_HmIsUnlocked(partyMenu->args->fieldSystem->saveData, move)) {
+                    // Whirlpool is entry 7 here, but entry 12 in the use/check table.
+                    u16 actionIndex = i == 7 ? 12 : i;
+                    FieldMoveCheckFunc check = FieldMove_GetMoveFunc(FIELD_MOVE_FUNC_CHECK, actionIndex);
+                    if (check(partyMenu->args->fieldMoveCheckData) == FIELD_MOVE_RESPONSE_OK) {
+                        buf[count++] = MoveId_GetFieldEffectId(move);
+                        PartyMenu_ContextMenuAddFieldMove(partyMenu, move, fieldMoveIndex++);
+                    }
+                }
+            }
+#endif
             for (i = 0; i < MAX_MON_MOVES; ++i) {
                 move = GetMonData(pokemon, MON_DATA_MOVE1 + i, NULL);
                 if (move == MOVE_NONE) {
                     break;
                 }
+#if QOL_HM_ACTIONS
+                if (fieldMoveIndex >= MAX_MON_MOVES) {
+                    break;
+                }
+                if (Qol_HmIndex(move) >= 0) {
+                    continue;
+                }
+#endif
                 fieldEffect = MoveId_GetFieldEffectId(move);
                 if (fieldEffect != 0xFF) {
                     buf[count] = fieldEffect;
