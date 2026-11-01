@@ -5,6 +5,8 @@
 #include "constants/battle_menu.h"
 
 #include "battle/battle_controller_opponent.h"
+#include "battle/battle_util.h"
+#include "qol_config.h"
 #include "msgdata/msg/msg_0197.h"
 
 #include "gf_gfx_loader.h"
@@ -4804,6 +4806,51 @@ typedef struct SingleScreenMenuItem {
     u8 pill;     // plain text: paint a tag behind it
 } SingleScreenMenuItem;
 
+#if QOL_EFFECTIVENESS
+static int BattleInput_SingleScreen_OnlyOpponent(BattleInput *battleInput) {
+    BattleSystem *system = battleInput->battleSystem;
+    BattleContext *ctx = BattleSystem_GetBattleContext(system);
+    int attacker = BattleSystem_GetBattlerFromBattlerType(system, battleInput->battlerType);
+    int target = -1;
+    for (int i = 0; i < BattleSystem_GetMaxBattlers(system); i++) {
+        if (ctx->battleMons[i].hp && BattleSystem_GetFieldSide(system, i) != BattleSystem_GetFieldSide(system, attacker)) {
+            if (target != -1) {
+                return -1;
+            }
+            target = i;
+        }
+    }
+    return target;
+}
+
+static String *BattleInput_SingleScreen_Effectiveness(BattleInput *battleInput, u16 move, int target) {
+    static const u16 labels[][6] = {
+        { CHAR_QMARK, EOS },
+        { CHAR_0, CHAR_x, EOS },
+        { CHAR_1, CHAR_SLASH, CHAR_4, CHAR_x, EOS },
+        { CHAR_1, CHAR_SLASH, CHAR_2, CHAR_x, EOS },
+        { CHAR_1, CHAR_x, EOS },
+        { CHAR_2, CHAR_x, EOS },
+        { CHAR_4, CHAR_x, EOS },
+    };
+    BattleSystem *system = battleInput->battleSystem;
+    int attacker = BattleSystem_GetBattlerFromBattlerType(system, battleInput->battlerType);
+    int value = Qol_PreviewTypeEffectiveness(BattleSystem_GetBattleContext(system), move, attacker, target);
+    int index = 0;
+    switch (value) {
+    case 0: index = 1; break;
+    case 10: index = 2; break;
+    case 20: index = 3; break;
+    case 40: index = 4; break;
+    case 80: index = 5; break;
+    case 160: index = 6; break;
+    }
+    String *string = String_New(8, HEAP_ID_BATTLE);
+    CopyU16ArrayToString(string, labels[index]);
+    return string;
+}
+#endif
+
 // Paints a small rounded tag behind a printed string (pixels of the text background colour).
 static void SingleScreen_PaintPill(Window *window, int x, int y, int w, int h) {
     int i, j;
@@ -4980,6 +5027,9 @@ static int BattleInput_SingleScreen_BuildItems(BattleInput *battleInput, int kin
         BattleInputFightMenu *menu = &battleInput->menu.fight;
         int selectedMove = selection - CURSOR_INPUT_MOVE_1;
         MsgData *typeNames = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, NARC_msg_msg_0735_bin, HEAP_ID_BATTLE);
+#if QOL_EFFECTIVENESS
+        int previewTarget = BattleInput_SingleScreen_OnlyOpponent(battleInput);
+#endif
 
         for (i = 0; i < MAX_MON_MOVES; i++) {
             int bx = 14 + (i & 1) * 120;
@@ -5001,6 +5051,12 @@ static int BattleInput_SingleScreen_BuildItems(BattleInput *battleInput, int kin
             count++;
 
             if (menu->moveNo[i] != MOVE_NONE) {
+#if QOL_EFFECTIVENESS
+                items[count].str = BattleInput_SingleScreen_Effectiveness(battleInput, menu->moveNo[i], previewTarget);
+                items[count].x = bx + 104 - FontID_String_GetWidth(0, items[count].str, 0);
+                items[count].y = by + 1;
+                count++;
+#endif
                 String *strPP = NewString_ReadMsgData(msgLoader, msg_0197_00938);    // PP
                 String *strSlash = NewString_ReadMsgData(msgLoader, msg_0197_00937); // {pp}/{max}
                 String *strNumbers = String_New(16, HEAP_ID_BATTLE);
@@ -5079,15 +5135,35 @@ static int BattleInput_SingleScreen_BuildItems(BattleInput *battleInput, int kin
 
             items[count].x = sPositions[i][0];
             items[count].y = sPositions[i][1];
+#if QOL_EFFECTIVENESS
+            items[count].y *= 2;
+#endif
             items[count].selected = monsSelected[i];
             items[count].grey = monsHit[i] == 0;
             count++;
+#if QOL_EFFECTIVENESS
+            {
+                BattleContext *ctx = BattleSystem_GetBattleContext(battleInput->battleSystem);
+                int attacker = BattleSystem_GetBattlerFromBattlerType(battleInput->battleSystem, battleInput->battlerType);
+                items[count].str = BattleInput_SingleScreen_Effectiveness(battleInput, GetBattlerSelectedMove(ctx, attacker), battlerId);
+                items[count].x = sPositions[i][0];
+                items[count].y = sPositions[i][1] * 2 + 14;
+                items[count].grey = monsHit[i] == 0;
+                count++;
+            }
+#endif
         }
 
         rect[0] = 2;
+#if QOL_EFFECTIVENESS
+        rect[1] = 15;
+        rect[2] = 27;
+        rect[3] = 8;
+#else
         rect[1] = 19;
         rect[2] = 27;
         rect[3] = 4;
+#endif
         break;
     }
     case SS_MENU_TWO_OPTIONS: {
@@ -5160,8 +5236,8 @@ static void BattleInput_SingleScreen_Hide(BattleInput *battleInput) {
 }
 
 static void BattleInput_SingleScreen_Update(BattleInput *battleInput) {
-    SingleScreenMenuItem items[16];
-    u8 pillWidths[16];
+    SingleScreenMenuItem items[20];
+    u8 pillWidths[20];
     u8 rect[4];
     int kind, selection, count, i;
     BOOL buttons;
@@ -5203,6 +5279,11 @@ static void BattleInput_SingleScreen_Update(BattleInput *battleInput) {
             int h = items[i].height != 0 ? items[i].height : SS_BUTTON_HEIGHT;
             int width = FontID_String_GetWidth(0, items[i].str, 0);
             int textX = items[i].x + (w - width) / 2;
+#if QOL_EFFECTIVENESS
+            if (items[i].topLabel) {
+                textX = items[i].x + 4;
+            }
+#endif
 
             if (!items[i].noLabel) {
                 AddTextPrinterParameterizedWithColor(battleInput->ssWindow, 0, items[i].str, textX, items[i].y + (items[i].topLabel ? 1 : (h - 16) / 2), TEXT_SPEED_NOTRANSFER, SS_BUTTON_TEXT_COLOR, NULL);

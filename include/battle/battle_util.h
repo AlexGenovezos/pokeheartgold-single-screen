@@ -49,6 +49,8 @@ int CheckAbilityActive(BattleSystem *battleSystem, BattleContext *ctx, int flag,
 BOOL BattleCtx_IsIdenticalToCurrentMove(BattleContext *ctx, int moveNo);
 BOOL GetTypeEffectivnessData(BattleSystem *battleSystem, int index, u8 *typeMove, u8 *typeMon, u8 *eff);
 int CalculateTypeEffectiveness(u8 typeMove, u8 typeMon1, u8 typeMon2);
+// Type multiplier scaled by 40; -1 means a reliable preview is unavailable.
+int Qol_PreviewTypeEffectiveness(BattleContext *ctx, u16 moveNo, int attacker, int target);
 BOOL CheckMoveCallsOtherMove(u16 moveNo);
 BOOL CurseUserIsGhost(BattleContext *ctx, u16 moveNo, int battlerId);
 BOOL CanStealHeldItem(BattleSystem *battleSystem, BattleContext *ctx, int battlerId);

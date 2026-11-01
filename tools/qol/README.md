@@ -27,16 +27,19 @@ and game assets documented in INSTALL.md are supplied:
 ./scripts/build.sh GAME_VERSION=SOULSILVER COMPARE=0 CLI_DEFINES="-DQOL_MODS=1"
 ```
 
-`QOL_MODS=1` currently enables `QOL_INSTANT_TEXT`, `QOL_REUSABLE_TMS` and
-`QOL_HM_ACTIONS`.
-Override either macro individually with 0 or 1 to test it in isolation.
+`QOL_MODS=1` currently enables `QOL_INSTANT_TEXT`, `QOL_REUSABLE_TMS`,
+`QOL_HM_ACTIONS` and `QOL_EFFECTIVENESS`.
+Override each macro individually with 0 or 1 to test it in isolation.
 Select the new Instant text-speed choice in the in-game Options menu; this is
-not automatic dialog advancement. HM changes and battle modernization are not
-implemented by these flags.
+not automatic dialog advancement. HM actions require their original item and
+badge, with existing field restrictions. Battle modernization is still pending.
+Effectiveness labels show type multipliers; `?` means a target must be chosen
+or a reliable multiplier is unavailable (status/fixed-damage/variable-type moves).
 
-When changing compile flags, use a fresh build directory or rebuild all affected
-objects: the existing Make rules do not track changes to flag values as file
-dependencies. A modified build cannot pass the retail ROM checksum comparison.
+The Makefile tracks gameplay definitions and rebuilds game objects when they
+change. Identical invocations reuse objects. The three fixed-profile C++ library
+producers exclude gameplay-only QoL flags; their strict checks stay enabled.
+A modified build cannot pass the retail ROM checksum comparison.
 Byte-for-byte baseline equivalence with the QoL flags off has not been verified.
 
 ## BPS patches
@@ -60,3 +63,23 @@ Keep the clean ROM and back up saves; never commit ROMs, saves, SDKs or generate
 native game code. Native recompilation still needs a matching layout; see
 [the backlog](../../docs/QOL.md) and [reuse research](../../docs/QOL-REUSE.md).
 
+
+## Native build
+
+Use the paired `qol-mods` branch of AlexGenovezos/ssrecomp in a sibling
+`ssrecomp-qol` directory. Install `pyelftools` in its local `.venv`, then run:
+
+```sh
+./scripts/build-qol-native.sh ../ssrecomp-qol
+```
+
+This builds the opt-in QoL ROM, generates layout metadata from its own ELF/NEF and
+ROM, verifies every section against that layout, and compiles the native app.
+The output paths are printed; the script does not replace your installed game
+or touch saves. A clean ROM remains necessary for making a distributable BPS
+patch. Existing in-game saves can be copied for testing; old memory snapshots
+must not be reused after game-code changes.
+
+The supplied library snapshot used for this fork is
+`ctrl-cheeb-del/pokeheartgold@d414e429ec36d1ac629efdfb28c6353f470e60e5`. A newer
+library/header checkout is not interchangeable, even when filenames match.

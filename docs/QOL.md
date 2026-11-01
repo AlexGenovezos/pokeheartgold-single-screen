@@ -6,7 +6,7 @@ The original project remains the `upstream` remote; `origin` points to this fork
 
 ## Backlog
 
-The patch utility and opt-in instant-text/reusable-TM/HM-action source changes now have
+The patch utility and opt-in instant-text/reusable-TM/HM-action/effectiveness source changes now have
 host regression tests. None of the gameplay changes are installed in the current
 game. See [development commands](../tools/qol/README.md).
 
@@ -64,7 +64,14 @@ compiler/SDK archives and an older iCloud checkout containing the libraries.
 The archives and public host dependencies have now been prepared in ignored
 local paths. Library retrieval from iCloud subsequently completed: all 1,133
 supplied library files are now copied into the local ignored `lib/` directory.
-The first full QoL ROM build is in progress. The installed
+The copied checkout had newer library declarations than this fork. The
+matching supplied library snapshot is ctrl-cheeb-del/pokeheartgold revision
+`d414e429ec36d1ac629efdfb28c6353f470e60e5`; its four networking source files match
+this fork byte for byte. Restoring that snapshot fixed networking compilation
+without source compatibility workarounds. The full QoL ROM now links successfully.
+Matching layout generation found 121 game sections and 97 applications; the
+native executable is being compiled from that verified ROM/layout pair.
+The installed
 native app was generated directly from the retail ROM using
 `ssrecomp` v0.4.2; it is not evidence that this decompilation checkout can build
 a modified ROM. Complete the ROM build and matching native generation before

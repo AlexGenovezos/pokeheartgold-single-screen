@@ -6717,3 +6717,86 @@ static int GetDynamicMoveType(BattleSystem *battleSystem, BattleContext *ctx, in
 
     return type;
 }
+
+// Deliberately read-only: the normal damage path can announce Mold Breaker and
+// change battle flags. Menu previews must not consume RNG or mutate that state.
+int Qol_PreviewTypeEffectiveness(BattleContext *ctx, u16 moveNo, int attacker, int target) {
+    int moveType, attackerAbility, targetAbility, item, type1, type2;
+    int multiplier = 40;
+
+    if (attacker < 0 || attacker >= BATTLER_MAX || target < 0 || target >= BATTLER_MAX
+        || !ctx->battleMons[target].hp || moveNo == MOVE_NONE || moveNo > NUM_MOVES) {
+        return -1;
+    }
+    if (ctx->trainerAIData.moveData[moveNo].category == 2
+        || !ctx->trainerAIData.moveData[moveNo].power || IsFixedDamageMove(ctx, moveNo)
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_ONE_HIT_KO
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_HALVE_HP
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_SET_HP_EQUAL_TO_USER
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_BIDE
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_10_DAMAGE_FLAT
+        || ctx->trainerAIData.moveData[moveNo].effect == MOVE_EFFECT_RANDOM_POWER_MAYBE_HEAL) {
+        return -1;
+    }
+    // These need a separate dynamic/future-hit prediction. Do not display their
+    // stored Normal type, or ordinary damage multipliers for fixed damage.
+    switch (moveNo) {
+    case MOVE_STRUGGLE:
+    case MOVE_HIDDEN_POWER:
+    case MOVE_WEATHER_BALL:
+    case MOVE_NATURAL_GIFT:
+    case MOVE_JUDGMENT:
+    case MOVE_FUTURE_SIGHT:
+    case MOVE_DOOM_DESIRE:
+        return -1;
+    }
+    attackerAbility = GetBattlerAbility(ctx, attacker);
+    targetAbility = attackerAbility == ABILITY_MOLD_BREAKER ? ABILITY_NONE : GetBattlerAbility(ctx, target);
+    moveType = attackerAbility == ABILITY_NORMALIZE ? TYPE_NORMAL : ctx->trainerAIData.moveData[moveNo].type;
+    item = GetBattlerHeldItemEffect(ctx, target);
+    type1 = GetBattlerVar(ctx, target, BMON_DATA_TYPE_1, NULL);
+    type2 = GetBattlerVar(ctx, target, BMON_DATA_TYPE_2, NULL);
+
+    if (moveType == TYPE_GROUND && item != HOLD_EFFECT_SPEED_DOWN_GROUNDED) {
+        if (targetAbility == ABILITY_LEVITATE
+            || (ctx->battleMons[target].moveEffectData.magnetRiseTurns
+                && !(ctx->battleMons[target].moveEffectFlags & MOVE_EFFECT_FLAG_INGRAIN)
+                && !(ctx->fieldCondition & FIELD_CONDITION_GRAVITY))) {
+            return 0;
+        }
+    }
+    if ((moveType == TYPE_ELECTRIC && attacker != target
+            && (targetAbility == ABILITY_VOLT_ABSORB || targetAbility == ABILITY_MOTOR_DRIVE))
+        || (moveType == TYPE_WATER && (targetAbility == ABILITY_WATER_ABSORB || targetAbility == ABILITY_DRY_SKIN))
+        || (moveType == TYPE_FIRE && targetAbility == ABILITY_FLASH_FIRE
+            && !(ctx->battleMons[target].status & STATUS_FREEZE))) {
+        return 0;
+    }
+    if (targetAbility == ABILITY_SOUNDPROOF) {
+        for (int i = 0; i < NELEMS(sSoundMoves); i++) {
+            if (sSoundMoves[i] == moveNo) {
+                return 0;
+            }
+        }
+    }
+    for (int i = 0; sTypeEffectiveness[i][0] != TYPE_ENDTABLE; i++) {
+        if (sTypeEffectiveness[i][0] == TYPE_FORESIGHT) {
+            if ((ctx->battleMons[target].status2 & STATUS2_FORESIGHT) || attackerAbility == ABILITY_SCRAPPY) {
+                break;
+            }
+            continue;
+        }
+        if (sTypeEffectiveness[i][0] == moveType && BattleSystem_IsTypeMatchupActive(ctx, attacker, target, i)) {
+            if (sTypeEffectiveness[i][1] == type1) {
+                multiplier = multiplier * sTypeEffectiveness[i][2] / 10;
+            }
+            if (type2 != type1 && sTypeEffectiveness[i][1] == type2) {
+                multiplier = multiplier * sTypeEffectiveness[i][2] / 10;
+            }
+        }
+    }
+    if (targetAbility == ABILITY_WONDER_GUARD && multiplier <= 40) {
+        return 0;
+    }
+    return multiplier;
+}

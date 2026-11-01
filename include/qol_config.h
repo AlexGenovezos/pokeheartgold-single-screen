@@ -14,5 +14,8 @@
 #ifndef QOL_HM_ACTIONS
 #define QOL_HM_ACTIONS QOL_MODS
 #endif
+#ifndef QOL_EFFECTIVENESS
+#define QOL_EFFECTIVENESS QOL_MODS
+#endif
 
 #endif
