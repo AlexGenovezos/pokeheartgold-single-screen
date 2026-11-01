@@ -1415,9 +1415,17 @@ static void BattleControllerPlayer_UpdateMonCondition(BattleSystem *battleSystem
                 if (i == MAX_MON_MOVES) {
                     ctx->battleMons[battlerId].moveEffectData.disabledTurns = 0;
                 }
+#if QOL_MODERN_BATTLE
+                // Four residual phases, including the turn Disable began.
+                if (ctx->battleMons[battlerId].moveEffectData.disabledTurns) {
+                    ctx->battleMons[battlerId].moveEffectData.disabledTurns--;
+                }
+                if (!ctx->battleMons[battlerId].moveEffectData.disabledTurns) {
+#else
                 if (ctx->battleMons[battlerId].moveEffectData.disabledTurns) {
                     ctx->battleMons[battlerId].moveEffectData.disabledTurns--;
                 } else {
+#endif
                     ctx->battleMons[battlerId].moveEffectData.disabledMove = 0;
                     ctx->battlerIdTemp = battlerId;
                     ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_DISABLE_END);

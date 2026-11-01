@@ -11,8 +11,8 @@ from nitro_data import pack_messages, pack_narc, unpack_messages, unpack_narc
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def original_descriptions():
-    rows=ET.parse(ROOT/'files/msgdata/msg/msg_0722.gmm').findall('row')
+def original_descriptions(bank=722):
+    rows=ET.parse(ROOT/f'files/msgdata/msg/msg_{bank:04}.gmm').findall('row')
     return [game_text(row.find('language').text.replace('\\n','\n'),ROOT/'charmap.txt') for row in rows]
 
 
@@ -22,19 +22,27 @@ class AbilityDescriptionTests(unittest.TestCase):
         import ability_descriptions
         return ability_descriptions
 
-    def test_only_three_entries_in_bank722_change_and_original_names_stay_identical(self):
+    def test_original_entries_survive_and_all_three_banks_extend_atomically(self):
         module=self.module()
-        banks=[b'original bank']*829;original=original_descriptions()
-        banks[722]=pack_messages(original,26692)
+        banks=[b'original bank']*830;original=original_descriptions()
+        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),26692)
         result,names=unpack_narc(module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt'))
-        self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),829)
+        self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),830)
         words,key=unpack_messages(result[722]);self.assertEqual(key,26692)
         expected={5:'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
                   31:'Draws in Electric moves.\nAbsorbs them for Sp. Atk.',
-                  114:'Draws in Water moves.\nAbsorbs them for Sp. Atk.'}
-        for index,word in enumerate(words):
+                  114:'Draws in Water moves.\nAbsorbs them for Sp. Atk.',
+                  130:'May disable a move that\nhits this Pokémon.'}
+        self.assertEqual(len(words),131)
+        for index,word in enumerate(words[:124]):
             self.assertEqual(word,game_text(expected[index],ROOT/'charmap.txt') if index in expected else original[index])
-        self.assertEqual(result[:722],banks[:722]);self.assertEqual(result[723:],banks[723:])
+        self.assertEqual(result[:720],banks[:720]);self.assertEqual(result[723:],banks[723:])
+        for bank,label in ((720,'Cursed Body'),(721,'CURSED BODY'),(722,'May disable a move that\nhits this Pokémon.')):
+            extended,key=unpack_messages(result[bank]);self.assertEqual(key,26692)
+            self.assertEqual(len(extended),131)
+            self.assertEqual(extended[130],game_text(label,ROOT/'charmap.txt'))
+            self.assertEqual(extended[124:130],[game_text(' -',ROOT/'charmap.txt')]*6)
+            if bank!=722:self.assertEqual(extended[:124],original_descriptions(bank))
         summary=(ROOT/'src/pokemon_summary_text.c').read_text()
         self.assertIn('NARC_msg_msg_0722_bin',summary)
         # All three labels fit the existing two-line description box, with no
@@ -52,12 +60,29 @@ class AbilityDescriptionTests(unittest.TestCase):
         module=self.module();words=original_descriptions()
         with self.assertRaisesRegex(ValueError,'absent'):
             module.modern_ability_description_resources(pack_narc([b'']*722),ROOT/'charmap.txt')
-        banks=[b'']*829;words[5]=game_text('wrong',ROOT/'charmap.txt');banks[722]=pack_messages(words,26692)
+        banks=[b'']*829
+        for bank in (720,721):banks[bank]=pack_messages(original_descriptions(bank),26692)
+        words[5]=game_text('wrong',ROOT/'charmap.txt');banks[722]=pack_messages(words,26692)
         with self.assertRaisesRegex(ValueError,'match'):
             module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt')
         source=(ROOT/'files/msgdata/msg/msg_0722.gmm').read_text()
         with self.assertRaisesRegex(ValueError,'expected source'):
             module.modern_ability_description_source(source+'\n',ROOT/'charmap.txt')
+
+    def test_every_ability_bank_rejects_source_or_binary_drift_before_returning_archive(self):
+        module=self.module();banks=[b'keep']*830
+        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),26692)
+        for bank in (720,721,722):
+            corrupt=list(banks);words=original_descriptions(bank);words[26]=game_text('wrong',ROOT/'charmap.txt')
+            corrupt[bank]=pack_messages(words,26692)
+            with self.assertRaisesRegex(ValueError,f'bank{bank}.*match'):
+                module.modern_ability_description_resources(pack_narc(corrupt),ROOT/'charmap.txt')
+            read_text=Path.read_text
+            def read(path,*args,**kwargs):
+                text=read_text(path,*args,**kwargs)
+                return text+'\n' if path.name==f'msg_{bank:04}.gmm' else text
+            with patch.object(Path,'read_text',read),self.assertRaisesRegex(ValueError,f'bank{bank}.*expected source'):
+                module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt')
 
     def test_real_fairy_and_extended_move_transforms_compose_with_ability_descriptions(self):
         module=self.module()
@@ -80,7 +105,7 @@ class AbilityDescriptionTests(unittest.TestCase):
         self.assertEqual(after[735],unpack_narc(fairy)[0][735])
         self.assertNotEqual(after[722],before[722]);self.assertNotEqual(after[735],before[735])
         for i,bank in enumerate(before):
-            if i not in (722,735,749,750,751):self.assertEqual(after[i],bank)
+            if i not in (720,721,722,735,749,750,751):self.assertEqual(after[i],bank)
         self.assertTrue(unpack_messages(after[829])[0][577])
 
     def test_battle_flag_routes_descriptions_and_scripts_before_move_resources(self):
@@ -96,13 +121,14 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',return_value=b'absorption'), \
              patch('modern_rom.modern_sturdy_resources',return_value=b'sturdy') as sturdy, \
+             patch('modern_rom.modern_cursed_body_resources',return_value=b'cursed') as cursed, \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities') as abilities, \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
              patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all')) as extended, \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
         sturdy.assert_called_once_with(b'absorption');abilities.assert_called_once_with(b'fairy',ROOT/'charmap.txt')
-        drain.assert_called_once_with(b'sturdy');self.assertEqual(extended.call_args.args[2],b'abilities')
+        cursed.assert_called_once_with(b'sturdy');drain.assert_called_once_with(b'cursed');self.assertEqual(extended.call_args.args[2],b'abilities')
         self.assertEqual(result['a/0/2/7'],b'all')
 
 

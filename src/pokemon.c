@@ -26,6 +26,7 @@
 #include "trainer_memo.h"
 #include "pokepic_anim.h"
 #include "qol_config.h"
+#include "qol_abilities.h"
 #include "qol_learnsets.h"
 #include "wifi_club.h"
 
@@ -548,7 +549,11 @@ static u32 GetBoxMonDataInternal(BoxPokemon *boxMon, int attr, void *dest) {
         ret = blockA->friendship;
         break;
     case MON_DATA_ABILITY:
+#if QOL_MODERN_BATTLE
+        ret = Qol_GetStoredAbility(blockA->species, blockB->form, blockA->ability);
+#else
         ret = blockA->ability;
+#endif
         break;
     case MON_DATA_MARKINGS:
         ret = blockA->markings;
@@ -1906,6 +1911,9 @@ int GetMonBaseStatEx_HandleAlternateForm(NARC *narc, int species, int form, int 
     int ret;
     BASE_STATS *buf = Heap_Alloc(HEAP_ID_DEFAULT, sizeof(BASE_STATS));
     NARC_ReadWholeMember(narc, resolved, buf);
+#if QOL_MODERN_BATTLE
+    Qol_ApplyModernMonAbilities(resolved, buf);
+#endif
 #if QOL_MODERN_TYPES
     Qol_ApplyModernMonTypes(resolved, buf);
 #endif
@@ -3947,6 +3955,9 @@ u32 ChangePersonalityToNatureGenderAndAbility(u32 pid, u16 species, u8 nature, u
 
 void LoadMonPersonal(int species, BASE_STATS *personal) {
     ReadWholeNarcMemberByIdPair(personal, NARC_poketool_personal_personal, species);
+#if QOL_MODERN_BATTLE
+    Qol_ApplyModernMonAbilities(species, personal);
+#endif
 #if QOL_MODERN_TYPES
     Qol_ApplyModernMonTypes(species, personal);
 #endif
@@ -3954,6 +3965,9 @@ void LoadMonPersonal(int species, BASE_STATS *personal) {
 
 void LoadMonBaseStats_HandleAlternateForm(int species, int form, BASE_STATS *personal) {
     ReadWholeNarcMemberByIdPair(personal, NARC_poketool_personal_personal, ResolveMonForm(species, form));
+#if QOL_MODERN_BATTLE
+    Qol_ApplyModernMonAbilities(ResolveMonForm(species, form), personal);
+#endif
 #if QOL_MODERN_TYPES
     Qol_ApplyModernMonTypes(ResolveMonForm(species, form), personal);
 #endif

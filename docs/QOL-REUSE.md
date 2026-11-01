@@ -217,3 +217,31 @@ fallbacks/guard failures: full-HP Geodude ended at1/21HP with Focus Sash275 stil
 held; the chipped control fainted with its unused Sash still held. The snapshot
 checks used the compiler's member offsets. Full Future Sight/Doom Desire rules
 remain part of the remaining delayed-hit conversion.
+
+
+## Cursed Body and original-save Gengar milestone
+
+The development ruleset implements Cursed Body130 before assigning it to
+Gengar. It activates on actual damaging hits, including non-contact attacks
+and fainted holders, respects suppression, and keeps reactive behavior against
+Mold Breaker. Called-move attribution, intercepting Pursuit, later multihit
+strikes after Substitute breaks, and completed U-turn replacement protection
+have focused executable coverage. Cursed Body and ordinary modern Disable use
+four residual phases. Full delayed-hit modernization remains pending.
+
+All three personal-data loaders return Gengar's supported modern ability pair.
+The existing-save getter maps only base Gengar's stored Levitate to Cursed Body
+without changing saved data or native layouts. Nonstandard stored choices are
+preserved. Full names, uppercase names and descriptions extend banks720/721/722
+through130 with original-source/binary parity checks. Easy Chat's original
+ability words and the original ability count remain unchanged.
+
+Both independent reviews approved this scope. The final140-test host suite
+and full matching ROM/native build passed. A copied-save Gengar with raw stored
+Levitate loaded ability130, activated against non-contact Water Gun, and left
+move55 disabled with three residual phases remaining after the activation turn.
+The1700-frame native/interpreter comparison passed with zero fallbacks and
+zero guard failures. The broader boot fixture had1.63% fallback and54 overlay
+evictions, so the zero-fallback observation applies to the stable battle
+comparison. Save hashes remained unchanged; installed artifacts and the real
+save were not replaced.

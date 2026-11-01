@@ -3687,6 +3687,23 @@ int Battler_GetRandomOpposingBattlerId(BattleSystem *battleSystem, BattleContext
     return battlerIdTarget;
 }
 
+#if QOL_MODERN_BATTLE
+static u16 Qol_GetCursedBodyMove(BattleContext *ctx) {
+    u16 move = ctx->moveNoTemp;
+
+    // Calling moves retain their selected initiating move. Intercepting
+    // Pursuit replaces only moveNoCur; moveNoTemp still belongs to the pivot.
+    if (ctx->scriptNarcId == NARC_a_0_0_1 && ctx->scriptFileId == BATTLE_SUBSCRIPT_PURSUIT) {
+        move = ctx->moveNoCur;
+    }
+    if (move == MOVE_NONE || move == MOVE_STRUGGLE || !Qol_IsSupportedMove(move)
+        || BattleMon_GetMoveIndex(&ctx->battleMons[ctx->battlerIdAttacker], move) == MAX_MON_MOVES) {
+        return MOVE_NONE;
+    }
+    return move;
+}
+#endif
+
 BOOL CheckAbilityEffectOnHit(BattleSystem *battleSystem, BattleContext *ctx, int *script) {
     BOOL ret = FALSE;
 
@@ -3694,11 +3711,46 @@ BOOL CheckAbilityEffectOnHit(BattleSystem *battleSystem, BattleContext *ctx, int
         return ret;
     }
 
-    if (BattlerCheckSubstitute(ctx, ctx->battlerIdTarget) == TRUE) {
+    if (BattlerCheckSubstitute(ctx, ctx->battlerIdTarget) == TRUE
+#if QOL_MODERN_BATTLE
+        // The native Substitute marker lasts for the whole action. A later
+        // multihit strike can damage the holder after breaking its Substitute.
+        && (GetBattlerAbility(ctx, ctx->battlerIdTarget) != ABILITY_CURSED_BODY
+            || (!ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage
+                && !ctx->selfTurnData[ctx->battlerIdTarget].specialDamage))
+#endif
+    ) {
         return ret;
     }
 
     switch (GetBattlerAbility(ctx, ctx->battlerIdTarget)) {
+#if QOL_MODERN_BATTLE
+    case ABILITY_CURSED_BODY: {
+        u16 move;
+        // Reactive abilities still work against Mold Breaker and when their
+        // holder faints. A hit to a Substitute was rejected above. Delayed
+        // damage has no reliable caster identity in the native Gen IV state.
+        if (ctx->battleMons[ctx->battlerIdAttacker].hp
+            && !ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.disabledMove
+            && !(ctx->moveStatusFlag & MOVE_STATUS_FAIL)
+            && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)
+            && !(ctx->battleStatus2 & BATTLE_STATUS2_UTURN)
+            && (ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage
+                || ctx->selfTurnData[ctx->battlerIdTarget].specialDamage)
+            && ctx->moveNoCur != MOVE_FUTURE_SIGHT && ctx->moveNoCur != MOVE_DOOM_DESIRE
+            && (move = Qol_GetCursedBodyMove(ctx)) != MOVE_NONE
+            && BattleSystem_Random(battleSystem) % 10 < 3) {
+            // The attack may have consumed its last PP; modern Cursed Body
+            // still disables the initiating move in that case.
+            ctx->moveTemp = move;
+            ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.disabledMove = move;
+            ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.disabledTurns = 4;
+            *script = BATTLE_SUBSCRIPT_CURSED_BODY;
+            ret = TRUE;
+        }
+        break;
+    }
+#endif
     case ABILITY_STATIC:
         if (ctx->battleMons[ctx->battlerIdAttacker].hp && !ctx->battleMons[ctx->battlerIdAttacker].status && !(ctx->moveStatusFlag & MOVE_STATUS_FAIL) && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN) && !(ctx->battleStatus2 & BATTLE_STATUS2_UTURN) && (ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage || ctx->selfTurnData[ctx->battlerIdTarget].specialDamage) && (BATTLE_MOVE_DATA(ctx, ctx->moveNoCur).flags & 1) && (BattleSystem_Random(battleSystem) % 10 < 3)) {
             ctx->statChangeType = 3;

@@ -40,14 +40,20 @@ Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
   battler slot, without caster identity or ability provenance. Sturdy currently
   reads the active delayed-hit recipient's ability, including suppression,
   without borrowing Mold Breaker from the current occupant of the caster slot.
-- [ ] Implement Cursed Body (130), Competitive (172), Neutralizing Gas (internal
-  240), Wind Rider (241) and Sharpness (242), including ability suppression,
+- [x] Implement Cursed Body (130), including reactive on-hit behavior, the
+  original Gengar save adapter, four-phase Disable and extended native messages.
+  Both independent reviews, all140 host tests and the paired native build passed.
+  Copied-save Gengar activated Cursed Body against Water Gun, with the expected
+  disabled move55 and three residual phases remaining after that turn.
+- [ ] Implement Competitive (172), Neutralizing Gas (internal 240), Wind Rider
+  (241) and Sharpness (242), including ability suppression,
   reactivation, move classifications, AI and descriptions. Upstream's empty
   Neutralizing Gas handler is not an implementation.
 - [ ] Extend ability name/description resources with native internal IDs while
   preserving old bank entries. Keep full credits for reused implementations.
-- [ ] Apply the 13 changed standard species slot pairs only after their effects
-  are ready: Jigglypuff, Wigglytuff, Gengar, Koffing, Weezing, Igglybuff, Shiftry,
+- [ ] Apply the remaining changed standard species slot pairs only after their
+  effects are ready (Gengar is implemented): Jigglypuff, Wigglytuff, Koffing,
+  Weezing, Igglybuff, Shiftry,
   Wingull, Pelipper, Torkoal, Feebas, Milotic and Gallade.
 - [ ] Test a deliberate existing-save slot adapter. Preserve explicitly stored
   nonstandard choices; disambiguate original identical slots using the original

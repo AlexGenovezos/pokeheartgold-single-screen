@@ -276,6 +276,7 @@ Static main
     Object src/pokemon.o
     Object src/move.o
     Object src/qol_moves.o
+    Object src/qol_abilities.o
     Object src/qol_learnsets.o
     Object src/trainer_data.o
     Object src/pokemon_storage_system.o

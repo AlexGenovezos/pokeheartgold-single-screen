@@ -2807,7 +2807,11 @@ BOOL BtlCmd_TryDisable(BattleSystem *battleSystem, BattleContext *ctx) {
     if ((ctx->battleMons[ctx->battlerIdTarget].moveEffectData.disabledMove == 0) && disabledMoveIndex != 4 && ctx->battleMons[ctx->battlerIdTarget].movePPCur[disabledMoveIndex] && ctx->moveNoBattlerPrev[ctx->battlerIdTarget]) {
         ctx->moveTemp = ctx->moveNoBattlerPrev[ctx->battlerIdTarget];
         ctx->battleMons[ctx->battlerIdTarget].moveEffectData.disabledMove = ctx->moveTemp;
+#if QOL_MODERN_BATTLE
+        ctx->battleMons[ctx->battlerIdTarget].moveEffectData.disabledTurns = 4;
+#else
         ctx->battleMons[ctx->battlerIdTarget].moveEffectData.disabledTurns = BattleSystem_Random(battleSystem) % 4 + 3;
+#endif
     } else {
         BattleScriptIncrementPointer(ctx, adrs);
     }
