@@ -58,6 +58,7 @@ int main(void) {
 #include "constants/battle.h"
 #include "constants/move_effects.h"
 #include "constants/items.h"
+#include "constants/abilities.h"
 #include "constants/battle_subscript.h"
 #define GF_ASSERT assert
 typedef int BattleSystem;
@@ -80,6 +81,9 @@ typedef struct {
     int moveStatusFlag,damage,battlerIdAttacker,battlerIdTarget,battlerIdStoredDamage[4],
         hitDamage,battlerIdTemp,command,commandNext,moveNoCur,storedDamage[4],hpCalc,battleStatus,script;
 } BattleContext;
+#if QOL_MODERN_BATTLE
+static int CheckBattlerAbilityIfNotIgnored(BattleContext *c,int attacker,int target,int ability){return 0;}
+#endif
 static int GetBattlerHeldItemEffect(BattleContext *c,int b){return 0;}
 static int GetHeldItemModifier(BattleContext *c,int b,int n){return 0;}
 static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b;}

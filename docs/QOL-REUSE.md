@@ -203,3 +203,17 @@ All120 host tests passed. The matching native rebuild passed1700 lockstep
 attack frames and600 Check Moves frames with zero fallbacks/guard failures,
 and rendered Precipice Blades in full. Spec and quality reviews approved the
 batch after the text-capacity regression was fixed.
+
+Modern Sturdy is also verified: it preserves1HP from a lethal hit at full HP,
+honors Endure and ability suppression/Mold Breaker, and precedes survival items
+without consuming their RNG or item. The shared survival command covers Pursuit
+and retained delayed-hit scripts while excluding confusion. Multihit messages
+announce an early Sturdy survival without duplicating final effectiveness text.
+Ability descriptions in722 reflect Sturdy and modern Rod/Storm Drain behavior.
+All131 host tests passed after serializing SDK checks with the game build;
+concurrent Wine jobs had caused a transient timeout, which passed on retry.
+The full native build and two1700-frame lockstep comparisons passed with zero
+fallbacks/guard failures: full-HP Geodude ended at1/21HP with Focus Sash275 still
+held; the chipped control fainted with its unused Sash still held. The snapshot
+checks used the compiler's member offsets. Full Future Sight/Doom Desire rules
+remain part of the remaining delayed-hit conversion.

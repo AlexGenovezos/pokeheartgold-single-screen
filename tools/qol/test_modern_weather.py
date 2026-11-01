@@ -85,17 +85,19 @@ class ModernWeatherSourceTests(unittest.TestCase):
     def test_battle_rules_always_applies_weather_after_numeric_and_paralysis(self):
         import modern_rom
         self.assertTrue(callable(getattr(modern_rom, 'modern_weather_resources', None)), 'weather ROM integration is missing')
-        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3)}), \
+        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3)}), \
              patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, \
              patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, \
              patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, \
              patch('modern_rom.modern_absorption_resources', side_effect=lambda data:data), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
         numeric.assert_called_once_with(b'rom')
         electric.assert_called_once_with(b'numeric')
         weather.assert_called_once_with(b'electric')
-        self.assertEqual(result, {'a/0/0/1': b'finite'})
+        self.assertEqual(result, {'a/0/0/1': b'finite', 'a/0/2/7': b'abilities'})
 
     def test_default_and_type_only_rom_paths_do_not_transform_weather(self):
         import modern_rom

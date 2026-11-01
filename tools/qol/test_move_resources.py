@@ -158,12 +158,14 @@ class MoveResourceTests(unittest.TestCase):
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
              patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all messages')) as extended, \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
         drain.assert_called_once_with(b'finite')
-        self.assertEqual(extended.call_args.args[2],b'fairy messages')
+        self.assertEqual(extended.call_args.args[2],b'abilities')
         self.assertEqual(result['a/0/2/7'],b'all messages')
         self.assertEqual(result['a/0/0/1'],b'drain')
 

@@ -5618,6 +5618,33 @@ BOOL BtlCmd_CheckHoldOnWith1HP(BattleSystem *battleSystem, BattleContext *ctx) {
     int itemEffect = GetBattlerHeldItemEffect(ctx, battlerId);
     int activationChance = GetHeldItemModifier(ctx, battlerId, 0);
 
+#if QOL_MODERN_BATTLE
+    // This command also handles confusion self-damage, which Sturdy cannot stop.
+    if (ctx->scriptNarcId == NARC_a_0_0_1
+        && (ctx->scriptFileId == BATTLE_SUBSCRIPT_FUTURE_SIGHT_DAMAGE
+            || ctx->scriptFileId == BATTLE_SUBSCRIPT_PURSUIT)) {
+        ctx->moveStatusFlag &= ~(MOVE_STATUS_ENDURED | MOVE_STATUS_ENDURED_ITEM | MOVE_STATUS_ENDURED_ABILITY | MOVE_STATUS_STURDY_SKIP_EFFECTIVENESS);
+        if (ctx->hpCalc < 0 && ctx->battleMons[battlerId].hp > 0
+            && ctx->battleMons[battlerId].hp + ctx->hpCalc <= 0) {
+            if (ctx->turnData[battlerId].endureFlag) {
+                ctx->hpCalc = (ctx->battleMons[battlerId].hp - 1) * -1;
+                ctx->moveStatusFlag |= MOVE_STATUS_ENDURED;
+                return FALSE;
+            }
+            // Gen IV delayed damage stores only the caster's slot, not its
+            // identity/ability. Do not borrow Mold Breaker from a replacement.
+            if (ctx->battleMons[battlerId].hp == ctx->battleMons[battlerId].maxHp
+                && (ctx->scriptFileId == BATTLE_SUBSCRIPT_FUTURE_SIGHT_DAMAGE
+                    ? GetBattlerAbility(ctx, battlerId) == ABILITY_STURDY
+                    : CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, battlerId, ABILITY_STURDY))) {
+                ctx->hpCalc = (ctx->battleMons[battlerId].hp - 1) * -1;
+                ctx->moveStatusFlag |= MOVE_STATUS_ENDURED_ABILITY;
+                return FALSE;
+            }
+        }
+    }
+#endif
+
     if (itemEffect == HOLD_EFFECT_MAYBE_ENDURE && (BattleSystem_Random(battleSystem) % 100) < activationChance) {
         flag = TRUE;
     }

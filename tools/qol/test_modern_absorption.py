@@ -114,15 +114,17 @@ int main(void) {
     def test_battle_rules_requires_absorption_transform_after_weather(self):
         from unittest.mock import patch
         import modern_rom
-        with patch('modern_rom.rom_files',return_value={'a/0/0/1':(0,0,3)}), \
+        with patch('modern_rom.rom_files',return_value={'a/0/0/1':(0,0,3),'a/0/2/7':(1,0,3)}), \
              patch('modern_rom.modern_battle_resources',return_value=b'numeric'), \
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',return_value=b'absorption') as absorb, \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'rom',None,types=False,battle_rules=True)
         absorb.assert_called_once_with(b'finite')
-        self.assertEqual(result,{'a/0/0/1':b'absorption'})
+        self.assertEqual(result,{'a/0/0/1':b'absorption','a/0/2/7':b'abilities'})
 
     def test_preview_and_ai_recognize_the_same_new_absorption_immunities(self):
         util=(ROOT/'src/battle/battle_util.c').read_text()

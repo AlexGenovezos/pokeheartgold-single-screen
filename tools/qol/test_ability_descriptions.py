@@ -1,0 +1,109 @@
+"""Modern descriptions stay in the summary's real ability bank, 722."""
+from pathlib import Path
+import importlib.util
+import struct
+import unittest
+import xml.etree.ElementTree as ET
+from unittest.mock import patch
+from game_text import game_text
+from nitro_data import pack_messages, pack_narc, unpack_messages, unpack_narc
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def original_descriptions():
+    rows=ET.parse(ROOT/'files/msgdata/msg/msg_0722.gmm').findall('row')
+    return [game_text(row.find('language').text.replace('\\n','\n'),ROOT/'charmap.txt') for row in rows]
+
+
+class AbilityDescriptionTests(unittest.TestCase):
+    def module(self):
+        self.assertIsNotNone(importlib.util.find_spec('ability_descriptions'), 'Modern ability descriptions are missing')
+        import ability_descriptions
+        return ability_descriptions
+
+    def test_only_three_entries_in_bank722_change_and_original_names_stay_identical(self):
+        module=self.module()
+        banks=[b'original bank']*829;original=original_descriptions()
+        banks[722]=pack_messages(original,26692)
+        result,names=unpack_narc(module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt'))
+        self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),829)
+        words,key=unpack_messages(result[722]);self.assertEqual(key,26692)
+        expected={5:'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
+                  31:'Draws in Electric moves.\nAbsorbs them for Sp. Atk.',
+                  114:'Draws in Water moves.\nAbsorbs them for Sp. Atk.'}
+        for index,word in enumerate(words):
+            self.assertEqual(word,game_text(expected[index],ROOT/'charmap.txt') if index in expected else original[index])
+        self.assertEqual(result[:722],banks[:722]);self.assertEqual(result[723:],banks[723:])
+        summary=(ROOT/'src/pokemon_summary_text.c').read_text()
+        self.assertIn('NARC_msg_msg_0722_bin',summary)
+        # All three labels fit the existing two-line description box, with no
+        # summary-window growth or message/name capacity changes.
+        font_path=ROOT/'files/graphic/font/font_00000000.bin'
+        font=font_path.read_bytes() if font_path.is_file() else None
+        widths=struct.unpack_from('<I',font,4)[0] if font else None
+        for text in expected.values():
+            self.assertEqual(len(text.splitlines()),2)
+            if font:
+                for line in text.splitlines():
+                    self.assertLessEqual(sum(font[widths+glyph-1] for glyph in game_text(line,ROOT/'charmap.txt')[:-1]),19*8-3)
+
+    def test_description_transform_rejects_missing_bank_binary_and_source_drift(self):
+        module=self.module();words=original_descriptions()
+        with self.assertRaisesRegex(ValueError,'absent'):
+            module.modern_ability_description_resources(pack_narc([b'']*722),ROOT/'charmap.txt')
+        banks=[b'']*829;words[5]=game_text('wrong',ROOT/'charmap.txt');banks[722]=pack_messages(words,26692)
+        with self.assertRaisesRegex(ValueError,'match'):
+            module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt')
+        source=(ROOT/'files/msgdata/msg/msg_0722.gmm').read_text()
+        with self.assertRaisesRegex(ValueError,'expected source'):
+            module.modern_ability_description_source(source+'\n',ROOT/'charmap.txt')
+
+    def test_real_fairy_and_extended_move_transforms_compose_with_ability_descriptions(self):
+        module=self.module()
+        import modern_rom
+        from move_resources import extended_move_resources,read_entries
+        paths=[ROOT/p for p in ('files/msgdata/msg.narc','files/poketool/waza/waza_tbl.narc',
+                               'files/battledata/script/move_script.narc')]
+        if not all(p.is_file() for p in paths):self.skipTest('Original generated archives unavailable')
+        messages=paths[0].read_bytes()
+        header=bytes.fromhex('5247434efffe010130010000100001005241484320010000ffffffff0300000010000000000000000001000018000000')
+        from nitro_data import lz10_literals
+        icons=[b'keep']*346;icons[236]=lz10_literals(header+b'\xAA'*256)
+        _,fairy=modern_rom.modern_type_resources(pack_narc(icons),messages,ROOT/'charmap.txt')
+        ability=module.modern_ability_description_resources(fairy,ROOT/'charmap.txt')
+        entries=read_entries(ROOT/'include/data/qol_move_entries.inc')
+        _,_,final=extended_move_resources(paths[1].read_bytes(),paths[2].read_bytes(),ability,ROOT/'charmap.txt',entries)
+        before,_=unpack_narc(messages);after,_=unpack_narc(final)
+        self.assertEqual(len(after),830)
+        self.assertEqual(after[722],unpack_narc(ability)[0][722])
+        self.assertEqual(after[735],unpack_narc(fairy)[0][735])
+        self.assertNotEqual(after[722],before[722]);self.assertNotEqual(after[735],before[735])
+        for i,bank in enumerate(before):
+            if i not in (722,735,749,750,751):self.assertEqual(after[i],bank)
+        self.assertTrue(unpack_messages(after[829])[0][577])
+
+    def test_battle_flag_routes_descriptions_and_scripts_before_move_resources(self):
+        self.module()
+        import modern_rom
+        self.assertTrue(callable(getattr(modern_rom,'modern_sturdy_resources',None)), 'Sturdy ROM integration is missing')
+        paths={path:(i,i,i+1) for i,path in enumerate(('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/1/1','a/0/0/0'))}
+        with patch('modern_rom.rom_files',return_value=paths), \
+             patch('modern_rom.modern_type_resources',return_value=(b'icons',b'fairy')), \
+             patch('modern_rom.modern_pokedex_resources',return_value=b'dex'), \
+             patch('modern_rom.modern_battle_resources',return_value=b'numeric'), \
+             patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
+             patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
+             patch('modern_rom.modern_absorption_resources',return_value=b'absorption'), \
+             patch('modern_rom.modern_sturdy_resources',return_value=b'sturdy') as sturdy, \
+             patch('modern_rom.modern_ability_description_resources',return_value=b'abilities') as abilities, \
+             patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
+             patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all')) as extended, \
+             patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
+            result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
+        sturdy.assert_called_once_with(b'absorption');abilities.assert_called_once_with(b'fairy',ROOT/'charmap.txt')
+        drain.assert_called_once_with(b'sturdy');self.assertEqual(extended.call_args.args[2],b'abilities')
+        self.assertEqual(result['a/0/2/7'],b'all')
+
+
+if __name__=='__main__':unittest.main()

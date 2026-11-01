@@ -16,19 +16,30 @@ build remains playable during development.
   redirection, Soundproof/Mold Breaker, suppression and the original Motor Drive
   path. Absorption precedes Ground's Electric immunity and accuracy, but cannot
   bypass Protect or semi-invulnerable states.
+- [x] Sturdy: survive direct lethal damage at full HP, with Endure before
+  Sturdy before survival items. Cover Substitute, sound bypass, False Swipe,
+  multihit and intercepting Pursuit, using the existing battle/save layouts.
+  Source-generated messages reuse message625, and descriptions for Sturdy,
+  Lightning Rod and Storm Drain replace only their entries in bank722.
 - [x] Fairy Pokédex search/filtering uses the same current species types as
   summaries and battles, including caught checks and both selected types.
 
 The source-compiled weather and absorption transforms require exact original
 byte parity and fail on source drift. Existing ROM resources are preserved.
-113 host tests and a full native build passed. Native lockstep also passed
+The earlier weather/absorption milestone passed 113 host tests and a full native
+build. Native lockstep also passed
 Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
 `docs/QOL-REUSE.md` for the measured frame counts and evidence limits.
 
 ## Remaining implementation
 
-- [ ] Port Sturdy survival, modern Flash Fire/absorption details, Oblivious
+- [ ] Port modern Flash Fire/absorption details, Oblivious
   Taunt immunity, Intimidate immunities and other changed original abilities.
+- [ ] Convert Future Sight/Doom Desire to modern delayed-hit mechanics. Their
+  retained Gen IV machinery stores precomputed damage and only the caster's
+  battler slot, without caster identity or ability provenance. Sturdy currently
+  reads the active delayed-hit recipient's ability, including suppression,
+  without borrowing Mold Breaker from the current occupant of the caster slot.
 - [ ] Implement Cursed Body (130), Competitive (172), Neutralizing Gas (internal
   240), Wind Rider (241) and Sharpness (242), including ability suppression,
   reactivation, move classifications, AI and descriptions. Upstream's empty
@@ -50,3 +61,9 @@ The pinned hg-engine export contains 129 distinct standard ability IDs for
 species 1–493. Five are newer than Generation IV; its wider standard-plus-hidden
 union contains 162. Hidden-ability data does not add new story rewards or make
 those abilities obtainable automatically.
+
+Sturdy native validation: the matching source/ROM/native build and full131-test
+host suite passed. Isolated full/chipped Geodude fixtures each passed1700 native
+lockstep frames with zero fallbacks and guard failures. Full HP survived at1/21
+and retained Focus Sash275; chipped HP fainted. Spec and quality reviews approved
+the scoped implementation. The real save and installed artifacts were unchanged.

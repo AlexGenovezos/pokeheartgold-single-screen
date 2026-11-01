@@ -2879,7 +2879,20 @@ static void BattleControllerPlayer_HpCalc(BattleSystem *battleSystem, BattleCont
                 ctx->damage = (ctx->battleMons[ctx->battlerIdTarget].hp - 1) * -1;
             }
 
-            if (!ctx->turnData[ctx->battlerIdTarget].endureFlag) {
+#if QOL_MODERN_BATTLE
+            // Endure has priority; Sturdy saves the held item for a later hit.
+            if (!ctx->turnData[ctx->battlerIdTarget].endureFlag
+                && ctx->battleMons[ctx->battlerIdTarget].hp > 0
+                && ctx->battleMons[ctx->battlerIdTarget].hp == ctx->battleMons[ctx->battlerIdTarget].maxHp
+                && ctx->battleMons[ctx->battlerIdTarget].hp + ctx->damage <= 0
+                && CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdTarget, ABILITY_STURDY)) {
+                ctx->damage = (ctx->battleMons[ctx->battlerIdTarget].hp - 1) * -1;
+                ctx->moveStatusFlag |= MOVE_STATUS_ENDURED_ABILITY;
+            }
+#endif
+
+            if (!ctx->turnData[ctx->battlerIdTarget].endureFlag
+                && !(ctx->moveStatusFlag & MOVE_STATUS_ENDURED_ABILITY)) {
                 if (item == HOLD_EFFECT_MAYBE_ENDURE && (BattleSystem_Random(battleSystem) % 100) < itemMod) {
                     ctx->selfTurnData[ctx->battlerIdTarget].endureItemFlag = 1;
                 }
@@ -3821,6 +3834,16 @@ static BOOL BattleControllerPlayer_TryFollowupMessage(BattleSystem *battleSystem
     BOOL ret = FALSE;
 
     if (ctx->moveStatusFlag) {
+#if QOL_MODERN_BATTLE
+        // Each Sturdy activation must be shown before the next hit resets flags.
+        if (ctx->moveStatusFlag & MOVE_STATUS_ENDURED_ABILITY) {
+            if (ctx->multiHitCountTemp != 0 && ctx->battlerIdFainted == BATTLER_NONE
+                && ctx->multiHitCount != 1 && !(ctx->moveStatusFlag & MOVE_STATUS_MULTI_HIT_DISRUPTED)) {
+                ctx->moveStatusFlag |= MOVE_STATUS_STURDY_SKIP_EFFECTIVENESS;
+            }
+            ret = TRUE;
+        } else
+#endif
         if (ctx->multiHitCountTemp != 0) {
             if (ctx->battlerIdFainted != BATTLER_NONE || ctx->multiHitCount == 1 || ctx->moveStatusFlag & MOVE_STATUS_MULTI_HIT_DISRUPTED) {
                 ret = TRUE;
