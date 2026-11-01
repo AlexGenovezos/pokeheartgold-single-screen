@@ -81,9 +81,9 @@ The move-data comparison found 109 existing moves with numeric differences:
 61 power, 30 accuracy, 29 PP, seven priority, four type and three effect-chance
 changes (some moves have several). Updating numbers alone would leave incorrect
 effect scripts, abilities and AI behavior. Examples include Knock Off, Leech
-Life, Hidden Power and recovery moves. Move expansion needs an explicit decision
-about newer moves/updated abilities; no later-generation Pokémon are required.
-That clarification is pending, not silently treated as approval.
+Life, Hidden Power and recovery moves. On 2026-11-01 the user explicitly approved modern moves and updated abilities
+for the existing Pokémon. No later-generation Pokémon are required. The approved
+scope is recorded in `docs/superpowers/specs/2026-11-01-gen9-battles.md`.
 
 Port boundaries, to implement and validate before enabling a modern build:
 
