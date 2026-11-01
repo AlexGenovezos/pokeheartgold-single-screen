@@ -40,6 +40,21 @@ $(QOL_LIBRARY_PRODUCERS): private DEFINES = $(GF_DEFINES) $(GLB_DEFINES) $(filte
 
 $(ASM_OBJS): private MWASFLAGS += -DPM_ASM
 
+# BEGIN SNOW AI PRODUCER
+# Keep original numeric data untouched; validate the complete source before
+# changing one same-width operand in modern battle builds. Defines invalidate
+# this generated copy as well as its object when switching profiles.
+SNOW_AI_PYTHON := $(if $(PYTHON),$(PYTHON),python3)
+$(BUILD_DIR)/asm/trainer_ai_data.qol.s: $(WORK_DIR)/asm/trainer_ai_data.s $(WORK_DIR)/tools/qol/snow_resources.py $(BUILD_DIR)/game-defines.txt
+	$(SNOW_AI_PYTHON) $(WORK_DIR)/tools/qol/snow_resources.py $< $@ $(if $(filter -DQOL_MODERN_BATTLE=1,$(DEFINES)),--modern)
+
+$(BUILD_DIR)/asm/trainer_ai_data.o: $(BUILD_DIR)/asm/trainer_ai_data.qol.s
+	$(WINE) $(MWAS) $(MWASFLAGS) $(DEPFLAGS) -o $@ $<
+ifeq ($(NODEP),)
+	@$(call fixdep,$(@:%.o=%.d))
+endif
+# END SNOW AI PRODUCER
+
 $(BUILD_DIR)/asm/nitrocrypto.o:  private MWCCVER := 1.2/sp2p3
 $(BUILD_DIR)/lib/src/nitrocrypto_sign.o: private MWCCVER := 1.2/sp2p3
 $(BUILD_DIR)/lib/src/nitrocrypto_bn_exp.o: private MWCCVER := 1.2/sp2p3

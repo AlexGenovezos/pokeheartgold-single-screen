@@ -5768,6 +5768,65 @@ static BOOL Qol_HasPlusMinusAlly(BattleSystem *battleSystem, BattleContext *ctx,
 }
 #endif
 
+// Intrinsic move power only. Explicit script power overrides bypass this helper.
+// Read stored stages once (including accuracy/evasion); Simple and Unaware do
+// not reinterpret these boosts. Raw held items remain present under Klutz.
+int Qol_GetMoveBasePower(BattleContext *ctx, int move, int attacker, int target, int fallbackPower) {
+#if QOL_MODERN_MOVES
+    int stat;
+    int boosts;
+    switch (move) {
+    case MOVE_VENOSHOCK:
+        return fallbackPower * ((ctx->battleMons[target].status & (STATUS_POISON | STATUS_BAD_POISON)) ? 2 : 1);
+    case MOVE_HEX:
+        return fallbackPower * ((ctx->battleMons[target].status & STATUS_ALL) ? 2 : 1);
+    case MOVE_STORED_POWER:
+    case MOVE_POWER_TRIP:
+        boosts = 0;
+        for (stat = STAT_ATK; stat <= STAT_EVASION; stat++) {
+            if (ctx->battleMons[attacker].statChanges[stat] > 6) {
+                boosts += ctx->battleMons[attacker].statChanges[stat] - 6;
+            }
+        }
+        return 20 + 20 * boosts;
+    case MOVE_ACROBATICS:
+        return fallbackPower * (ctx->battleMons[attacker].item == ITEM_NONE ? 2 : 1);
+    }
+#endif
+    return fallbackPower;
+}
+
+// Raw stat sources are independent of damage category and modifier ownership.
+// 0: user's Attack, 1: target's Attack, 2: user's Defense.
+int Qol_GetMoveOffenseSource(int move) {
+#if QOL_MODERN_MOVES
+    if (move == MOVE_FOUL_PLAY) {
+        return 1;
+    }
+    if (move == MOVE_BODY_PRESS) {
+        return 2;
+    }
+#endif
+    return 0;
+}
+
+BOOL Qol_MoveUsesPhysicalDefense(int move, int category) {
+#if QOL_MODERN_MOVES
+    if (move == MOVE_PSYSHOCK || move == MOVE_PSYSTRIKE) {
+        return TRUE;
+    }
+#endif
+    return category == CATEGORY_PHYSICAL;
+}
+
+BOOL Qol_MoveIgnoresTargetStatStages(int move) {
+#if QOL_MODERN_MOVES
+    return move == MOVE_SACRED_SWORD || move == MOVE_DARKEST_LARIAT;
+#else
+    return FALSE;
+#endif
+}
+
 int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit) {
     int i;
     s32 dmg = 0;
@@ -5778,12 +5837,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     u16 monDef;
     u16 monSpAtk;
     u16 monSpDef;
+    u16 selectedDefense;
+    s8 selectedDefenseStage;
     s8 statChangeAtk;
     s8 statChangeDef;
     s8 statChangeSpAtk;
     s8 statChangeSpDef;
     u8 level;
     u16 movePower;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+    BOOL technicianEligible;
+#endif
     u16 item;
     u32 battleType;
     MoveDamageCalc calcAttacker;
@@ -5799,6 +5863,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     statChangeDef = GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_STAT_CHANGE_DEF, NULL) - 6;
     statChangeSpAtk = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_STAT_CHANGE_SPATK, NULL) - 6;
     statChangeSpDef = GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_STAT_CHANGE_SPDEF, NULL) - 6;
+#if QOL_MODERN_MOVES
+    // Select raw offense and its stage before the user's offensive modifiers,
+    // critical-hit stage rules and the defender's Unaware are considered.
+    if (Qol_GetMoveOffenseSource(moveNo) == 1) {
+        monAtk = GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_ATK, NULL);
+        statChangeAtk = GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_STAT_CHANGE_ATK, NULL) - 6;
+    } else if (Qol_GetMoveOffenseSource(moveNo) == 2) {
+        monAtk = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_DEF, NULL);
+        statChangeAtk = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_STAT_CHANGE_DEF, NULL) - 6;
+    }
+#endif
     level = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_LEVEL, NULL);
     calcAttacker.species = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_SPECIES, NULL);
     calcTarget.species = GetBattlerVar(ctx, battlerIdTarget, BMON_DATA_SPECIES, NULL);
@@ -5829,6 +5904,9 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
 
     if (power == 0) {
         movePower = BATTLE_MOVE_DATA(ctx, moveNo).power;
+#if QOL_MODERN_MOVES
+        movePower = Qol_GetMoveBasePower(ctx, moveNo, battlerIdAttacker, battlerIdTarget, movePower);
+#endif
     } else {
         movePower = power;
     }
@@ -5843,6 +5921,12 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
 
     GF_ASSERT(ctx->powerMultiplier >= 10);
     movePower = movePower * ctx->powerMultiplier / 10;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+    // Native conditional effects (e.g. Pursuit/Payback/Revenge) use POWER_MULTI
+    // to resolve intrinsic power. Capture after those, before Charge/Helping
+    // Hand; keep Technician itself at the existing native rounding point.
+    technicianEligible = moveNo != MOVE_STRUGGLE && movePower <= 60;
+#endif
 
     if ((ctx->battleMons[battlerIdAttacker].moveEffectFlags & MOVE_EFFECT_FLAG_CHARGE) && moveType == TYPE_ELECTRIC) {
         movePower *= 2;
@@ -5852,7 +5936,13 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower = movePower * 15 / 10;
     }
 
-    if (calcAttacker.ability == ABILITY_TECHNICIAN && moveNo != MOVE_STRUGGLE && movePower <= 60) {
+    if (calcAttacker.ability == ABILITY_TECHNICIAN
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+        && technicianEligible
+#else
+        && moveNo != MOVE_STRUGGLE && movePower <= 60
+#endif
+    ) {
         movePower = movePower * 15 / 10;
     }
 
@@ -5900,9 +5990,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower *= 2;
     }
 
+#if !QOL_MODERN_BATTLE
     if (calcTarget.item == HOLD_EFFECT_DITTO_DEF_UP && calcTarget.species == SPECIES_DITTO) {
         monDef *= 2;
     }
+#endif
 
     if (calcAttacker.item == HOLD_EFFECT_CUBONE_ATK_UP && (calcAttacker.species == SPECIES_CUBONE || calcAttacker.species == SPECIES_MAROWAK)) {
         monAtk *= 2;
@@ -5940,9 +6032,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         monAtk = monAtk * 150 / 100;
     }
 
+#if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MARVEL_SCALE) == TRUE && calcTarget.status) {
         monDef = monDef * 150 / 100;
     }
+#endif
 
 #if QOL_MODERN_BATTLE
     if ((calcAttacker.ability == ABILITY_PLUS || calcAttacker.ability == ABILITY_MINUS)
@@ -6038,10 +6132,39 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         statChangeSpDef = 0;
     }
 
+#if QOL_MODERN_MOVES
+    if (Qol_MoveIgnoresTargetStatStages(moveNo)) {
+        statChangeDef = 0;
+        statChangeSpDef = 0;
+    }
+#endif
+
     statChangeAtk += 6;
     statChangeDef += 6;
     statChangeSpAtk += 6;
     statChangeSpDef += 6;
+
+#if QOL_MODERN_BATTLE
+    // Resolve the defensive stage before weather and defensive modifiers.
+    // Snow boosts the current Ice type's Defense, even when crit/Unaware
+    // ignores its stage. Use the caller's weather (confusion passes zero).
+    if (crit == 1 || statChangeDef < 6) {
+        monDef = monDef * sStatChangeTable[statChangeDef][0] / sStatChangeTable[statChangeDef][1];
+    }
+    statChangeDef = 6;
+    if ((fieldCondition & FIELD_CONDITION_HAIL_ALL)
+        && (calcTarget.type1 == TYPE_ICE || calcTarget.type2 == TYPE_ICE)
+        && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
+        && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {
+        monDef = monDef * 3 / 2;
+    }
+    if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MARVEL_SCALE) == TRUE && calcTarget.status) {
+        monDef = monDef * 3 / 2;
+    }
+    if (calcTarget.item == HOLD_EFFECT_DITTO_DEF_UP && calcTarget.species == SPECIES_DITTO) {
+        monDef *= 2;
+    }
+#endif
 
     if (calcAttacker.ability == ABILITY_RIVALRY && calcAttacker.gender == calcTarget.gender && calcAttacker.gender != MON_GENDERLESS && calcTarget.gender != MON_GENDERLESS) {
         movePower = movePower * 125 / 100;
@@ -6076,6 +6199,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         monDef /= 2;
     }
 
+    // Select the fully processed defensive stat, without changing category.
+    // Psyshock uses the same stage -> Snow -> Defense-modifier path as a
+    // physical attack, while retaining special screens and damage history.
+    if (Qol_MoveUsesPhysicalDefense(moveNo, moveCategory)) {
+        selectedDefense = monDef;
+        selectedDefenseStage = statChangeDef;
+    } else {
+        selectedDefense = monSpDef;
+        selectedDefenseStage = statChangeSpDef;
+    }
+
     if (moveCategory == CATEGORY_PHYSICAL) {
         if (crit > 1) {
             if (statChangeAtk > 6) {
@@ -6091,13 +6225,13 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         dmg *= ((level * 2 / 5) + 2);
 
         if (crit > 1) {
-            if (statChangeDef < 6) {
-                dmg2 = monDef * sStatChangeTable[statChangeDef][0] / sStatChangeTable[statChangeDef][1];
+            if (selectedDefenseStage < 6) {
+                dmg2 = selectedDefense * sStatChangeTable[selectedDefenseStage][0] / sStatChangeTable[selectedDefenseStage][1];
             } else {
-                dmg2 = monDef;
+                dmg2 = selectedDefense;
             }
         } else {
-            dmg2 = monDef * sStatChangeTable[statChangeDef][0] / sStatChangeTable[statChangeDef][1];
+            dmg2 = selectedDefense * sStatChangeTable[selectedDefenseStage][0] / sStatChangeTable[selectedDefenseStage][1];
         }
 
         dmg /= dmg2;
@@ -6133,13 +6267,13 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         dmg *= ((level * 2 / 5) + 2);
 
         if (crit > 1) {
-            if (statChangeSpDef < 6) {
-                dmg2 = monSpDef * sStatChangeTable[statChangeSpDef][0] / sStatChangeTable[statChangeSpDef][1];
+            if (selectedDefenseStage < 6) {
+                dmg2 = selectedDefense * sStatChangeTable[selectedDefenseStage][0] / sStatChangeTable[selectedDefenseStage][1];
             } else {
-                dmg2 = monSpDef;
+                dmg2 = selectedDefense;
             }
         } else {
-            dmg2 = monSpDef * sStatChangeTable[statChangeSpDef][0] / sStatChangeTable[statChangeSpDef][1];
+            dmg2 = selectedDefense * sStatChangeTable[selectedDefenseStage][0] / sStatChangeTable[selectedDefenseStage][1];
         }
 
         dmg /= dmg2;
@@ -6286,6 +6420,8 @@ static const u16 sMetronomeUnuseableMoves[] = {
     MOVE_POUNCE,
     MOVE_CHILLING_WATER,
     MOVE_TWIN_BEAM,
+    MOVE_TRAILBLAZE,
+    MOVE_BODY_PRESS,
 #endif
     0xFFFF
 };
@@ -6546,7 +6682,7 @@ void BattleContext_Set(BattleSystem *battleSystem, BattleContext *ctx, int var, 
     }
 }
 
-static const int sMoveStatusChangeScripts[145] = {
+static const int sMoveStatusChangeScripts[145 + 6 * QOL_MODERN_MOVES] = {
     BATTLE_SUBSCRIPT_NONE,
     BATTLE_SUBSCRIPT_FALL_ASLEEP,
     BATTLE_SUBSCRIPT_POISON,
@@ -6691,7 +6827,15 @@ static const int sMoveStatusChangeScripts[145] = {
     BATTLE_SUBSCRIPT_PARALYZE_OR_FLINCH,
     BATTLE_SUBSCRIPT_CHATTER,
     BATTLE_SUBSCRIPT_LUNAR_DANCE,
-    BATTLE_SUBSCRIPT_GIVE_TARGET_OWN_STATUS
+    BATTLE_SUBSCRIPT_GIVE_TARGET_OWN_STATUS,
+#if QOL_MODERN_MOVES
+    299, // 145: Hone Claws
+    300, // 146: Quiver Dance
+    301, // 147: Coil
+    302, // 148: Work Up
+    303, // 149: Shell Smash
+    BATTLE_SUBSCRIPT_UPDATE_STAT_STAGE // 150: Cotton Guard, one +3 event
+#endif
 };
 
 static int GetMoveStatusChangeScript(BattleContext *ctx, int statChangeType, u32 flag) {
@@ -6957,6 +7101,9 @@ static int GetDynamicMoveType(BattleSystem *battleSystem, BattleContext *ctx, in
         }
         break;
     case MOVE_WEATHER_BALL:
+#if QOL_MODERN_BATTLE
+        type = TYPE_NORMAL;
+#endif
         if (!CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {
             if (ctx->fieldCondition & FIELD_CONDITION_WEATHER) {
                 if (ctx->fieldCondition & FIELD_CONDITION_RAIN_ALL) {

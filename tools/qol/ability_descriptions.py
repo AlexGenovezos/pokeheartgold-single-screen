@@ -19,6 +19,9 @@ COMPETITIVE_BANKS = {
     722: 'Stat loss from a foe\nsharply raises Sp. Atk.',
 }
 DESCRIPTIONS = {
+    81: 'Raises evasion when\nit is snowing.',
+    115: 'Restores HP when\nit is snowing.',
+    117: 'Summons snow for\nfive turns in battle.',
     12: 'Blocks infatuation,\nTaunt and Intimidate.',
     20: "Prevents confusion and\nIntimidate’s stat loss.",
     39: "Prevents flinching and\nIntimidate’s stat loss.",

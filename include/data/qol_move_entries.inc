@@ -104,3 +104,43 @@ QOL_EXTRA_MOVE(887, 70, 0, 50, 6, 100, 20, 100, 0, 0, 51, 450)
 QOL_EXTRA_MOVE(889, 68, 1, 50, 11, 100, 20, 100, 0, 0, 50, 352)
 // Twin Beam
 QOL_EXTRA_MOVE(891, 44, 1, 40, 14, 100, 10, 0, 0, 0, 50, 60)
+// Hone Claws
+QOL_EXTRA_MOVE(471, 277, 2, 0, 17, 0, 15, 0, 16, 0, 72, 14)
+// Quiver Dance
+QOL_EXTRA_MOVE(486, 278, 2, 0, 6, 0, 20, 0, 16, 0, 8, 349)
+// Coil
+QOL_EXTRA_MOVE(492, 279, 2, 0, 3, 0, 20, 0, 16, 0, 72, 151)
+// Work Up
+QOL_EXTRA_MOVE(529, 280, 2, 0, 0, 0, 30, 0, 16, 0, 72, 74)
+// Shell Smash
+QOL_EXTRA_MOVE(507, 281, 2, 0, 0, 0, 15, 0, 16, 0, 8, 334)
+// Cotton Guard
+QOL_EXTRA_MOVE(541, 282, 2, 0, 12, 0, 10, 0, 16, 0, 8, 133)
+// Acid Spray
+QOL_EXTRA_MOVE(494, 271, 1, 40, 3, 100, 20, 100, 0, 0, 50, 188)
+// Flame Charge
+QOL_EXTRA_MOVE(491, 283, 0, 50, 10, 100, 20, 100, 0, 0, 51, 172)
+// Trailblaze
+QOL_EXTRA_MOVE(888, 283, 0, 50, 12, 100, 20, 100, 0, 0, 51, 345)
+// Venoshock
+QOL_EXTRA_MOVE(477, 0, 1, 65, 3, 100, 10, 0, 0, 0, 50, 188)
+// Hex
+QOL_EXTRA_MOVE(509, 0, 1, 65, 7, 100, 10, 0, 0, 0, 50, 247)
+// Stored Power
+QOL_EXTRA_MOVE(503, 0, 1, 20, 14, 100, 10, 0, 0, 0, 50, 60)
+// Power Trip
+QOL_EXTRA_MOVE(684, 0, 0, 20, 17, 100, 10, 0, 0, 0, 51, 242)
+// Acrobatics
+QOL_EXTRA_MOVE(515, 0, 0, 55, 2, 100, 15, 0, 0, 0, 51, 332)
+// Psyshock
+QOL_EXTRA_MOVE(476, 0, 1, 80, 14, 100, 10, 0, 0, 0, 50, 428)
+// Psystrike
+QOL_EXTRA_MOVE(543, 0, 1, 100, 14, 100, 10, 0, 0, 0, 50, 94)
+// Foul Play
+QOL_EXTRA_MOVE(495, 0, 0, 95, 17, 100, 15, 0, 0, 0, 51, 242)
+// Body Press
+QOL_EXTRA_MOVE(779, 0, 0, 80, 1, 100, 10, 0, 0, 0, 51, 34)
+// Sacred Sword
+QOL_EXTRA_MOVE(536, 0, 0, 90, 1, 100, 15, 0, 0, 0, 51, 427)
+// Darkest Lariat
+QOL_EXTRA_MOVE(666, 0, 0, 85, 17, 100, 15, 0, 0, 0, 51, 242)

@@ -29,7 +29,10 @@ class AbilityDescriptionTests(unittest.TestCase):
         result,names=unpack_narc(module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt'))
         self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),830)
         words,key=unpack_messages(result[722]);self.assertEqual(key,26692)
-        expected={12:'Blocks infatuation,\nTaunt and Intimidate.',
+        expected={81:'Raises evasion when\nit is snowing.',
+                  115:'Restores HP when\nit is snowing.',
+                  117:'Summons snow for\nfive turns in battle.',
+                  12:'Blocks infatuation,\nTaunt and Intimidate.',
                   20:"Prevents confusion and\nIntimidate’s stat loss.",
                   39:"Prevents flinching and\nIntimidate’s stat loss.",
                   113:"Hits Ghosts. Blocks\nIntimidate’s stat loss.",
@@ -122,7 +125,7 @@ class AbilityDescriptionTests(unittest.TestCase):
         self.module()
         import modern_rom
         self.assertTrue(callable(getattr(modern_rom,'modern_sturdy_resources',None)), 'Sturdy ROM integration is missing')
-        paths={path:(i,i,i+1) for i,path in enumerate(('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/1/1','a/0/0/0'))}
+        paths={path:(i,i,i+1) for i,path in enumerate(('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/1/1','a/0/0/0','a/0/3/0'))}
         with patch('modern_rom.rom_files',return_value=paths), \
              patch('modern_rom.modern_type_resources',return_value=(b'icons',b'fairy')), \
              patch('modern_rom.modern_pokedex_resources',return_value=b'dex'), \
@@ -134,14 +137,23 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch('modern_rom.modern_cursed_body_resources',return_value=b'cursed') as cursed, \
              patch('modern_rom.modern_competitive_resources',return_value=b'competitive') as competitive, \
              patch('modern_rom.modern_oblivious_intimidate_resources',return_value=b'oblivious') as oblivious, \
-             patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), \
+             patch.multiple('modern_rom', modern_simple_resources=lambda data:data,
+                            modern_simple_message_resources=lambda data,charmap:data,
+                            modern_snow_message_resources=lambda data,charmap:data,
+                            modern_snow_effect_resources=lambda data:b'snow'), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities') as abilities, \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
+             patch('modern_rom.modern_move_stat_resources',return_value=b'stat-moves') as stat_moves, \
+             patch('modern_rom.modern_move_effect_resources',return_value=b'move-effects') as move_effects, \
              patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all')) as extended, \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
         sturdy.assert_called_once_with(b'absorption');abilities.assert_called_once_with(b'fairy',ROOT/'charmap.txt')
         cursed.assert_called_once_with(b'sturdy');competitive.assert_called_once_with(b'cursed');oblivious.assert_called_once_with(b'competitive');drain.assert_called_once_with(b'oblivious');self.assertEqual(extended.call_args.args[2],b'abilities')
+        stat_moves.assert_called_once_with(b'drain',True)
+        move_effects.assert_called_once_with(b'snow')
+        self.assertEqual(result['a/0/0/1'],b'stat-moves')
+        self.assertEqual(result['a/0/3/0'],b'move-effects')
         self.assertEqual(result['a/0/2/7'],b'all')
 
 

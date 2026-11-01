@@ -2729,6 +2729,19 @@ static s32 TrainerAI_CalcDamage(BattleSystem *battleSystem, BattleContext *ctx, 
     effectivenessFlags = 0;
 
     switch (move) {
+#if QOL_MODERN_BATTLE
+    case MOVE_WEATHER_BALL:
+        power = BATTLE_MOVE_DATA(ctx, move).power;
+        type = TYPE_NORMAL;
+        if (!CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)
+            && (ctx->fieldCondition & FIELD_CONDITION_WEATHER)) {
+            power *= 2;
+            type = TrainerAI_MoveType(battleSystem, ctx, attacker, move);
+        }
+        break;
+#endif
+
     case MOVE_NATURAL_GIFT:
         if (ability != ABILITY_KLUTZ && embargoTurns == 0) {
             power = GetItemVar(ctx, heldItem, ITEMATTR_NATURAL_GIFT_POWER);
@@ -3066,6 +3079,9 @@ static int TrainerAI_MoveType(BattleSystem *battleSystem, BattleContext *ctx, in
         break;
 
     case MOVE_WEATHER_BALL:
+#if QOL_MODERN_BATTLE
+        result = TYPE_NORMAL;
+#endif
         if (CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) == FALSE
             && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK) == FALSE
             && (ctx->fieldCondition & FIELD_CONDITION_WEATHER)) {

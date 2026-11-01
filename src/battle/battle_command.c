@@ -1590,9 +1590,15 @@ BOOL BtlCmd_UpdateVar(BattleSystem *battleSystem, BattleContext *ctx) {
 
 BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
     int change, stat;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+    int stageBefore;
+    BOOL actualEvent = QOL_MODERN_BATTLE;
+#if QOL_MODERN_MOVES
+    actualEvent = actualEvent || (ctx->moveNoCur > NUM_MOVES && Qol_IsSupportedMove(ctx->moveNoCur));
+#endif
+#endif
     BattleMon *mon = &ctx->battleMons[ctx->battlerIdStatChange];
 #if QOL_MODERN_BATTLE
-    int stageBefore;
     BOOL ignoreSimple = ctx->battlerIdAttacker >= 0
         && ctx->battlerIdAttacker < BattleSystem_GetMaxBattlers(battleSystem)
         && ctx->battlerIdAttacker != ctx->battlerIdStatChange
@@ -1613,6 +1619,14 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
 
     ctx->battleStatus &= ~BATTLE_STATUS_FAIL_STAT_STAGE_CHANGE;
 
+#if QOL_MODERN_MOVES
+    // Decode this private descriptor before the native >=46 down-two formula.
+    if (ctx->statChangeParam == 150) {
+        stat = STAT_DEF - 1;
+        change = 3;
+        ctx->tempData = 12;
+    } else
+#endif
     if (ctx->statChangeParam >= 46) {
         stat = ctx->statChangeParam - 46;
         change = -2;
@@ -1631,7 +1645,7 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
         ctx->tempData = 12;
     }
 
-#if QOL_MODERN_BATTLE
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
     stageBefore = mon->statChanges[stat + 1];
 #endif
     if (change > 0) { // Stat Increase
@@ -1648,10 +1662,17 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 BattleScriptIncrementPointer(ctx, unkA);
             }
         } else {
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+            if (actualEvent) {
+                // Announce a real external move bypass only after the cap check.
+                change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
 #if QOL_MODERN_BATTLE
-            // Announce a real external move bypass only after the cap check.
-            change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
-                ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE));
+                    ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE)
+#else
+                    FALSE
+#endif
+                );
+            }
 #endif
             if (ctx->statChangeType == 3) {
                 // "{0}'s {1} raised its {2}!"
@@ -1662,8 +1683,8 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 ctx->buffMsg.param[2] = stat + 1;
             } else if (ctx->statChangeType == 5) {
                 // "The {1} raised {0}'s {2}!"
-#if QOL_MODERN_BATTLE
-                ctx->buffMsg.id = change >= 3 ? QOL_MSG_ITEM_RAISED_DRASTICALLY : change == 2 ? msg_0197_00759 : msg_0197_00756;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+                ctx->buffMsg.id = actualEvent ? (change >= 3 ? QOL_MSG_ITEM_RAISED_DRASTICALLY : change == 2 ? msg_0197_00759 : msg_0197_00756) : (msg_0197_00756);
 #else
                 ctx->buffMsg.id = msg_0197_00756;
 #endif
@@ -1673,8 +1694,8 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 ctx->buffMsg.param[2] = stat + 1;
             } else {
                 // "{0}'s {1} (sharply) rose!"
-#if QOL_MODERN_BATTLE
-                ctx->buffMsg.id = change >= 3 ? QOL_MSG_STAT_ROSE_DRASTICALLY : change == 2 ? msg_0197_00753 : msg_0197_00750;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+                ctx->buffMsg.id = actualEvent ? (change >= 3 ? QOL_MSG_STAT_ROSE_DRASTICALLY : change == 2 ? msg_0197_00753 : msg_0197_00750) : ((change == 1) ? msg_0197_00750 : msg_0197_00753);
 #else
                 ctx->buffMsg.id = (change == 1) ? msg_0197_00750 : msg_0197_00753;
 #endif
@@ -1788,9 +1809,16 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 return FALSE;
             }
         }
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+        if (actualEvent) {
+            change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
 #if QOL_MODERN_BATTLE
-        change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
-            stageBefore > 0 && ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE));
+                stageBefore > 0 && ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE)
+#else
+                FALSE
+#endif
+            );
+        }
 #endif
         if (ctx->statChangeType == 3) {
             // "{0}'s {1} cuts {2}'s {3}!"
@@ -1802,8 +1830,8 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
             ctx->buffMsg.param[3] = stat + 1;
         } else {
             // "{0}'s {1} [harshly] fell!"
-#if QOL_MODERN_BATTLE
-            ctx->buffMsg.id = change <= -3 ? QOL_MSG_STAT_FELL_SEVERELY : change == -2 ? msg_0197_00765 : msg_0197_00762;
+#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+            ctx->buffMsg.id = actualEvent ? (change <= -3 ? QOL_MSG_STAT_FELL_SEVERELY : change == -2 ? msg_0197_00765 : msg_0197_00762) : ((change == -1) ? msg_0197_00762 : msg_0197_00765);
 #else
             ctx->buffMsg.id = (change == -1) ? msg_0197_00762 : msg_0197_00765;
 #endif
@@ -3583,10 +3611,13 @@ BOOL BtlCmd_EndOfTurnWeatherEffect(BattleSystem *battleSystem, BattleContext *ct
                     if (ctx->battleMons[battlerId].hp < ctx->battleMons[battlerId].maxHp) {
                         ctx->hpCalc = DamageDivide(ctx->battleMons[battlerId].maxHp, 16);
                     }
-                } else if (type1 != TYPE_ICE && type2 != TYPE_ICE && GetBattlerAbility(ctx, battlerId) != ABILITY_SNOW_CLOAK) {
+                }
+#if !QOL_MODERN_BATTLE
+                else if (type1 != TYPE_ICE && type2 != TYPE_ICE && GetBattlerAbility(ctx, battlerId) != ABILITY_SNOW_CLOAK) {
                     ctx->moveTemp = MOVE_HAIL;
                     ctx->hpCalc = DamageDivide(ctx->battleMons[battlerId].maxHp * -1, 16);
                 }
+#endif
             }
         }
         if (ctx->fieldCondition & FIELD_CONDITION_RAIN_ALL) {

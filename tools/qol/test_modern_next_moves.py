@@ -78,7 +78,7 @@ static int contains(const u16 *a,int n,int move){for(int i=0;i<n;i++)if(a[i]==mo
 static const int rows[][12]={ROWS};
 int main(void) {
  assert(NUM_MOVES==467&&sizeof(MoveTbl)==16);
- assert(QOL_EXTENDED_MOVE_COUNT==52);
+ assert(QOL_EXTENDED_MOVE_COUNT==72);
  for(unsigned i=0;i<NELEMS(rows);i++) {
   int id=rows[i][0];const MoveTbl *e=Qol_GetExtendedMoveData(id);
   assert(Qol_IsSupportedMove(id)==QOL_MODERN_MOVES);
@@ -390,8 +390,8 @@ int main(void) {
         from nitro_data import unpack_narc
         data=(ROOT/'include/data/qol_learnsets.inc').read_text()
         rows=[tuple(map(int,r)) for r in re.findall(r'QOL_LEVEL_UP_MOVE\((\d+), (\d+), (\d+)\)',data)]
-        self.assertEqual(len(rows),209)
-        self.assertEqual(len({r[0] for r in rows}),160)
+        self.assertEqual(len(rows),336)
+        self.assertEqual(len({r[0] for r in rows}),237)
         self.assertEqual(max(Counter(s for s,l,m in rows).values()),5)
         legacy_path=ROOT/'files/poketool/personal/wotbl.narc'
         if not legacy_path.exists():
@@ -400,13 +400,14 @@ int main(void) {
         largest=0
         for species in range(1,494):
             packed=struct.unpack('<'+'H'*(len(legacy[species])//2),legacy[species])
-            merged={(v>>9,v&511) for v in packed if v!=65535}
+            packed=packed[:packed.index(65535)]
+            merged={(v>>9,v&511) for v in packed}
             merged.update((l,m) for s,l,m in rows if s==species)
             largest=max(largest,len(merged)+1)
             self.assertLessEqual(len(merged)+1,28)
         self.assertEqual(largest,23)
         self.assertEqual(set(learnset_import.SUPPORTED)-{m for s,l,m in rows},
-                         {506,530,615,696,709,787,809,815,818,831,854,887,889})
+                         {506,530,615,696,709,787,809,815,818,831,854,887,888,889,666})
 
     def test_two_hit_damage_contact_items_and_early_ko_execute_native_functions(self):
         import test_modern_sturdy as sturdy

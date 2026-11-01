@@ -572,3 +572,236 @@ not complete Gen IX parity or an installation; the playable four-QoL app and rea
 save remain unchanged. Remaining move/ability, Snow, timing and delayed-hit work
 continues separately. Logs and isolated artifacts are ignored local validation
 files and are not committed.
+
+
+### Gen IX Snow foundation (source awaiting native validation)
+
+`QOL_MODERN_BATTLE=1` now interprets the original temporary/permanent Hail
+bits as Snow. Hail258, its compatibility name, TM07, Pryce's story reward,
+weather counters, overworld IDs and animation20 remain native. Default,
+type-only and move-only profiles retain Hail behavior. No new move/ability IDs,
+save fields or battle layout are introduced by this foundation.
+
+Current Ice typing in either slot receives a Defense boost after the applicable
+stage (including crit/attacking Unaware), with integer truncation before later
+defensive abilities/items. Defense101 at+2 becomes303; neutral Snow followed by
+Marvel Scale becomes226. The calculation honors its supplied weather argument,
+so confusion/disobedience callers passing0 receive no Snow boost. Living active
+Cloud Nine/Air Lock suppress weather; Mold Breaker does not erase Snow itself.
+Ordinary special damage and existing Sand Sp. Def ordering remain separate.
+Only non-Ice Hail chip is disabled; Ice Body and its native HP, hidden-position
+and weather guards remain. Counter/Mirror Coat retain fixed returned damage.
+
+The source-compiled effect164 duplicate check now covers both Hail bits, after
+full-source hashing and unchanged SDK/NARC parity. Its native5/8-turn duration
+still uses the attacker's active Icy Rock. Snow Warning252 stays with the
+existing finite-weather owner, including source-holder rock ownership.
+Blizzard, Snow Cloak, Forecast/Cherrim, Solar Beam and weather healing retain
+native consumers of the same bits. Focused execution exposed two prior audit
+assumptions that needed correction: AI damage had omitted Weather Ball's power
+and type, and three type-query helpers left its no/suppressed-weather fallback
+uninitialized. Modern-only paths now use weather power100/Ice or ordinary
+power50/Normal; explicit supplied power is not doubled in the shared damage
+function. Other active weather types remain selected by the existing queries.
+
+Snow message generation follows Simple's guarded bank197 producer and validates
+all nine appended templates exactly. It replaces only197 rows701–703/810–812,
+221 rows282/334,622 row4,426 row43,157 row47 and749 row258. Source/binary hashes
+pin each original bank, and encoded STRVAR/page controls, keys and unrelated
+rows/names survive. Ability descriptions81/115/117 are updated by the existing
+bank722 owner. No global Hail replacement occurs. The numeric trainer AI source
+is also fully pinned; a generated modern assembly copy changes only the
+same-width comparison operand at word5747 to-1, disabling the obsolete Hail-chip
+heuristic without relocating jumps. Raw weather queries remain available for
+duplicate-setter logic, including under weather suppression.
+
+Focused host/SDK evidence is recorded in ignored
+`.local-tools/validation/gen9-snow-focused-*.log`. Tests execute actual C damage,
+weather, accuracy/type/form/healing/AI and Counter commands, compiled effect164
+bytecode, existing finite-weather bytecode and guarded resource composition.
+Flag matrices cover default, type-only, move-only, battle-only and combined
+profiles; malformed inputs, source/binary drift and repeated transforms fail.
+The existing52 extended moves/209 learnset rows remain untouched.
+
+This source is newer than verified d56188b6c artifacts. Independent review,
+global verification and a matching paired ROM/layout/native build with copied
+saves remain pending. No installation or real-save change occurred. Snowscape,
+Aurora Veil, Slush Rush, Chilly Reception and broader end-turn ordering are
+separate work. Hydration's existing104→190 cure before poison/burn residuals is
+correct for Gen IX and is unchanged.
+
+### A14 ordinary modern moves (development source)
+
+`QOL_MODERN_MOVES` now supports66 extended IDs: the previous52 plus Hone Claws,
+Quiver Dance, Coil, Work Up, Shell Smash, Cotton Guard, Acid Spray, Flame Charge,
+Trailblaze, Venoshock, Hex, Stored Power, Power Trip and Acrobatics. The literal
+metadata, full names/descriptions, animation aliases and private card bank829
+share the existing adapter. Archive extent899, original names750/751,
+`NUM_MOVES=467`,16-byte `MoveTbl`,468-entry AI table and saved layouts remain.
+
+Private effects277..283 and descriptors145..150 route through existing native
+commands. Five generated scripts299..303 precheck every affected stat, skip
+capped events, and call central12 sequentially. Cotton descriptor150 is decoded
+before the legacy >=46 arithmetic and applies Defense+3 as one actual event;
+modern Simple gives+6, while clipping can yield actual+1/+2. Moves-only retains
+legacy Simple's derived interpretation and still receives correct Cotton text.
+Shell Smash lowers Def/SpDef before raising Atk/SpAtk/Speed2; held-item processing
+follows the entire sequence, and self drops do not trigger Competitive. Acid
+Spray reuses existing native271; Flame Charge/Trailblaze use native138's
+successful-hit attacker timing with a Speed+1 parameter.
+
+All source templates are fully hashed and unchanged SDK/NARC parity is required
+before adaptation. Original script sources stay intact. Move-only builds reserve
+297/298 as safe End members; combined builds run the existing exact299 Cursed,
+Competitive, Oblivious and Simple transforms before appending A14. Move-enabled
+outputs have304 subscripts and284 effects. Battle-only stays299, and default/
+type-only archives remain original. The original nine encoded stat-message
+triplets are supplied once in either move-enabled or battle-enabled paths;
+combined Snow retains its six reviewed replacements and bank197 stays1285.
+Ability descriptions remain the battle-rule owner's responsibility.
+
+A pure intrinsic-power helper runs in shared damage before existing external
+multipliers/Technician, and explicit supplied power bypasses resolution.
+Venoshock doubles for poison/toxic, Hex for major status, Stored Power/Power Trip
+count positive stored stages across all seven stats through860, and Acrobatics
+checks raw item absence. Simple is read once through stored stages; Unaware
+does not erase intrinsic power. Technician55→82/60→90 and80/110 boundaries are
+covered through the actual shared calculation and trainer AI caller, without
+new RNG. This does not refactor broader Gen IX modifier grouping or ordering.
+
+The regenerated overlay contains318 rows across223 base species, max5 additions
+and max22 actual merged moves plus sentinel within capacity28. Native packed
+learnset audits now stop at0xFFFF instead of counting alignment padding as a
+level0/move0 entry. Quiver Dance's distinct level0/level1 entries and existing
+form/evolution/relearner/creation/daycare/field-reader paths are retained.
+Trailblaze has no level rows and is banned from Metronome after the Mimic
+separator. No TM/tutor/egg expansion is included. Battle support and current
+obtainability are separate milestones.
+
+BluRosie's hg-engine61b510cfb6cf7d77c3b083150fad3499f82fd326 and
+rh-hideout's pokeemerald-expansionc460a8661dfa0598ae25d42a968c690ecbf489c6 remain
+credited/pinned sources. Shell Smash uses Gen IX drop-first ordering from the
+expansion; the private effects are local native allocations. B6 selected-stat
+moves, effective-weight moves, future abilities and full Gen IX completion are
+separate work. See `docs/superpowers/plans/2026-11-01-gen9-next14-moves.md`.
+Current d56188b6c artifacts predate Snow/A14; matching combined/native verification
+and fresh independent reviews remain parent-owned. No installation or real-save
+change occurred.
+
+A14 focused verification after the Technician review correction:67 affected
+host checks passed (28.861s), including strengthened evolution-fixture and
+power-boundary regressions. Four SDK/native-command checks passed (2.122s);
+the latter used18 source/profile/output-
+hashed SDK bytecodes assembled in the initial serialized138.751s lane and ran
+native C/VM semantics fresh. Original SDK/NARC parity and generated-source
+assembly are distinct from this cached semantic rerun. All17 reviewed Snow
+index hashes remained unchanged, and `git diff --check` passed. Logs remain
+local ignored validation artifacts; fresh independent/combined/native checks
+are still pending.
+
+A14 review correction: modern Technician eligibility is captured after the
+native intrinsic `POWER_MULTI` step and before Charge/Helping Hand, while its
+multiplier remains at the existing native application/rounding point. With
+Helping Hand, held-item Acrobatics55→82→123 and Stored Power60→90→135 qualify;
+Stored Power80→120 does not. Charge40→80→120 qualifies. Doubled native
+Pursuit40→80, Payback50→100 and Revenge60→120 remain ineligible. Explicit
+supplied-power handling remains intact. This follows pinned expansion's
+`CalcMoveBasePower`→`CalcMoveBasePowerAfterModifiers` separation and native
+Pursuit153's `POWER_MULTI=20` source; it does not introduce the future general
+modifier-chain refactor. Default/type-only retain native Technician behavior.
+
+### B6 selected-stat ordinary modern moves (development working tree)
+
+The adapter now supports72 extended moves after Psyshock, Psystrike, Foul Play,
+Body Press, Sacred Sword and Darkest Lariat. Full names/descriptions/cards and
+plain existing aliases use the shared literal rows. No effect/subscript/ASM or
+message transform was added: move-enabled counts stay284/304, bank1971285,
+archive extent899 and private cards829. Body Press's Metronome ban follows the
+Mimic separator; none of these six is sound/punching/Substitute bypassing. A
+future Sharpness classifier must include Sacred Sword.
+
+Pure raw-offense/processed-defense/stage-ignore selectors feed shared native
+damage and the real hit check without changing damage category. Psyshock and
+Psystrike use Def stage → Snow → defensive modifiers while remaining special
+for screens/items/history. Foul Play selects target raw Atk/stage, Body Press
+user raw Def/stage, then both use the user's offensive modifiers. Crit and
+Unaware apply after source selection: user Unaware does not erase Foul Play's
+selected Attack stage; defending Unaware does. Sacred Sword/Lariat ignore all
+target Defense/evasion stages while retaining user accuracy, Hustle, defensive
+abilities/items and ordinary accuracy RNG. Moves-only retains legacy battle
+modifiers and all three build flags stay independent.
+
+The regenerated overlay has336 rows across237 base species (+18 rows), max5
+additions and22 actual merged moves plus sentinel within28 slots. Mewtwo gets
+Psystrike72, Gallade Sacred Sword1, Regigigas Body Press42. Darkest Lariat has0
+level rows; its8 machine-compatible species need a future access port. Original
+moves/roster/story/forms and native16-bit move/save/context/AI layouts remain.
+
+The pinned hg-engine61b510cfb6cf7d77c3b083150fad3499f82fd326 and expansion
+c460a8661dfa0598ae25d42a968c690ecbf489c6 remain credited. Expansion and pinned
+Showdown82f129e0b847bf23395d552f9bb48eb82e53a0ec corroborate selecting raw
+stat/stage before crit/defending Unaware; hg-engine's clear-before-replace
+ordering is intentionally corrected. This does not complete Gen IX damage
+ordering. Inherited offensive modifiers precede stages:101,+1,Huge Power gives
+303 rather than Gen IX stage-first302, including Foul Play/Body Press. A future
+shared offensive-stage/modifier correction, broader base-power/final-modifier
+grouping/rounding and Sharpness base-power placement remain prerequisites to a
+full-ruleset installation claim. Wonder Room, effective weights, future abilities
+and access ports remain separate work.
+
+Focused verification passed52 affected host C/data/resource/learnset checks in
+`.local-tools/validation/gen9-next6-focused-final2.log`; fresh independent spec/quality
+reviews, combined full-suite checks and matching native/copied-save proof remain
+parent-owned and pending. d56188b6c artifacts predate Snow/A14/B6. No installation
+or real-save/live-app write occurred. See
+`docs/superpowers/plans/2026-11-01-gen9-selected-stat-moves.md` for scope and gates.
+
+
+## Combined Snow and twenty-move integration
+
+Fresh final integration passed all253 host/SDK tests in661.343s. Each of Snow,
+A14 and B6 passed independent spec and quality review before the combined build.
+The game, transformed resources, layout and matching native executable build
+passed. The built ROM has899 move/data-script members,304 subscripts,284 effects,
+830 message banks and1285 battle messages with original key47860.
+
+Seven copied-save native/interpreter comparisons passed every ARM9 instruction
+across15000 battle frames; all seven had zero interpreter fallbacks, guard
+failures and overlay evictions. Measured outcomes:
+
+- Snow/Icy Rock:8 total turns,7 after the first turn; both participants retained
+  full HP, including the non-Ice target. The native “It started to snow!” message
+  displayed correctly. Hail258 retains its compatibility name.
+- Cotton Guard: stored Defense+6 with Simple versus+3 for its control; the
+  native drastic-rise message displayed correctly.
+- Shell Smash/Simple/White Herb: Attack, Special Attack and Speed+4, Defense and
+  Special Defense returned to neutral, item consumed after the full sequence.
+  The native White Herb recovery text displayed correctly.
+- Psyshock:6 damage, inside the physical-Defense outcomes6/7 and outside the
+  incorrect Special Defense outcomes9/10/12.
+- Foul Play:3 damage, inside the target-Attack outcomes3/4 and outside the
+  incorrect user-Attack outcomes5/6.
+- Body Press:8 damage, inside the user-Defense outcomes7/8/9 and outside the
+  incorrect user-Attack outcomes2/3.
+
+These damage ranges use the inspected raw stats of deliberately edited test
+saves, all16 random rolls and confirmed non-critical hits. They do not infer
+natural species stats from the fixture labels. Native after-turn damage-history
+scratch is reset; category/history and Substitute behavior are verified by the
+actual-C host tests, rather than claimed from those final native snapshots.
+
+The integration sweep exposed stale mocks in two routing tests after the A14
+resource steps were added. Test-only corrections now mock those steps and assert
+their enable flags, ordering and Snow input. Sixteen related host checks passed
+before the final clean253-test run. No runtime code or tested artifacts changed
+for those corrections. All35 frozen source/test/document hashes, seven copied-
+save hashes and tested ROM/native/layout hashes matched before documentation.
+Validation artifacts and logs remain ignored local files. Native source remains
+b602f2d; the installed four-QoL app, real ROM and real save remain unchanged.
+
+This milestone provides72 supported later-generation moves and336 level-learning
+rows across237 base species. It does not establish complete Gen IX parity:
+remaining abilities,106 imported move IDs, old-move and species-stat updates,
+move access, status/turn/delayed-hit behavior and exact damage layers are separate
+work. The known inherited offensive-stage/modifier ordering remains documented
+above. No incomplete modern ruleset was installed.

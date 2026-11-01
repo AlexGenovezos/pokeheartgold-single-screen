@@ -19,6 +19,10 @@ void SetBattlerVar(BattleContext *ctx, int battlerId, u32 varId, void *data);
 void AddBattlerVar(BattleContext *ctx, int battlerId, u32 varId, int data);
 void BattleMon_AddVar(BattleMon *mon, u32 varId, int data);
 // Pure semantic delta; callers store the clipped result exactly once.
+int Qol_GetMoveOffenseSource(int move);
+BOOL Qol_MoveUsesPhysicalDefense(int move, int category);
+BOOL Qol_MoveIgnoresTargetStatStages(int move);
+int Qol_GetMoveBasePower(BattleContext *ctx, int move, int attacker, int target, int fallbackPower);
 int Qol_GetActualStatStageDelta(BattleContext *ctx, int recipient, int before, int baseDelta, BOOL ignoreSimple);
 u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1, int battlerId2, int flag);
 void BattleSystem_ClearExperienceEarnFlags(BattleContext *ctx, int battlerId);

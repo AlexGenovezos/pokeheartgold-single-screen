@@ -2519,6 +2519,12 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
         targetEvasion = 0;
     }
 
+#if QOL_MODERN_MOVES
+    if (Qol_MoveIgnoresTargetStatStages(move)) {
+        targetEvasion = 0;
+    }
+#endif
+
     var = 6 + targetEvasion + attackerAccuracy;
 
     if (var < 0) {

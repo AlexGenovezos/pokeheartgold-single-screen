@@ -283,7 +283,7 @@ static int GetMonsHitCount(BattleSystem *bs,BattleContext *ctx,int side,int id) 
 '''
         source = (ROOT / UTIL).read_text()
         structure = source[source.index('typedef struct MoveDamageCalc {'):source.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-        actual = '#if QOL_MODERN_BATTLE\n' + helper('Qol_HasPlusMinusAlly', UTIL) + '#endif\n' + structure + array('sStatChangeTable') + array('sTypeEnhancingItems') + array('sPunchingMoves') + game.function_source(UTIL, 'CalcMoveDamage')
+        actual = '#if QOL_MODERN_BATTLE\n' + helper('Qol_HasPlusMinusAlly', UTIL) + '#endif\n' + structure + array('sStatChangeTable') + array('sTypeEnhancingItems') + array('sPunchingMoves') + game.function_source(UTIL, 'Qol_MoveUsesPhysicalDefense') + game.function_source(UTIL, 'CalcMoveDamage')
         checks = r'''
 int main(void) {
     // Force linkage of the common RNG stub; base damage itself does not roll.

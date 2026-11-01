@@ -152,7 +152,10 @@ int main(void) {
     assert(contains(guarded.table,n,580,12)==QOL_MODERN_MOVES);
     assert(contains(guarded.table,n,608,0)==QOL_MODERN_MOVES);
     const int additions[][3]={{252,3,673},{143,40,670},{22,45,532},{78,0,687},
-        {475,1,898},{383,1,622},{382,1,621},{3,0,575},{295,72,589},{303,4,587}};
+        {475,1,898},{383,1,622},{382,1,621},{3,0,575},{295,72,589},{303,4,587},
+        {215,36,471},{12,44,486},{23,44,492},{128,5,529},{7,27,507},{179,36,541},
+        {23,28,494},{77,15,491},{15,23,477},{72,28,509},{35,4,503},{331,19,684},{187,24,515},
+        {413,0,486},{413,1,486},{414,0,486},{414,1,486}};
     for(unsigned a=0;a<NELEMS(additions);a++) {
         n=Qol_LoadLevelUpLearnset(additions[a][0],0,guarded.table);
         assert(contains(guarded.table,n,additions[a][2],additions[a][1])==QOL_MODERN_MOVES);
@@ -192,7 +195,7 @@ int main(void) {
     }
     mon=(Pokemon){{35,0,44,{0}}};
     InitBoxMonMoveset(&mon.box);
-    assert(mon.box.moves[0]==(QOL_MODERN_MOVES?577:10));
+    assert(mon.box.moves[0]==(QOL_MODERN_MOVES?503:10));
     assert(mon.box.moves[1]==20 && mon.box.moves[2]==30);
     assert(mon.box.moves[3]==(QOL_MODERN_MOVES?588:0));
     mon=(Pokemon){{35,0,44,{0}}};
@@ -217,6 +220,11 @@ int main(void) {
     if(QOL_MODERN_MOVES) assert(move==608);
     mon=(Pokemon){{282,0,31,{0}}}; cursor=0;
     assert(MonTryLearnMoveOnLevelUp(&mon,&cursor,&move)==0);
+    for(int species=413;species<=414;species++) {
+        mon=(Pokemon){{species,0,21,{0}}};cursor=0;
+        assert(Qol_MonTryLearnMoveAfterEvolution(&mon,&cursor,&move)==(QOL_MODERN_MOVES?486:0));
+        if(QOL_MODERN_MOVES)assert(move==486);
+    }
     // Species move list consumed by daycare keeps the full u16 move IDs and bounds.
     struct { u16 moves[QOL_LEVEL_UP_LEARNSET_CAPACITY]; u16 canary; } daycare;
     daycare.canary=0x1234;
@@ -254,12 +262,12 @@ int main(void) {
         data = (ROOT / 'include/data/qol_learnsets.inc').read_text()
         entries = [tuple(map(int, row)) for row in
                    re.findall(r'QOL_LEVEL_UP_MOVE\((\d+), (\d+), (\d+)\)', data)]
-        self.assertEqual(len(entries), 209)
-        self.assertEqual(len({s for s, _, _ in entries}),160)
+        self.assertEqual(len(entries), 336)
+        self.assertEqual(len({s for s, _, _ in entries}),237)
         self.assertIn((133,15,611),entries)
-        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED) - {506,530,615,696,709,787,809,815,818,831,854,887,889})
+        self.assertEqual({m for _, _, m in entries}, set(learnset_import.SUPPORTED) - {506,530,615,696,709,787,809,815,818,831,854,887,888,889,666})
         from test_modern_next_moves import IDS
-        self.assertEqual(set(learnset_import.SUPPORTED), {577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854} | IDS)
+        self.assertEqual(set(learnset_import.SUPPORTED), {577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854} | IDS | {471,486,492,529,507,541,494,491,888,477,509,503,684,515,476,543,495,779,536,666})
         self.assertIn((383, 1, 622), entries)
         self.assertIn((295, 72, 589), entries)
         self.assertIn((475, 1, 898), entries)

@@ -86,7 +86,7 @@ int main(void) {
     assert(Qol_IsSoundMove(577)==QOL_MODERN_MOVES);
     for (int i=0;i<NUM_MOVES;i++) assert(Qol_GetMetronomeMove(i)==i+1);
 #if QOL_MODERN_MOVES
-    assert(QOL_METRONOME_MOVE_COUNT==519);
+    assert(QOL_METRONOME_MOVE_COUNT==539);
     for(int i=0;i<5;i++) assert(Qol_GetMetronomeMove(NUM_MOVES+i)==ids[i]);
 #else
     assert(QOL_METRONOME_MOVE_COUNT==467);
@@ -122,7 +122,7 @@ int main(void) {
     LoadMoveTbl(loaded); assert(reads==1 && loaded[NUM_MOVES+1].power==0x5a);
     assert(GetMoveMaxPP(MOVE_TACKLE,3)==56 && reads==2);
 #if QOL_MODERN_MOVES
-    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854};
+    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854,476,543,495,779,536,666};
     for(unsigned i=0;i<NELEMS(ids);i++) {
         int before=reads; MoveTbl entry; LoadMoveEntry(ids[i],&entry);
         assert(reads==before && entry.pp==Qol_GetExtendedMoveData(ids[i])->pp);
@@ -310,8 +310,8 @@ static int GetBattlerVar(BattleContext *ctx,int battler,int field,void *unused) 
 int main(void) {
     BattleContext ctx={0}; ctx.battleMons[0].hp=ctx.battleMons[1].hp=100;
     ctx.battleMons[0].type1=ctx.battleMons[0].type2=TYPE_NONE;
-    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854};
-    const int types[]={9,9,9,9,9,9,12,4,17,4,8,11,4,11,12,0,0};
+    const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854,476,543,495,779,536,666};
+    const int types[]={9,9,9,9,9,9,12,4,17,4,8,11,4,11,12,0,0,14,14,17,1,1,17};
     for(unsigned i=0;i<NELEMS(ids);i++) {
         for(int type=0;type<NUMBER_OF_MON_TYPES;type++) {
             ctx.battleMons[1].type1=ctx.battleMons[1].type2=type;

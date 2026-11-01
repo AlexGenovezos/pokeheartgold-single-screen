@@ -1303,6 +1303,9 @@ int TrainerAI_GetMoveType(BattleSystem *battleSystem, BattleContext *ctx, Pokemo
         break;
 
     case MOVE_WEATHER_BALL:
+#if QOL_MODERN_BATTLE
+        type = TYPE_NORMAL;
+#endif
         if (CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) == FALSE
             && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK) == FALSE
             && (ctx->fieldCondition & FIELD_CONDITION_WEATHER)) {

@@ -313,7 +313,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
         util=(ROOT/UTIL).read_text()
         source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly',UTIL)+'#endif\n'
         source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-        source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+native('CalcMoveDamage')
+        source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+native('Qol_MoveUsesPhysicalDefense')+native('CalcMoveDamage')
         self.variants(source+r'''
 static int changed(int before,int simple) {int stage=before-6;if(!QOL_MODERN_BATTLE&&simple)stage*=2;if(stage< -6)stage=-6;if(stage>6)stage=6;return stage>=0?101*(stage+2)/2:101*2/(2-stage);}
 int main(void) {

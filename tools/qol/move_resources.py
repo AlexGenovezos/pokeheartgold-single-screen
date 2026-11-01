@@ -11,6 +11,27 @@ CARD_MESSAGE_BANK = 829
 FIELDS = ('id', 'effect', 'category', 'power', 'type', 'accuracy', 'pp',
           'chance', 'range', 'priority', 'flags', 'animation')
 PRESENTATION = {
+    476: dict(name='Psyshock', card='Psyshock', description='A psychic attack strikes the\ntarget’s Defense instead\nof its Sp. Def.'),
+    543: dict(name='Psystrike', card='Psystrike', description='A psychic wave strikes the\ntarget’s Defense instead\nof its Sp. Def.'),
+    495: dict(name='Foul Play', card='Foul Play', description='The user turns the target’s\nAttack stat against it.'),
+    779: dict(name='Body Press', card='Body Press', description='The user attacks using its\nDefense stat in place\nof its Attack stat.'),
+    536: dict(name='Sacred Sword', card='Sacred Sword', description='The user slashes, ignoring\nthe target’s Defense and\nevasion stat changes.'),
+    666: dict(name='Darkest Lariat', card='Dark Lariat', description='The user swings its arms,\nignoring the target’s Defense\nand evasion stat changes.'),
+
+    471: dict(name='Hone Claws', card='Hone Claws', description='The user sharpens its claws,\nraising its Attack\nand accuracy.'),
+    486: dict(name='Quiver Dance', card='Quiver Dance', description='A graceful dance raises the\nuser’s Sp. Atk, Sp. Def,\nand Speed.'),
+    492: dict(name='Coil', card='Coil', description='The user coils up, raising\nits Attack, Defense,\nand accuracy.'),
+    529: dict(name='Work Up', card='Work Up', description='The user gets worked up,\nraising its Attack\nand Sp. Atk.'),
+    507: dict(name='Shell Smash', card='Shell Smash', description='The user lowers its Defense\nand Sp. Def, then sharply raises\nits Attack, Sp. Atk, and Speed.'),
+    541: dict(name='Cotton Guard', card='Cotton Guard', description='The user wraps itself in cotton,\ndrastically raising\nits Defense.'),
+    494: dict(name='Acid Spray', card='Acid Spray', description='A corrosive liquid attacks,\nharshly lowering the\ntarget’s Sp. Def.'),
+    491: dict(name='Flame Charge', card='Flame Charge', description='The user attacks with flames\nand raises its Speed.'),
+    888: dict(name='Trailblaze', card='Trailblaze', description='The user attacks with energy\nfrom the ground and\nraises its Speed.'),
+    477: dict(name='Venoshock', card='Venoshock', description='This attack’s power doubles\nif the target is poisoned.'),
+    509: dict(name='Hex', card='Hex', description='This attack’s power doubles\nif the target has a\nmajor status condition.'),
+    503: dict(name='Stored Power', card='Stored Power', description='The user attacks with stored\npower. Its stat boosts\nincrease this move’s power.'),
+    684: dict(name='Power Trip', card='Power Trip', description='The user boasts of its strength.\nIts stat boosts increase\nthis move’s power.'),
+    515: dict(name='Acrobatics', card='Acrobatics', description='A nimble strike doubles in\npower if the user isn’t\nholding an item.'),
     577: dict(name='Disarming Voice', card='Disarm Voice', description=
               'The user lets out a charming cry\nthat never misses. It strikes\nall opposing Pokémon.'),
     580: dict(name='Draining Kiss', card='Draining Kiss', description=

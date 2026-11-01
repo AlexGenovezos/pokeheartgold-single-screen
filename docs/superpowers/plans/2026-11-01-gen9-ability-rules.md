@@ -71,8 +71,13 @@ Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
 - [x] Test a deliberate existing-save slot adapter. Preserve explicitly stored
   nonstandard choices; disambiguate original identical slots using the original
   personality rule. Do not blindly recompute every stored ability from PID.
-- [ ] Complete Snow, modern turn ordering and the remaining core rules, with
-  resource scripts, calculations, AI and UI using the same behavior.
+- [x] Implement the Gen IX Snow foundation behind the modern-battle flag:
+  current Ice Defense, no Hail chip, guarded effect164 and Snow messages, plus
+  Weather Ball AI/fallback corrections. Focused actual C/SDK evidence is in
+  `2026-11-01-gen9-snow.md`; independent review/global/paired native validation
+  remain pending. No Snowscape or other new move IDs in this foundation.
+- [ ] Complete modern turn ordering and remaining core rules, keeping resource
+  scripts, calculations, AI and UI consistent.
 - [ ] Rebuild and validate each integrated milestone on copied saves, then
   install only the complete verified ruleset with a recoverable backup.
 

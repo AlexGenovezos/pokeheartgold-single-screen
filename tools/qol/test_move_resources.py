@@ -14,7 +14,7 @@ class MoveResourceTests(unittest.TestCase):
     def test_numeric_rows_share_the_game_source_and_reject_unexpected_syntax(self):
         entries = move_resources.read_entries(ROOT / 'include/data/qol_move_entries.inc')
         from test_modern_next_moves import ROWS
-        self.assertEqual([e['id'] for e in entries], [577, 580, 586, 588, 608, 587, 673, 670, 696, 532, 687, 898, 622, 621, 575, 589, 854] + [r[0] for r in ROWS])
+        self.assertEqual([e['id'] for e in entries], [577, 580, 586, 588, 608, 587, 673, 670, 696, 532, 687, 898, 622, 621, 575, 589, 854] + [r[0] for r in ROWS] + [471,486,492,529,507,541,494,491,888,477,509,503,684,515,476,543,495,779,536,666])
         self.assertEqual({e['id'] for e in entries}, set(move_resources.PRESENTATION))
         self.assertEqual(entries[3]['chance'], 30)
         self.assertEqual(entries[1]['effect'], 3)
@@ -151,25 +151,25 @@ class MoveResourceTests(unittest.TestCase):
     def test_combined_rom_passes_updated_messages_and_scripts_to_next_transform(self):
         from unittest.mock import patch
         import modern_rom
-        paths={path:(i,i,i+1) for i,path in enumerate(('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/1/1','a/0/0/0'))}
-        with patch('modern_rom.rom_files',return_value=paths), \
-             patch('modern_rom.modern_type_resources',return_value=(b'icons',b'fairy messages')), \
-             patch('modern_rom.modern_pokedex_resources',return_value=b'dex'), \
-             patch('modern_rom.modern_battle_resources',return_value=b'numeric'), \
-             patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
-             patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
-             patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), \
-             patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
-             patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
-             patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all messages')) as extended, \
-             patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
-            result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
-        drain.assert_called_once_with(b'finite')
-        self.assertEqual(extended.call_args.args[2],b'abilities')
-        self.assertEqual(result['a/0/2/7'],b'all messages')
-        self.assertEqual(result['a/0/0/1'],b'drain')
-
+        paths={path:(i,i,i+1) for i,path in enumerate(('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/1/1','a/0/0/0','a/0/3/0'))}
+        with patch.multiple('modern_rom', modern_move_stat_resources=lambda data,battle:data, modern_move_effect_resources=lambda data:data):
+            with patch('modern_rom.rom_files',return_value=paths), \
+                 patch('modern_rom.modern_type_resources',return_value=(b'icons',b'fairy messages')), \
+                 patch('modern_rom.modern_pokedex_resources',return_value=b'dex'), \
+                 patch('modern_rom.modern_battle_resources',return_value=b'numeric'), \
+                 patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
+                 patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
+                 patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), \
+                 patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), \
+                 patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
+                 patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
+                 patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all messages')) as extended, \
+                 patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
+                result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
+            drain.assert_called_once_with(b'finite')
+            self.assertEqual(extended.call_args.args[2],b'abilities')
+            self.assertEqual(result['a/0/2/7'],b'all messages')
+            self.assertEqual(result['a/0/0/1'],b'drain')
     def test_drain_archive_preserves_every_other_member(self):
         from unittest.mock import patch
         import modern_rom

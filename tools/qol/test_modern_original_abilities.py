@@ -46,7 +46,7 @@ static void ReadBattleScriptFromNarc(BattleContext *c,int narc,int script){c->sc
 static int CurseUserIsGhost(BattleContext *c,int move,int a){return 0;}
 static void UnlockBattlerOutOfCurrentMove(BattleSystem *s,BattleContext *c,int a){}
 ''' + rules.array('sHitChanceTable', PLAYER) + rules.array('sSoundMoves') + native(
-        'GetBattlerAbility', 'CheckBattlerAbilityIfNotIgnored', 'DamageDivide',
+        'Qol_MoveIgnoresTargetStatStages', 'GetBattlerAbility', 'CheckBattlerAbilityIfNotIgnored', 'DamageDivide',
         'BattleCtx_IsIdenticalToCurrentMove', 'BattleContext_CheckMoveImmunityFromAbility') + native(
         'BattleSystem_CheckMoveHit', 'BattleSystem_CheckMoveEffect',
         'BattleControllerPlayer_CheckMoveImmunity', path=PLAYER) + r'''
@@ -234,7 +234,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
         util = (ROOT / UTIL).read_text()
         structure = util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
         source += native('GetBattlerAbility', 'CheckAbilityActive') + '#if QOL_MODERN_BATTLE\n' + rules.helper('Qol_HasPlusMinusAlly', UTIL) + '#endif\n'
-        source += structure + ''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves')) + native('CalcMoveDamage')
+        source += structure + ''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves')) + native('Qol_MoveUsesPhysicalDefense') + native('CalcMoveDamage')
         self.variants(source + r'''
 int main(void) {
  (void)BattleSystem_Random(NULL);
