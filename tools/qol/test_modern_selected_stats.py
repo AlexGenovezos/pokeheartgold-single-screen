@@ -354,20 +354,18 @@ int main(void){
 """
         self.variants(source)
 
-    def test_offensive_rounding_remains_an_explicit_legacy_order_gap(self):
+    def test_offensive_stage_rounding_is_modern_only_with_legacy_baseline(self):
         self.variants(damage_source()+r"""
 int main(void){
 #if QOL_MODERN_MOVES
- // Keep this gap visible: offensive modifiers precede stages. This cohort
- // selects the correct raw/stage owner; a future shared ordering pass must
- // change ordinary Attack and these selected offenses together.
+ // Stage-first101 ->151 ->302; native modifier-first101 ->202 ->303.
  const int ids[]={495,779};
  for(int i=0;i<2;i++){
   BattleContext c=fixture();c.battleMons[0].ability=ABILITY_HUGE_POWER;
   vars[1][BMON_DATA_ATK]=vars[0][BMON_DATA_DEF]=101;
   vars[1][BMON_DATA_STAT_CHANGE_ATK]=vars[0][BMON_DATA_STAT_CHANGE_DEF]=7;
-  assert(calc(&c,ids[i],0,1,0)==oracle(303,101));
-  assert(oracle(303,101)!=oracle(302,101));
+  vars[1][BMON_DATA_DEF]=100;
+  assert(calc(&c,ids[i],0,1,0)==(QOL_MODERN_BATTLE?134:135));
  }
  // Psyshock's offense still uses the user's Sp. Atk and Sp. Atk stage.
  BattleContext c=fixture();vars[0][BMON_DATA_SPATK]=211;

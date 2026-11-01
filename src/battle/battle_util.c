@@ -5833,9 +5833,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     s32 dmg2 = 0;
     u8 moveType;
     u8 moveCategory;
+#if QOL_MODERN_BATTLE
+    // Keep selected/staged offense wide through the existing modifiers. Legitimate
+    // original-roster stats fit u32; synthetic intermediate wrap parity is not
+    // defined here. The native-off path retains its u16 assignment behavior.
+    u32 monAtk;
+    u32 monSpAtk;
+#else
     u16 monAtk;
-    u16 monDef;
     u16 monSpAtk;
+#endif
+    u16 monDef;
     u16 monSpDef;
     u16 selectedDefense;
     s8 selectedDefenseStage;
@@ -5947,6 +5955,30 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 
     moveCategory = BATTLE_MOVE_DATA(ctx, moveNo).category;
+
+#if QOL_MODERN_BATTLE
+    // Source selection above precedes crit/defending Unaware. Simple's doubled
+    // changes are already stored. Consume each local offensive stage once,
+    // before modifiers, without changing stored stats or intrinsic move power.
+    if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_UNAWARE) == TRUE) {
+        statChangeAtk = 0;
+        statChangeSpAtk = 0;
+    }
+    if (crit > 1) {
+        if (statChangeAtk < 0) {
+            statChangeAtk = 0;
+        }
+        if (statChangeSpAtk < 0) {
+            statChangeSpAtk = 0;
+        }
+    }
+    monAtk = monAtk * sStatChangeTable[statChangeAtk + 6][0] / sStatChangeTable[statChangeAtk + 6][1];
+    monSpAtk = monSpAtk * sStatChangeTable[statChangeSpAtk + 6][0] / sStatChangeTable[statChangeSpAtk + 6][1];
+    statChangeAtk = 0;
+    statChangeSpAtk = 0;
+    // Remaining modifier placement and sequential floors are retained here;
+    // this is the stage-order prerequisite, not the full Gen IX stat group.
+#endif
 
     if (calcAttacker.ability == ABILITY_HUGE_POWER || calcAttacker.ability == ABILITY_PURE_POWER) {
         monAtk *= 2;
@@ -6123,10 +6155,12 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_UNAWARE) == TRUE) {
         statChangeAtk = 0;
         statChangeSpAtk = 0;
     }
+#endif
     if (calcAttacker.ability == ABILITY_UNAWARE) {
         statChangeDef = 0;
         statChangeSpDef = 0;

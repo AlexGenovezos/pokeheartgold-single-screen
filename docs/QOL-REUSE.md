@@ -803,5 +803,49 @@ This milestone provides72 supported later-generation moves and336 level-learning
 rows across237 base species. It does not establish complete Gen IX parity:
 remaining abilities,106 imported move IDs, old-move and species-stat updates,
 move access, status/turn/delayed-hit behavior and exact damage layers are separate
-work. The known inherited offensive-stage/modifier ordering remains documented
-above. No incomplete modern ruleset was installed.
+work. The inherited offensive-stage/modifier ordering at this integration point
+is documented above; the D1a working-tree correction follows below. No incomplete
+modern ruleset was installed.
+
+## Offensive stage-order prerequisite (D1a)
+
+Modern battle now floors the selected raw offensive stat's crit/defending-Unaware
+filtered stage before the existing offensive modifiers. Foul Play keeps the
+target's raw Attack/stage and Body Press the user's raw Defense/stage; the user
+owns offensive modifiers and level. Modern Simple's stored changes remain
+unchanged. Only local stages are consumed, once. The existing defending-Unaware
+query moves earlier without adding RNG or duplicate ability queries; causal Mold
+Breaker behavior and the user's late defensive Unaware branch are retained.
+Battle-off, including moves-only and type-only, keeps legacy ordering and u16
+offense. Modern local offense uses u32 without implicit u16 narrowing; synthetic
+overflow exactness remains unresolved rather than inferred from widened locals.
+
+The actual shared damage and real trainer-AI tests distinguish raw101,+1,Huge
+Power: stage151 then doubled302 gives134 damage at L50/BP100/Defense100, versus
+legacy stage-after-modifier303 giving135. Special offense with Deep Sea Tooth
+and selected Foul Play/Body Press offense cover the same boundary. All eight
+independent flag combinations retain their intended behavior. The test matrix
+also covers every stage, crit markers1/2/3, offensive ability/item combinations,
+Unaware/Mold Breaker/suppression, stored Simple stages and intrinsic-power stages.
+
+This resolves offensive stage order only. Offensive and BP modifier grouping,
+special-defense/Sand order, +2/spread/weather, burn/screens/final modifiers,
+berries, AI variance/type placement, dedicated confusion, delayed Future Sight
+and Beat Up remain separate work. Snow, Technician's intrinsic snapshot and
+critical/Sniper placement are preserved. No move/resource/learnset counts change
+(72 moves,336 rows,237 species), and no ABI/save/context fields change.
+
+Focused verification passed51 affected SDK-free host checks in61.624s, including
+Snow, Simple, original abilities, selected stats, core rules and A14 regressions.
+Fresh independent specification and quality reviews passed, each independently
+checking the six D1a methods and selected-stat boundary check across all eight
+flag combinations. The paired
+SDK game/resource/layout/native build passed. A fresh data-only RAM fixture
+confirmed135 damage before the correction and134 after it, with the same seed12,
+18 RNG calls and final RNG state. All1700 native battle frames matched every
+ARM9 instruction, with zero fallbacks, guard failures or evictions. The seven
+validation save hashes and frozen production/test hashes remained unchanged.
+The full253-test sweep above belongs to f673; D1a uses the focused51 checks,
+independent reviews, paired build and controlled native proof.
+No installation, live app/ROM or real-save change occurred. See
+`docs/superpowers/plans/2026-11-01-gen9-offensive-stage-order.md`.
