@@ -5766,6 +5766,108 @@ static BOOL Qol_HasPlusMinusAlly(BattleSystem *battleSystem, BattleContext *ctx,
     }
     return FALSE;
 }
+
+// Bounded original-roster offense only: use wide intermediates, rather than
+// infer cartridge overflow behavior for synthetic stats. Q12 chain rounds a
+// half up; applying the completed group rounds a half down.
+static u32 Qol_ChainOffenseModifier(u32 accumulated, u32 modifier) {
+    return (u32)(((u64)accumulated * modifier + 2048) >> 12);
+}
+
+static u32 Qol_ApplyOffenseModifier(u32 stat, u32 modifier) {
+    return (u32)(((u64)stat * modifier + 2047) >> 12);
+}
+
+static u16 Qol_GetOffenseBaseSpecies(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
+    if (GetBattlerVar(ctx, battlerId, BMON_DATA_STATUS2, NULL) & STATUS2_TRANSFORM) {
+        return GetMonData(BattleSystem_GetPartyMon(battleSystem, battlerId, ctx->selectedMonIndex[battlerId]), MON_DATA_SPECIES, NULL);
+    }
+    return GetBattlerVar(ctx, battlerId, BMON_DATA_SPECIES, NULL);
+}
+
+static int Qol_CountFlowerGiftProviders(BattleSystem *battleSystem, BattleContext *ctx, int battlerId) {
+    int i;
+    int count = 0;
+    int maxBattlers = BattleSystem_GetMaxBattlers(battleSystem);
+
+    if (maxBattlers > BATTLER_MAX) {
+        maxBattlers = BATTLER_MAX;
+    }
+    if (battlerId < 0 || battlerId >= maxBattlers) {
+        return 0;
+    }
+    // Showdown's onAllyModifyAtk includes self, but only actual active, living
+    // base Cherrim providers. A hypothetical AI ability cannot supply a field
+    // event. Count each provider; do not collapse two Cherrim to one boost.
+    for (i = 0; i < maxBattlers; i++) {
+        if (ctx->battleMons[i].hp
+            && BattleSystem_GetFieldSide(battleSystem, i) == BattleSystem_GetFieldSide(battleSystem, battlerId)
+            && GetBattlerAbility(ctx, i) == ABILITY_FLOWER_GIFT
+            && Qol_GetOffenseBaseSpecies(battleSystem, ctx, i) == SPECIES_CHERRIM) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// The caller has selected/floored the crit/Unaware-filtered offensive stage.
+// All remaining inputs belong to the user, except the bypass-aware target
+// reduction. No battle state or public damage-calculation ABI is added here.
+static u32 Qol_ModernOffenseStat(u32 stat, u8 category, u8 type, const MoveDamageCalc *user, u16 baseSpecies, BOOL slowStart, BOOL plusMinus, BOOL sun, int flowerGiftProviders, BOOL flashFire, BOOL targetReduction) {
+    u32 modifier = 4096;
+    int i;
+
+    // Source reductions have Atk priority6, SpA5; user abilities priority5.
+    // These exact half factors commute within priority5. Hustle modifies the
+    // stage-floored stat directly, never the chain accumulator.
+    if (targetReduction) {
+        modifier = Qol_ChainOffenseModifier(modifier, 2048);
+    }
+    if (category == CATEGORY_PHYSICAL) {
+        if (user->ability == ABILITY_HUSTLE) {
+            stat = stat * 3 / 2;
+        }
+        if (user->ability == ABILITY_HUGE_POWER || user->ability == ABILITY_PURE_POWER) {
+            modifier = Qol_ChainOffenseModifier(modifier, 8192);
+        }
+        if (slowStart) {
+            modifier = Qol_ChainOffenseModifier(modifier, 2048);
+        }
+        if (user->ability == ABILITY_GUTS && user->status) {
+            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+        }
+    } else if (category == CATEGORY_SPECIAL) {
+        if (plusMinus || (sun && user->ability == ABILITY_SOLAR_POWER)) {
+            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+        }
+    }
+    if ((user->hp <= user->maxHp / 3
+            && ((type == TYPE_GRASS && user->ability == ABILITY_OVERGROW)
+                || (type == TYPE_FIRE && user->ability == ABILITY_BLAZE)
+                || (type == TYPE_WATER && user->ability == ABILITY_TORRENT)
+                || (type == TYPE_BUG && user->ability == ABILITY_SWARM)))
+        || (type == TYPE_FIRE && user->ability == ABILITY_FLASH_FIRE && flashFire)) {
+        modifier = Qol_ChainOffenseModifier(modifier, 6144);
+    }
+    // Flower Gift Attack priority3, then offensive held items priority1.
+    if (category == CATEGORY_PHYSICAL && sun) {
+        for (i = 0; i < flowerGiftProviders; i++) {
+            modifier = Qol_ChainOffenseModifier(modifier, 6144);
+        }
+    }
+    if ((category == CATEGORY_PHYSICAL && user->item == HOLD_EFFECT_CHOICE_ATK)
+        || (category == CATEGORY_SPECIAL && user->item == HOLD_EFFECT_CHOICE_SPATK)) {
+        modifier = Qol_ChainOffenseModifier(modifier, 6144);
+    }
+    if ((category == CATEGORY_PHYSICAL && user->item == HOLD_EFFECT_CUBONE_ATK_UP
+            && (baseSpecies == SPECIES_CUBONE || baseSpecies == SPECIES_MAROWAK))
+        || (category == CATEGORY_SPECIAL && user->item == HOLD_EFFECT_CLAMPERL_SPATK && baseSpecies == SPECIES_CLAMPERL)
+        || (user->item == HOLD_EFFECT_PIKA_SPATK_UP && baseSpecies == SPECIES_PIKACHU)) {
+        modifier = Qol_ChainOffenseModifier(modifier, 8192);
+    }
+    stat = Qol_ApplyOffenseModifier(stat, modifier);
+    return stat ? stat : 1;
+}
 #endif
 
 // Intrinsic move power only. Explicit script power overrides bypass this helper.
@@ -5976,10 +6078,9 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     monSpAtk = monSpAtk * sStatChangeTable[statChangeSpAtk + 6][0] / sStatChangeTable[statChangeSpAtk + 6][1];
     statChangeAtk = 0;
     statChangeSpAtk = 0;
-    // Remaining modifier placement and sequential floors are retained here;
-    // this is the stage-order prerequisite, not the full Gen IX stat group.
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.ability == ABILITY_HUGE_POWER || calcAttacker.ability == ABILITY_PURE_POWER) {
         monAtk *= 2;
     }
@@ -5987,6 +6088,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     if (calcAttacker.ability == ABILITY_SLOW_START && (int)(BattleContext_Get(battleSystem, ctx, 3, 0) - GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_SLOW_START_TURN_NUMBER, NULL)) < 5) {
         monAtk /= 2;
     }
+#endif
 
     for (i = 0; i < NELEMS(sTypeEnhancingItems); i++) {
         if (calcAttacker.item == sTypeEnhancingItems[i][0] && moveType == sTypeEnhancingItems[i][1]) {
@@ -5995,13 +6097,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         }
     }
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_CHOICE_ATK) {
         monAtk = monAtk * 150 / 100;
     }
     if (calcAttacker.item == HOLD_EFFECT_CHOICE_SPATK) {
         monSpAtk = monSpAtk * 150 / 100;
     }
+#endif
 
+    // Soul Dew remains the legacy stat boost (including Frontier restriction)
+    // until its BP and defensive migration can land atomically.
     if (calcAttacker.item == HOLD_EFFECT_LATI_SPECIAL && !(battleType & BATTLE_TYPE_FRONTIER) && (calcAttacker.species == SPECIES_LATIOS || calcAttacker.species == SPECIES_LATIAS)) {
         monSpAtk = monSpAtk * 150 / 100;
     }
@@ -6010,17 +6116,21 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         monSpDef = monSpDef * 150 / 100;
     }
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_CLAMPERL_SPATK && calcAttacker.species == SPECIES_CLAMPERL) {
         monSpAtk *= 2;
     }
+#endif
 
     if (calcTarget.item == HOLD_EFFECT_CLAMPERL_SPDEF && calcTarget.species == SPECIES_CLAMPERL) {
         monSpDef *= 2;
     }
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_PIKA_SPATK_UP && calcAttacker.species == SPECIES_PIKACHU) {
         movePower *= 2;
     }
+#endif
 
 #if !QOL_MODERN_BATTLE
     if (calcTarget.item == HOLD_EFFECT_DITTO_DEF_UP && calcTarget.species == SPECIES_DITTO) {
@@ -6028,9 +6138,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_CUBONE_ATK_UP && (calcAttacker.species == SPECIES_CUBONE || calcAttacker.species == SPECIES_MAROWAK)) {
         monAtk *= 2;
     }
+#endif
 
     if (calcAttacker.item == HOLD_EFFECT_DIALGA_BOOST && (moveType == TYPE_DRAGON || moveType == TYPE_STEEL) && calcAttacker.species == SPECIES_DIALGA) {
         movePower = movePower * (100 + calcAttacker.mod) / 100;
@@ -6052,6 +6164,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower = movePower * (100 + calcAttacker.mod) / 100;
     }
 
+#if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_THICK_FAT) == TRUE && (moveType == TYPE_FIRE || moveType == TYPE_ICE)) {
         movePower /= 2;
     }
@@ -6063,6 +6176,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     if (calcAttacker.ability == ABILITY_GUTS && calcAttacker.status) {
         monAtk = monAtk * 150 / 100;
     }
+#endif
 
 #if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_MARVEL_SCALE) == TRUE && calcTarget.status) {
@@ -6070,12 +6184,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
-#if QOL_MODERN_BATTLE
-    if ((calcAttacker.ability == ABILITY_PLUS || calcAttacker.ability == ABILITY_MINUS)
-        && Qol_HasPlusMinusAlly(battleSystem, ctx, battlerIdAttacker)) {
-        monSpAtk = monSpAtk * 150 / 100;
-    }
-#else
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.ability == ABILITY_PLUS && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdAttacker, ABILITY_MINUS)) {
         monSpAtk = monSpAtk * 150 / 100;
     }
@@ -6093,6 +6202,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower /= 2;
     }
 
+#if !QOL_MODERN_BATTLE
     if (moveType == TYPE_GRASS && calcAttacker.ability == ABILITY_OVERGROW && calcAttacker.hp <= calcAttacker.maxHp / 3) {
         movePower = movePower * 150 / 100;
     }
@@ -6112,6 +6222,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     if (moveType == TYPE_FIRE && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_HEATPROOF) == TRUE) {
         movePower /= 2;
     }
+#endif
 
     if (moveType == TYPE_FIRE && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_DRY_SKIN) == TRUE) {
         movePower = movePower * 125 / 100;
@@ -6215,19 +6326,45 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 
     if (!CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {
+#if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && calcAttacker.ability == ABILITY_SOLAR_POWER) {
             monSpAtk = monSpAtk * 15 / 10;
         }
+#endif
         if ((fieldCondition & FIELD_CONDITION_SANDSTORM_ALL) && (calcTarget.type1 == TYPE_ROCK || calcTarget.type2 == TYPE_ROCK)) {
             monSpDef = monSpDef * 15 / 10;
         }
+#if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdAttacker, ABILITY_FLOWER_GIFT)) {
             monAtk = monAtk * 15 / 10;
         }
+#endif
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER && CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_SAME_SIDE_HP, battlerIdTarget, ABILITY_FLOWER_GIFT)) {
             monSpDef = monSpDef * 15 / 10;
         }
     }
+
+#if QOL_MODERN_BATTLE
+    {
+        BOOL sun = (fieldCondition & FIELD_CONDITION_SUN_ALL)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK);
+        BOOL slowStart = calcAttacker.ability == ABILITY_SLOW_START
+            && (int)(BattleContext_Get(battleSystem, ctx, 3, 0) - GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_SLOW_START_TURN_NUMBER, NULL)) < 5;
+        BOOL plusMinus = (calcAttacker.ability == ABILITY_PLUS || calcAttacker.ability == ABILITY_MINUS)
+            && Qol_HasPlusMinusAlly(battleSystem, ctx, battlerIdAttacker);
+        BOOL targetReduction = ((moveType == TYPE_FIRE || moveType == TYPE_ICE)
+                && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_THICK_FAT))
+            || (moveType == TYPE_FIRE
+                && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_HEATPROOF));
+        BOOL flashFire = GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_FLASH_FIRE, NULL) != 0;
+        int flowerGiftProviders = sun ? Qol_CountFlowerGiftProviders(battleSystem, ctx, battlerIdAttacker) : 0;
+        u16 baseSpecies = Qol_GetOffenseBaseSpecies(battleSystem, ctx, battlerIdAttacker);
+
+        monAtk = Qol_ModernOffenseStat(monAtk, CATEGORY_PHYSICAL, moveType, &calcAttacker, baseSpecies, slowStart, plusMinus, sun, flowerGiftProviders, flashFire, targetReduction);
+        monSpAtk = Qol_ModernOffenseStat(monSpAtk, CATEGORY_SPECIAL, moveType, &calcAttacker, baseSpecies, slowStart, plusMinus, sun, flowerGiftProviders, flashFire, targetReduction);
+    }
+#endif
 
     if (BATTLE_MOVE_DATA(ctx, moveNo).effect == MOVE_EFFECT_HALVE_DEFENSE) {
         monDef /= 2;
@@ -6356,9 +6493,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         }
     }
 
+#if !QOL_MODERN_BATTLE
     if (GetBattlerVar(ctx, battlerIdAttacker, BMON_DATA_FLASH_FIRE, NULL) && moveType == TYPE_FIRE) {
         dmg = dmg * 15 / 10;
     }
+#endif
 
     return dmg + 2;
 }

@@ -1,4 +1,4 @@
-"""D1a executes production damage/AI; later modifier-group parity is separate."""
+"""D1a/D1b execute production damage/AI with separate modern/legacy oracles."""
 import unittest
 
 import test_modern_selected_stats as selected
@@ -42,7 +42,9 @@ static int run(BattleContext *c,int move,int field,int crit){
 
 
 def ai_source():
-    source = snow.damage_source()
+    # Fixture writes include extended IDs; the real accessor still selects the
+    # production extended table, but fixture setup must remain in bounds.
+    source = snow.damage_source().replace('moveData[NUM_MOVES+1]', 'moveData[900]')
     definitions = '\n#undef BATTLE_MOVE_DATA\n#undef Qol_IsSupportedMove\n' + ''.join(
         moves.no_includes((selected.ROOT / p).read_text()) for p in
         ('include/move.h', 'include/qol_moves.h', 'src/qol_moves.c')) + '\ntypedef MoveTbl Move;'
@@ -81,7 +83,7 @@ int main(void){
  return 0;}
 ''')
 
-    def test_every_stage_crit_and_retained_physical_ability_item_sequence(self):
+    def test_every_stage_crit_and_physical_ability_item_group_or_legacy_sequence(self):
         self.variants(damage_source() + r'''
 int main(void){
  const int ids[]={MOVE_TACKLE,MOVE_FOUL_PLAY,MOVE_BODY_PRESS};
@@ -98,12 +100,19 @@ int main(void){
   int chosen=filtered(stage,crit,0),offense=101;
 #if QOL_MODERN_BATTLE
   offense=staged(offense,chosen);
-#endif
+  if(!suppressed&&a==3)offense=offense*3/2; // Hustle direct, outside group.
+  int numerator=1,denominator=1;
+  if(!suppressed&&(a==1||a==2))numerator*=2;
+  if(!suppressed&&a==5)denominator*=2;
+  if(!suppressed&&a==4){numerator*=3;denominator*=2;}
+  if(item==1){numerator*=3;denominator*=2;}if(item==2)numerator*=2;
+  offense=(offense*numerator+(denominator-1)/2)/denominator;
+  if(!offense)offense=1;
+#else
   if(!suppressed&&(a==1||a==2))offense*=2;
   if(!suppressed&&a==5)offense/=2;
   if(item==1)offense=offense*3/2;if(item==2)offense*=2;
   if(!suppressed&&(a==3||a==4))offense=offense*3/2;
-#if !QOL_MODERN_BATTLE
   offense=staged(offense,chosen);
 #endif
   assert(run(&c,ids[m],0,crit)==oracle(offense,100));
@@ -125,10 +134,15 @@ int main(void){
   int chosen=filtered(stage,crit,0),offense=101;
 #if QOL_MODERN_BATTLE
   offense=staged(offense,chosen);
-#endif
+  // Soul Dew deliberately retains its separate legacy stat effect until D2.
+  if(item==3)offense=offense*3/2;
+  int numerator=1,denominator=1;
+  if(item==1){numerator*=3;denominator*=2;}if(item==2)numerator*=2;
+  if(a&&!suppressed){numerator*=3;denominator*=2;}
+  offense=(offense*numerator+(denominator-1)/2)/denominator;
+#else
   if(item==1||item==3)offense=offense*3/2;if(item==2)offense*=2;
   if(a&&!suppressed)offense=offense*3/2;
-#if !QOL_MODERN_BATTLE
   offense=staged(offense,chosen);
 #endif
   assert(run(&c,MOVE_SWIFT,FIELD_CONDITION_SUN,crit)==oracle(offense,100));

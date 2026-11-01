@@ -19,10 +19,15 @@ def native(name, path='src/battle/battle_util.c'):
 def damage_source():
     source=rules.COMMON+'#include "constants/qol_moves.h"\n'+r'''
 typedef struct {int power,type,category,effect,range;} Move;
-typedef struct {int hp,ability,status,item,statChanges[8];unsigned moveEffectFlags;} Mon;
+typedef struct {int hp,ability,status,item,statChanges[8];struct {int embargoFlag;} moveEffectData;unsigned moveEffectFlags;} Mon;
 typedef struct {Mon battleMons[4];struct {int helpingHandFlag;} turnData[4];
  struct {Move moveData[NUM_MOVES+1];int calcTemp;} trainerAIData;
- int powerMultiplier,fieldCondition;struct {int moldBreakerFlag;} selfTurnData[4];int battleStatus;} BattleContext;
+ int powerMultiplier,fieldCondition;struct {int moldBreakerFlag;} selfTurnData[4];int battleStatus;int selectedMonIndex[4];} BattleContext;
+typedef unsigned long long u64;
+typedef int Pokemon;
+static Pokemon partySpecies[4];
+static Pokemon *BattleSystem_GetPartyMon(BattleSystem *s,int b,int slot){return &partySpecies[b];}
+static int GetMonData(Pokemon *mon,int field,void *out){assert(field==MON_DATA_SPECIES);return *mon;}
 static int vars[4][256],items[4];
 static int GetBattlerVar(BattleContext *c,int b,int f,void *p){return vars[b][f];}
 static int GetBattlerHeldItem(BattleContext *c,int b){return items[b];}
@@ -38,6 +43,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
     util=(ROOT/'src/battle/battle_util.c').read_text()
     source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly','src/battle/battle_util.c')+'#endif\n'
     source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
+    source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainOffenseModifier','Qol_ApplyOffenseModifier','Qol_GetOffenseBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat'))+'#endif\n'
     source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','CalcMoveDamage'))
     return source+r'''
 static BattleContext fixture(void){

@@ -849,3 +849,63 @@ The full253-test sweep above belongs to f673; D1a uses the focused51 checks,
 independent reviews, paired build and controlled native proof.
 No installation, live app/ROM or real-save change occurred. See
 `docs/superpowers/plans/2026-11-01-gen9-offensive-stage-order.md`.
+
+## Offensive stat modifier group (D1b)
+
+Modern battle now applies the selected offensive stage, direct Hustle floor,
+then one Q12 offensive modifier group. Chain multiplication rounds halves up;
+the completed stat application rounds halves down and clamps effective offense
+to at least one. The original-roster path uses widened local arithmetic without
+claiming synthetic overflow parity. Battle-off CalcMoveDamage preprocesses to
+the exact prior tokens for all four types/moves flag combinations, retaining
+its native u16 assignments and operation order. All three flags remain
+independent and default off.
+
+The group owns Huge/Pure Power, Slow Start, Guts, Plus/Minus, Solar Power,
+Flower Gift Attack, the low-HP type abilities, activated active Flash Fire,
+target Thick Fat/Heatproof, Choice Band/Specs, Thick Club, Deep Sea Tooth and
+Light Ball. Every migrated legacy stat/BP/post-formula owner is gated off only
+under modern battle. Flower Gift counts each actual living same-side base
+Cherrim, including self, at its pinned priority between user abilities and
+items. Original species after Transform also controls the migrated species
+items. Active suppression, target Mold Breaker bypass, supplied weather and
+Cloud Nine/Air Lock, and the existing Klutz/Embargo item accessor are preserved.
+Foul Play/Body Press retain their selected raw stat/stage and user-owned
+offensive modifiers; Psyshock retains its special category.
+
+Soul Dew deliberately retains both legacy stat effects and the Frontier
+restriction until its BP and defensive migration can land atomically. Flower
+Gift's defensive branch, BP grouping, defensive grouping/Sand, +2 and final
+damage ordering remain separate phases. Flash Fire's active-ability gate is an
+arithmetic correction; activation-flag clearing/restoration after ability loss
+or suppression still needs a lifecycle audit. Trainer AI executes the shared
+group through its existing live battle context; ordinary hypothetical candidate
+stat/context projection remains separate, and a supplied ability argument
+cannot manufacture a Flower Gift provider. No ABI, save/context fields,
+resources, move/learnset counts or installed app/ROM/save change occurs.
+
+Actual-C discriminators give153 damage for raw101,+1,Guts+Choice Band against
+Defense99 (sequential152), and55 for raw101,activated Flash Fire,BP80 against
+Defense100 (legacy post-formula54). The focused tests use independent rational
+modern expectations and preserve the legacy oracle across all eight flag
+combinations. They cover stages/crit/Unaware, ownership/category, migrated
+ability/item combinations, suppression, species/Transform, live providers,
+weather, HP/turn/activation boundaries, minimum effective stat and literal Q12
+half boundaries. The real trainer-AI matrix also passes address/undefined
+behavior sanitizers; its test-only expanded move setup now stays in bounds.
+See the migration ledger and verification record in
+`docs/superpowers/plans/2026-11-01-gen9-offensive-modifiers.md`.
+
+D1b integration passed57 affected SDK-free checks in80.856s and fresh independent
+specification and quality review. Both reviewers independently passed16 methods
+across all eight flag combinations; quality also checked the three changed
+retained fixtures and the actual-AI sanitizer matrix. The matching SDK game,
+transformed resources, layout and native executable build passed. Two fresh
+matching RAM fixtures confirmed152→153 Guts/Choice Band damage and54→55 Flash
+Fire damage, with the same seed12, respectively18/19 RNG calls and final RNG
+states. Both1700-frame battle comparisons matched every ARM9 instruction, with
+zero fallbacks, guard failures or evictions (3400 total compared frames). The
+initial boot is separate from those measured segments. Seven validation save
+hashes, frozen production/test hashes and all three tested artifact hashes
+remained unchanged. The253-test sweep above belongs to f673 and was not rerun
+for this C-only phase. The installed game and real save remain unchanged.

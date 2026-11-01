@@ -293,27 +293,10 @@ int main(void) {
 ''','-Wno-sign-compare','-Wno-misleading-indentation')
 
     def test_damage_stored_attack_and_defense_simple_never_reinterprets_or_mold_erases(self):
-        source=rules.COMMON+r'''
-typedef struct {int power,type,category,effect,range;} Move;
-typedef struct {struct {int hp,ability;unsigned moveEffectFlags;} battleMons[4];
- struct {int helpingHandFlag;} turnData[4];struct {Move moveData[NUM_MOVES+1];int calcTemp;} trainerAIData;
- int powerMultiplier,fieldCondition;struct {int moldBreakerFlag;} selfTurnData[4];int battleStatus;} BattleContext;
-static int vars[4][256];
-static int GetBattlerVar(BattleContext *c,int b,int f,void *p){return vars[b][f];}
-static int GetBattlerHeldItem(BattleContext *c,int b){return 0;}
-static int GetItemVar(BattleContext *c,int item,int f){return 0;}
-static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}
-static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 2;}
-static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
-static int BattleContext_Get(BattleSystem *s,BattleContext *c,int f,int b){return 10;}
-static int CheckMoveEffectOnField(BattleSystem *s,BattleContext *c,int effect){return 0;}
-static int GetMonsHitCount(BattleSystem *s,BattleContext *c,int side,int b){return 1;}
-static int MaskOfFlagNo(int n){return 1u<<n;}
-'''+native('GetBattlerAbility')+native('CheckBattlerAbilityIfNotIgnored')+native('CheckAbilityActive')
-        util=(ROOT/UTIL).read_text()
-        source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly',UTIL)+'#endif\n'
-        source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-        source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+native('Qol_MoveUsesPhysicalDefense')+native('CalcMoveDamage')
+        import test_modern_snow as snow
+        source = snow.damage_source().replace(
+            'static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}',
+            'static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 2;}')
         self.variants(source+r'''
 static int changed(int before,int simple) {int stage=before-6;if(!QOL_MODERN_BATTLE&&simple)stage*=2;if(stage< -6)stage=-6;if(stage>6)stage=6;return stage>=0?101*(stage+2)/2:101*2/(2-stage);}
 int main(void) {

@@ -207,34 +207,10 @@ int main(void) {
 ''', '-Wno-unused-function', '-Wno-unused-variable', '-Wno-unused-but-set-variable')
 
     def test_plus_minus_requires_distinct_living_active_ally_for_special_damage(self):
-        source = rules.COMMON + r'''
-typedef struct {int power,type,category,effect,range;} Move;
-typedef struct {
- struct {int hp,ability;unsigned moveEffectFlags;} battleMons[4];
- struct {int helpingHandFlag;} turnData[4];
- struct {Move moveData[NUM_MOVES+1];int calcTemp;} trainerAIData;
- int powerMultiplier,fieldCondition;
-} BattleContext;
-static int vars[4][256],maxBattlers;
-static int GetBattlerVar(BattleContext *c,int id,int field,void *unused){return vars[id][field];}
-static int GetBattlerHeldItem(BattleContext *c,int id){return 0;}
-static int GetItemVar(BattleContext *c,int item,int field){return 0;}
-static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}
-static int BattleSystem_GetMaxBattlers(BattleSystem *s){return maxBattlers;}
-static int BattleSystem_GetFieldSide(BattleSystem *s,int id){return id&1;}
-static int BattleContext_Get(BattleSystem *s,BattleContext *c,int field,int id){return 10;}
-static int CheckBattlerAbilityIfNotIgnored(BattleContext *c,int a,int d,int ability){return GetBattlerAbility(c,d)==ability;}
-static int CheckMoveEffectOnField(BattleSystem *s,BattleContext *c,int effect){return 0;}
-static int GetMonsHitCount(BattleSystem *s,BattleContext *c,int side,int id){return 1;}
-static int MaskOfFlagNo(int n){return 1u<<n;}
-'''
-        # Declaration before dependent environmental stubs; actual ability accessor below.
-        source = source.replace('static int vars[4][256],maxBattlers;',
-                                'static int vars[4][256],maxBattlers;\nu8 GetBattlerAbility(BattleContext *c,int id);')
-        util = (ROOT / UTIL).read_text()
-        structure = util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
-        source += native('GetBattlerAbility', 'CheckAbilityActive') + '#if QOL_MODERN_BATTLE\n' + rules.helper('Qol_HasPlusMinusAlly', UTIL) + '#endif\n'
-        source += structure + ''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves')) + native('Qol_MoveUsesPhysicalDefense') + native('CalcMoveDamage')
+        import test_modern_snow as snow
+        source = snow.damage_source().replace(
+            'static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}',
+            'static int maxBattlers;static int BattleSystem_GetMaxBattlers(BattleSystem *s){return maxBattlers;}')
         self.variants(source + r'''
 int main(void) {
  (void)BattleSystem_Random(NULL);
@@ -265,7 +241,7 @@ int main(void) {
  }
  return 0;
 }
-''', '-Wno-sign-compare')
+''', '-Wno-sign-compare', '-Wno-unused-function')
 
 
 class OriginalAbilitySdkTests(unittest.TestCase):
