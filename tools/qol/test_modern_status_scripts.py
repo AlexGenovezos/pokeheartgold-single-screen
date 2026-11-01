@@ -87,7 +87,7 @@ class ModernStatusSourceTests(unittest.TestCase):
     def test_battle_rules_always_applies_paralysis_after_numeric_changes(self):
         from unittest.mock import patch
         import modern_rom
-        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
+        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
         numeric.assert_called_once_with(b'rom')
         electric.assert_called_once_with(b'numeric')
@@ -182,7 +182,7 @@ typedef struct {int unused;} BattleSystem;
 typedef struct {int status,status2,hp,type1,type2;} BattleMon;
 typedef struct {int statusFlags;} SelfTurn;
 typedef struct {
- const u32 *words; int pos,length,vars[70],ability,ignored,message,failed;
+ const u32 *words; int pos,length,vars[70],ability,ignored,message,failed,tempData;
  int battlerIdAttacker,battlerIdAbility,turnOrder[4],moveNoCur,statChangeType;
  BattleMon battleMons[4]; SelfTurn selfTurnData[4];
 } BattleContext;
@@ -197,6 +197,7 @@ int GetBattlerVar(BattleContext *c,int id,int field,void *unused){
 void SetBattlerVar(BattleContext *c,int id,int field,int *value){assert(id==0&&field==BMON_DATA_STATUS);c->battleMons[id].status=*value;}
 void BattlerSetAbility(BattleContext *c,int id,int value){assert(0);}
 void CopyBattleMonToPartyMon(BattleSystem *s,BattleContext *c,int id){}
+int GetBattlerAbility(BattleContext *c,int id){return c->ability;}
 int CheckBattlerAbilityIfNotIgnored(BattleContext *c,int attacker,int target,int ability){return !c->ignored&&c->ability==ability;}
 int CheckAbilityActive(BattleSystem *s,BattleContext *c,int mode,int battler,int ability){return 0;}
 int MaskOfFlagNo(int n){return 1u<<n;}
@@ -204,7 +205,7 @@ int MaskOfFlagNo(int n){return 1u<<n;}
 // behavior runs the real helper and command in test_modern_substitute.py.
 int Qol_MoveBypassesSubstitute(int move){return FALSE;}
 '''
-        functions = '\n'.join(game.function_source('src/battle/battle_command.c', name) for name in (
+        functions = game.function_source('src/battle/battle_util.c','Qol_GetActualStatStageDelta')+'\n'+'\n'.join(game.function_source('src/battle/battle_command.c', name) for name in (
             'BtlCmd_CompareVarToValue', 'BtlCmd_CompareMonDataToValue',
             'BtlCmd_CheckIgnorableAbility', 'BtlCmd_CheckSubstitute',
             'BtlCmd_CheckIgnoreWeather', 'BtlCmd_Goto', 'BtlCmd_UpdateVar', 'BtlCmd_UpdateMonData'))

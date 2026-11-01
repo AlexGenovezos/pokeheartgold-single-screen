@@ -19,6 +19,10 @@ COMPETITIVE_BANKS = {
     722: 'Stat loss from a foe\nsharply raises Sp. Atk.',
 }
 DESCRIPTIONS = {
+    12: 'Blocks infatuation,\nTaunt and Intimidate.',
+    20: "Prevents confusion and\nIntimidate’s stat loss.",
+    39: "Prevents flinching and\nIntimidate’s stat loss.",
+    113: "Hits Ghosts. Blocks\nIntimidate’s stat loss.",
     5: 'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
     31: 'Draws in Electric moves.\nAbsorbs them for Sp. Atk.',
     35: 'Prevents accuracy loss.\nIgnores evasion changes.',

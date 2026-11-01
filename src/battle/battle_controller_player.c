@@ -2488,6 +2488,7 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
     attackerAccuracy = ctx->battleMons[battlerIdAttacker].statChanges[STAT_ACC] - 6;
     targetEvasion = 6 - ctx->battleMons[battlerIdTarget].statChanges[STAT_EVASION];
 
+#if !QOL_MODERN_BATTLE
     if (GetBattlerAbility(ctx, battlerIdAttacker) == ABILITY_SIMPLE) {
         attackerAccuracy *= 2;
     }
@@ -2495,6 +2496,8 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_SIMPLE) == TRUE) {
         targetEvasion *= 2;
     }
+
+#endif
 
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_UNAWARE) == TRUE) {
         attackerAccuracy = 0;
@@ -3915,7 +3918,12 @@ static BOOL TryBuildRage(BattleSystem *battleSystem, BattleContext *ctx) {
         && ctx->battleMons[ctx->battlerIdTarget].hp != 0
         && (ctx->selfTurnData[ctx->battlerIdTarget].physicalDamage != 0 || ctx->selfTurnData[ctx->battlerIdTarget].specialDamage != 0)
         && ctx->battleMons[ctx->battlerIdTarget].statChanges[STAT_ATK] < 12) {
+#if QOL_MODERN_BATTLE
+        ctx->battleMons[ctx->battlerIdTarget].statChanges[STAT_ATK] += Qol_GetActualStatStageDelta(ctx,
+            ctx->battlerIdTarget, ctx->battleMons[ctx->battlerIdTarget].statChanges[STAT_ATK], 1, FALSE);
+#else
         ctx->battleMons[ctx->battlerIdTarget].statChanges[STAT_ATK]++;
+#endif
         ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_RAGE_IS_BUILDING);
         ctx->commandNext = ctx->command;
         ctx->command = CONTROLLER_COMMAND_RUN_SCRIPT;

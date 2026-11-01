@@ -17,6 +17,7 @@ def stat_source():
 #include "constants/battle_script.h"
 #include "constants/battle_subscript.h"
 #include "constants/message_tags.h"
+#include "constants/qol_stat_stages.h"
 #ifndef ABILITY_COMPETITIVE
 #define ABILITY_COMPETITIVE 172
 #endif
@@ -25,8 +26,8 @@ def stat_source():
 typedef int BattleSystem;
 typedef int NarcId;
 enum {NARC_a_0_0_0,NARC_a_0_0_1};
-enum {msg_0197_00142=142,msg_0197_00622=622,msg_0197_00756=756,
-msg_0197_00750=750,msg_0197_00753=753,msg_0197_00273=273,msg_0197_00727=727,
+enum {msg_0197_00607=607,msg_0197_00142=142,msg_0197_00622=622,msg_0197_00756=756,
+msg_0197_00759=759,msg_0197_00750=750,msg_0197_00753=753,msg_0197_00273=273,msg_0197_00727=727,
 msg_0197_00669=669,msg_0197_00704=704,msg_0197_00145=145,msg_0197_00662=662,
 msg_0197_00762=762,msg_0197_00765=765};
 typedef struct {int hp,ability,moveEffectFlags,status2,statChanges[8];} BattleMon;
@@ -48,7 +49,7 @@ static int GetNarcMemberSizeByIdPair(int n,int m){return 4;}
 static void ReadWholeNarcMemberByIdPair(void *out,int n,int m){memset(out,0,4);}
 '''
     for file, functions in (
-        ('battle_util',('GetBattlerAbility','CheckBattlerAbilityIfNotIgnored','ReadBattleScriptFromNarc','BattleScript_Return')),
+        ('battle_util',('GetBattlerAbility','Qol_GetActualStatStageDelta','CheckBattlerAbilityIfNotIgnored','ReadBattleScriptFromNarc','BattleScript_Return')),
         ('battle_command',('BattleScriptReadWord','BattleScriptIncrementPointer','BtlCmd_ChangeStatStage','BtlCmd_EndScript'))):
         source += '\n'.join(game.function_source(f'src/battle/{file}.c',f) for f in functions)+'\n'
     return source + r'''

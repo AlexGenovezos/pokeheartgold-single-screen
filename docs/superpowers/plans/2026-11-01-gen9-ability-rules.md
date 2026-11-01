@@ -33,8 +33,15 @@ Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
 
 ## Remaining implementation
 
-- [ ] Port modern Flash Fire/absorption details, Oblivious
-  Taunt immunity, Intimidate immunities and other changed original abilities.
+- [x] Oblivious Taunt immunity and gain/recovery cure, plus Intimidate immunity
+  for Inner Focus, Own Tempo, Oblivious and Scrappy. Focused actual C/SDK tests
+  pass; see `2026-11-01-gen9-oblivious-intimidate.md` for evidence and limits.
+- [x] Modern stored-stage Simple and six base+2 X items. Focused native C/SDK
+  tests cover actual clipping, messages, causal Mold Breaker, Stockpile event
+  counters and item/copy boundaries. Combined209-test and paired native validation
+  passed; copied-save controls verify Simple and Oblivious, plus Drizzle8.
+  See `2026-11-01-gen9-simple-xitems.md`.
+- [ ] Complete the remaining changed original abilities and absorption details.
 - [ ] Convert Future Sight/Doom Desire to modern delayed-hit mechanics. Their
   retained Gen IV machinery stores precomputed damage and only the caster's
   battler slot, without caster identity or ability provenance. Sturdy currently
@@ -56,11 +63,12 @@ Ground/Lightning Rod, Fairy search, and 5/8-turn weather setup fixtures; see
   Neutralizing Gas handler is not an implementation.
 - [ ] Extend ability name/description resources with native internal IDs while
   preserving old bank entries. Keep full credits for reused implementations.
-- [ ] Apply the remaining changed standard species slot pairs only after their
-  effects are ready (Gengar is implemented): Jigglypuff, Wigglytuff, Koffing,
-  Weezing, Igglybuff, Shiftry,
-  Wingull, Pelipper, Torkoal, Feebas, Milotic and Gallade.
-- [ ] Test a deliberate existing-save slot adapter. Preserve explicitly stored
+- [x] Apply ready standard pairs for Gengar, Jigglypuff, Wigglytuff, Igglybuff,
+  Milotic, Wingull, Pelipper, Torkoal and Feebas. Hydration and finite5/8-turn
+  Drizzle/Drought readiness are checked before the four latest assignments.
+- [ ] Apply remaining standard pairs for Koffing, Weezing, Shiftry and Gallade
+  only after their effects are implemented.
+- [x] Test a deliberate existing-save slot adapter. Preserve explicitly stored
   nonstandard choices; disambiguate original identical slots using the original
   personality rule. Do not blindly recompute every stored ability from PID.
 - [ ] Complete Snow, modern turn ordering and the remaining core rules, with

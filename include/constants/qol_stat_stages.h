@@ -1,0 +1,9 @@
+#ifndef POKEHEARTGOLD_CONSTANTS_QOL_STAT_STAGES_H
+#define POKEHEARTGOLD_CONSTANTS_QOL_STAT_STAGES_H
+
+// Modern-only bank197 additions. Each is a contiguous player/wild/foe triplet.
+#define QOL_MSG_STAT_ROSE_DRASTICALLY 1276
+#define QOL_MSG_STAT_FELL_SEVERELY   1279
+#define QOL_MSG_ITEM_RAISED_DRASTICALLY 1282
+
+#endif

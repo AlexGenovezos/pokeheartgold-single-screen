@@ -6,12 +6,14 @@ import struct
 
 from battle_scripts import modern_paralysis_script, modern_drain_script, modern_weather_script, WEATHER_SCRIPTS
 from game_text import game_text
+from simple_scripts import SIMPLE_SCRIPTS, modern_simple_script, modern_simple_message_resources
 from move_resources import extended_move_resources, read_entries
 from absorption_scripts import modern_absorption_script
 from sturdy_scripts import STURDY_SCRIPTS, modern_sturdy_script
 from ability_descriptions import modern_ability_description_resources
 from competitive_scripts import COMPETITIVE_SUBSCRIPT, modern_competitive_script
 from cursed_body_scripts import ORIGINAL_SUBSCRIPT_COUNT, modern_cursed_body_script
+from oblivious_intimidate_scripts import ABILITY_SCRIPTS, modern_oblivious_intimidate_script
 
 from nitro_data import (lz10_decompress, lz10_literals, pack_messages, pack_narc,
                        replace_rom_files, rom_files, unpack_messages, unpack_narc)
@@ -161,6 +163,24 @@ def modern_competitive_resources(archive):
     return pack_narc(members, names)
 
 
+def modern_oblivious_intimidate_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) != COMPETITIVE_SUBSCRIPT + 1:
+        raise ValueError('Oblivious/Intimidate requires exactly 299 battle subscripts after Competitive')
+    for member in ABILITY_SCRIPTS:
+        members[member] = modern_oblivious_intimidate_script(members[member], member)
+    return pack_narc(members, names)
+
+
+def modern_simple_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) != COMPETITIVE_SUBSCRIPT + 1:
+        raise ValueError('Simple/X-item requires exactly 299 battle subscripts after Competitive')
+    for member in SIMPLE_SCRIPTS:
+        members[member] = modern_simple_script(members[member], member)
+    return pack_narc(members, names)
+
+
 def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
     files = rom_files(rom)
     replacements = {}
@@ -180,10 +200,12 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
         archive = read('a/0/0/1')
         for transform in (modern_battle_resources, modern_paralysis_resources,
                           modern_weather_resources, modern_absorption_resources,
-                          modern_sturdy_resources, modern_cursed_body_resources, modern_competitive_resources):
+                          modern_sturdy_resources, modern_cursed_body_resources, modern_competitive_resources,
+                          modern_oblivious_intimidate_resources, modern_simple_resources):
             archive = transform(archive)
         replacements['a/0/0/1'] = archive
-        replacements['a/0/2/7'] = modern_ability_description_resources(read('a/0/2/7'), charmap)
+        replacements['a/0/2/7'] = modern_simple_message_resources(
+            modern_ability_description_resources(read('a/0/2/7'), charmap), charmap)
     if moves:
         paths = ('a/0/1/1', 'a/0/0/0', 'a/0/2/7')
         entries = read_entries(Path(__file__).resolve().parents[2] / 'include/data/qol_move_entries.inc')

@@ -18,6 +18,8 @@ int GetBattlerVar(BattleContext *ctx, int battlerId, u32 varId, void *data);
 void SetBattlerVar(BattleContext *ctx, int battlerId, u32 varId, void *data);
 void AddBattlerVar(BattleContext *ctx, int battlerId, u32 varId, int data);
 void BattleMon_AddVar(BattleMon *mon, u32 varId, int data);
+// Pure semantic delta; callers store the clipped result exactly once.
+int Qol_GetActualStatStageDelta(BattleContext *ctx, int recipient, int before, int baseDelta, BOOL ignoreSimple);
 u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1, int battlerId2, int flag);
 void BattleSystem_ClearExperienceEarnFlags(BattleContext *ctx, int battlerId);
 void BattleSystem_SetExperienceEarnFlags(BattleSystem *battleSystem, BattleContext *ctx, int battlerId);

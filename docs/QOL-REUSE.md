@@ -432,3 +432,143 @@ Evidence lives in ignored `.local-tools/validation/gen9-52-moves-tests.log`,
 The implemented52 moves and ability checkpoints remain a subset of the approved
 Gen IX conversion;126 additional imported move IDs and other rules still need
 work. No modern development artifacts have replaced the playable installed game.
+
+## Oblivious, Intimidate and four ready species pairs
+
+This development subset remains behind default-off `QOL_MODERN_BATTLE`.
+Oblivious prevents move-based Taunt unless the move legitimately ignores its
+ability. The existing entry/action-end cure selector retains Attract priority,
+then clears Taunt on a second pass when both are present. Suppression delays
+these cures; gaining or recovering Oblivious permits them. The selector uses
+the active ability without borrowing an unrelated battler's Mold Breaker.
+
+Subscript221 branches message7 before the native status-name formatter, which
+only accepts0–6. Its Taunt cure preserves primary status and icon, reveals the
+holder's ability through message1087, then uses native Taunt-end message1257.
+The first two categories in the original status-cure message740 now explicitly
+name the holder, recording the ability for AI. Confusion/Attract cures also
+preserve an unrelated primary-status icon. Primary cures and sleeping
+Nightmare cleanup retain their original paths. The Taunt end is inline, with
+no new subscript or additional Call/stack frame.
+
+Intimidate skips Inner Focus, Own Tempo, Oblivious and Scrappy after the
+original same-side, Substitute and fainted checks. Plain native CheckAbility
+uses the active, suppression-aware getter for this ability event. It cannot
+inherit a move's Mold Breaker. Message727 identifies both holders through
+explicit nickname/ability categories. The blocked path does not call the stat
+subscript or create a Competitive event; the other doubles opponent still
+receives its reduction and may activate Competitive once. Temporary Intimidate
+owner attribution, speed order and original-attacker restoration stay native.
+Ordinary Growl reductions remain unaffected by these Intimidate immunities.
+
+The source generator pins complete original source hashes and checks unchanged
+SDK output against original NARC bytes before compiling modified members132,
+186 and221. The resource chain applies it after Competitive, preserving299
+members, names, Cursed Body297 and Competitive298. Default/type-only paths do
+not compile these scripts. Bank722 updates only Oblivious, Own Tempo, Inner
+Focus and Scrappy descriptions; original bank parity, font bounds and all
+existing extended names/descriptions through172 remain checked.
+
+After native Hydration/weather readiness tests passed, the three existing
+personal-data loaders enable Wingull [Keen Eye, Hydration], Pelipper [Keen Eye,
+Drizzle], Torkoal [White Smoke, Drought] and Feebas [Swift Swim, Oblivious].
+The stored getter converts only a base-form original first-ability byte with
+odd raw personality to the new second slot. Even personalities, other stored
+bytes and forms are preserved; Gengar and Competitive adapters remain intact.
+No save bytes, personality values, native fields or ability IDs change.
+
+References retain all existing credits and reuse terms: BluRosie's hg-engine
+`61b510cfb6cf7d77c3b083150fad3499f82fd326`, particularly
+`src/individual/ServerDoPostMoveEffects.c:Activate_AbilityHealingStatusCondition`,
+`src/individual/BattleController_BeforeMove.c` and
+`data/battle_scripts/subscripts/subscript_0186_INTIMIDATE.s`; and
+pokeemerald-expansion `c460a8661dfa0598ae25d42a968c690ecbf489c6`,
+`src/battle_script_commands.c:Cmd_settaunt` and
+`src/battle_stat_change.c:IsIntimidateBlocked`. Native integration deliberately
+uses suppression-aware checks instead of the hg-engine script's raw ability
+comparison, retains Attract priority, and avoids its extra block-subscript Call.
+
+Focused validation is recorded in ignored
+`.local-tools/validation/gen9-oblivious-intimidate-focused.log`:46 final host,
+resource, loader, encrypted-save and pipeline regressions passed; four actual
+SDK/native-command VM tests passed; two existing finite-weather SDK tests and
+pre-enable Hydration/reentry checks passed. Native encrypted getter tests cover
+all256 stored bytes, both PID parities and all32 block permutations without
+changing the encrypted136-byte record. All nonzero raw form bytes are preserved
+by the four-pair adapter. Actual constructor selection and ability-update paths
+agree. Script tests cover cure stack depths0–4, ability gain/recovery,
+Taunt suppression/Mold Breaker/failures/duration/Protect, both doubles sides and
+orders, unrelated Mold Breaker, correct AI holders and a single Competitive
+activation on the other opponent. Hydration104→190 covers every primary status,
+toxic counters, sleep/Nightmare, no rain, suppression, Cloud Nine/Air Lock and
+fainted holders; existing weather tests cover5/8 turns, active source rocks,
+expiration and no restart under matching weather.
+
+These are focused host/SDK checks, not full native gameplay validation or
+specialized AI move scoring. Independent reviews, the global suite and a
+matching native build/copied-save comparison remain the parent workflow's next
+steps. This task does not build, install, stage, commit or push. Taunt/Encore
+duration modernization, Snow and later abilities/moves remain separate work;
+the installed playable four-QoL game is unchanged.
+
+### Modern Simple and X items
+
+The next scoped modern-battle change stores Simple's doubled semantic changes
+once, then uses the ordinary stored stage for damage, speed and accuracy. A pure
+clamped-delta helper serves central move changes, audited self script arithmetic,
+Rage and six X items. The latter use base+2 (Simple+4); Dire Hit retains Focus
+Energy. Existing setters, exact copies/resets, stage swaps and native/save layouts
+are unchanged. External move Mold Breaker can bypass Simple when the new change
+happens, including positive Swagger/Flatter, and cannot erase an existing boost.
+
+Behavior references retain BluRosie's hg-engine revision
+`61b510cfb6cf7d77c3b083150fad3499f82fd326` and pokeemerald-expansion revision
+`c460a8661dfa0598ae25d42a968c690ecbf489c6`, especially
+`src/battle_stat_change.c:StatChanged` and
+`src/battle_move_resolution.c:HandleMoveEffects`: Stockpile's Defense and Special
+Defense counters count successful events once, while consumption sends their
+negative counts through the current ability's semantic stat-change path. This
+port keeps the existing counters and does not mistake effect161/162
+(Spit Up/Swallow) for subscript161 (Close Combat).
+
+Modern-only generated Starf210 routes through central12 and existing item
+consumption290; X-item269 prints the locally captured actual item boost. Native
+four-frame Call/Return checks cover held, Pluck and Fling chains. Nine new
+side-aware messages append to bank197, cloning original encoded format controls
+and replacing one literal adjective per row. Whole original source/binary hashes,
+1276-row/key47860 checks and unchanged SDK parity protect the original resources;
+all original rows, other banks, names and subscript299-member layout remain.
+The bank829 trainer card, Cursed Body297, Competitive298 and the existing
+Oblivious/Intimidate transformations are preserved.
+
+The focused plan and evidence limits are recorded in
+`docs/superpowers/plans/2026-11-01-gen9-simple-xitems.md`. These focused native C
+and SDK tests are not a claim of complete Gen IX rules or full native gameplay
+verification. The parent integration still owns independent reviews, the global
+suite, paired native build and copied-save checks before any installation.
+
+
+## Combined integration verification
+
+The final combined Oblivious/Intimidate and Simple/X-item snapshot passed all
+209 host/SDK tests in735.207s and a fresh paired game/resource/layout/native build.
+Both independent spec and quality reviews passed before integration. The added
+player-bag test executes selection, recovery and consumption for all six X items,
+including successful use, cap/no-op behavior and exactly-once consumption.
+
+Nine copied-save native/interpreter comparisons passed every ARM9 instruction.
+Six stable battle segments (1700 frames each) had zero fallbacks or guard failures:
+Taunt was blocked by Oblivious but affected its control (counter4); Simple Defense
+Curl stored+2 Defense versus the control's+1; Simple Swords Dance stored+4 Attack
+and visibly printed “drastically rose”; Pelipper's Drizzle with Damp Rock produced
+rain with8 turns. Three entry segments (2500 frames each) matched instructions
+with0.25% interpreter fallback and10 overlay evictions: Oblivious blocked
+Intimidate while its control lost1 Attack, and Pelipper loaded Drizzle before its
+rain script completed in the final stable segment.
+
+All22 frozen source/test hashes and all six validation save hashes matched.
+The native source remains b602f2d. This milestone is development verification,
+not complete Gen IX parity or an installation; the playable four-QoL app and real
+save remain unchanged. Remaining move/ability, Snow, timing and delayed-hit work
+continues separately. Logs and isolated artifacts are ignored local validation
+files and are not committed.

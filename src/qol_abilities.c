@@ -27,6 +27,17 @@ u8 Qol_GetStoredAbility(u16 species, u8 form, u8 ability, u32 personality) {
             || (species == SPECIES_MILOTIC && ability == ABILITY_MARVEL_SCALE))) {
         return ABILITY_COMPETITIVE;
     }
+    if (form == 0 && (personality & 1)) {
+        if (species == SPECIES_WINGULL && ability == ABILITY_KEEN_EYE) {
+            return ABILITY_HYDRATION;
+        } else if (species == SPECIES_PELIPPER && ability == ABILITY_KEEN_EYE) {
+            return ABILITY_DRIZZLE;
+        } else if (species == SPECIES_TORKOAL && ability == ABILITY_WHITE_SMOKE) {
+            return ABILITY_DROUGHT;
+        } else if (species == SPECIES_FEEBAS && ability == ABILITY_SWIFT_SWIM) {
+            return ABILITY_OBLIVIOUS;
+        }
+    }
 #endif
     return ability;
 }
@@ -39,6 +50,14 @@ void Qol_ApplyModernMonAbilities(int species, BASE_STATS *personal) {
     } else if (species == SPECIES_JIGGLYPUFF || species == SPECIES_WIGGLYTUFF || species == SPECIES_IGGLYBUFF
         || species == SPECIES_MILOTIC) {
         personal->abilities[1] = ABILITY_COMPETITIVE;
+    } else if (species == SPECIES_WINGULL) {
+        personal->abilities[1] = ABILITY_HYDRATION;
+    } else if (species == SPECIES_PELIPPER) {
+        personal->abilities[1] = ABILITY_DRIZZLE;
+    } else if (species == SPECIES_TORKOAL) {
+        personal->abilities[1] = ABILITY_DROUGHT;
+    } else if (species == SPECIES_FEEBAS) {
+        personal->abilities[1] = ABILITY_OBLIVIOUS;
     }
 #endif
 }

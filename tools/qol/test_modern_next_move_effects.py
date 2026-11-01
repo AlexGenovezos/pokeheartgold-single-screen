@@ -41,7 +41,7 @@ typedef struct {
  unsigned sideEffectFlagsDirect,sideEffectFlagsIndirect,sideEffectFlagsAbility,moveStatusFlag,battleStatus,battleStatus2;
  unsigned fieldSideConditionFlags[2];struct {int reflectTurns,lightScreenTurns;} fieldSideConditionData[2];
  int statChangeType,statChangeParam,statChangeFlag,battlerIdStatChange,battlerIdAttacker,battlerIdTarget,
- battlerIdTemp,battlerIdAbility,multiHitCount,multiHitCountTemp,checkMultiHit,moveNoCur,calcTemp;
+ battlerIdTemp,battlerIdAbility,tempData,multiHitCount,multiHitCountTemp,checkMultiHit,moveNoCur,calcTemp;
  const u32 *words;int pos,length,vars[70],updates,applied,message,damageCalls,criticalCalls;
 } BattleContext;
 static int roll,randomCalls;
@@ -72,7 +72,7 @@ static void SetBattlerVar(BattleContext *c,int b,int v,int *value){
 static void BattlerSetAbility(BattleContext *c,int b,int v){c->battleMons[b].ability=v;}
 static void CopyBattleMonToPartyMon(BattleSystem *s,BattleContext *c,int b){}
 static int MaskOfFlagNo(int n){return 1u<<n;}
-'''+re.search(r'static const int sMoveStatusChangeScripts\[.*?\n\};', (ROOT/'src/battle/battle_util.c').read_text(), re.S)[0]+'\n'+native('GetMoveStatusChangeScript','BattlerCheckSubstitute','BattleSystem_TryIndirectSideEffect','DamageDivide')
+'''+re.search(r'static const int sMoveStatusChangeScripts\[.*?\n\};', (ROOT/'src/battle/battle_util.c').read_text(), re.S)[0]+'\n'+native('Qol_GetActualStatStageDelta','GetMoveStatusChangeScript','BattlerCheckSubstitute','BattleSystem_TryIndirectSideEffect','DamageDivide')
     source+=native('BtlCmd_UpdateVar','BtlCmd_UpdateVar2','BtlCmd_CompareVarToValue','BtlCmd_CompareMonDataToValue',
                   'BtlCmd_CheckAbility','BtlCmd_Random','BtlCmd_UpdateMonDataFromVar','BtlCmd_Goto',
                   'BtlCmd_DivideVarByValue','BtlCmd_SetMultiHit','BtlCmd_TryBreakScreens',path='src/battle/battle_command.c')

@@ -119,7 +119,7 @@ int main(void) {
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',return_value=b'absorption') as absorb, \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'rom',None,types=False,battle_rules=True)
@@ -256,7 +256,7 @@ typedef int BOOL;typedef uint32_t u32;
 #define GF_ASSERT assert
 typedef int BattleSystem;
 typedef struct {
-    const u32 *words;int pos,length,vars[70],ability,battlerIdAbility,stages[32],message;
+    const u32 *words;int pos,length,vars[70],ability,battlerIdAbility,stages[32],message,tempData;
 } BattleContext;
 static void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;assert(c->pos>=0&&c->pos<=c->length);}
 static int BattleScriptReadWord(BattleContext *c){assert(c->pos<c->length);return c->words[c->pos++];}
@@ -270,7 +270,7 @@ static void BattlerSetAbility(BattleContext *c,int id,int value){assert(0);}
 static void CopyBattleMonToPartyMon(BattleSystem *s,BattleContext *c,int id){}
 static int MaskOfFlagNo(int n){return 1u<<n;}
 '''
-        functions='\n'.join(game.function_source('src/battle/battle_command.c',f) for f in (
+        functions=game.function_source('src/battle/battle_util.c','Qol_GetActualStatStageDelta')+'\n'+'\n'.join(game.function_source('src/battle/battle_command.c',f) for f in (
             'BtlCmd_CompareMonDataToValue','BtlCmd_CheckAbility','BtlCmd_UpdateMonData','BtlCmd_UpdateVar'))
         checks=r'''
 static const u32 original[]={ORIGINAL};

@@ -14,6 +14,7 @@
 #include "constants/move_effects.h"
 #include "constants/moves.h"
 #include "constants/opcode.h"
+#include "constants/qol_stat_stages.h"
 #include "constants/pokemon.h"
 #include "constants/sndseq.h"
 
@@ -1592,6 +1593,12 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
     BattleMon *mon = &ctx->battleMons[ctx->battlerIdStatChange];
 #if QOL_MODERN_BATTLE
     int stageBefore;
+    BOOL ignoreSimple = ctx->battlerIdAttacker >= 0
+        && ctx->battlerIdAttacker < BattleSystem_GetMaxBattlers(battleSystem)
+        && ctx->battlerIdAttacker != ctx->battlerIdStatChange
+        && (ctx->statChangeType == SIDE_EFFECT_TYPE_DIRECT || ctx->statChangeType == SIDE_EFFECT_TYPE_INDIRECT)
+        && GetBattlerAbility(ctx, ctx->battlerIdAttacker) == ABILITY_MOLD_BREAKER
+        && GetBattlerAbility(ctx, ctx->battlerIdStatChange) == ABILITY_SIMPLE;
     // Clear before every early return, including immunity and floor failures.
     ctx->statChangeFlag &= ~QOL_STAT_CHANGE_COMPETITIVE_PENDING;
 #endif
@@ -1641,6 +1648,11 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 BattleScriptIncrementPointer(ctx, unkA);
             }
         } else {
+#if QOL_MODERN_BATTLE
+            // Announce a real external move bypass only after the cap check.
+            change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
+                ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE));
+#endif
             if (ctx->statChangeType == 3) {
                 // "{0}'s {1} raised its {2}!"
                 ctx->buffMsg.id = msg_0197_00622;
@@ -1650,14 +1662,22 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 ctx->buffMsg.param[2] = stat + 1;
             } else if (ctx->statChangeType == 5) {
                 // "The {1} raised {0}'s {2}!"
+#if QOL_MODERN_BATTLE
+                ctx->buffMsg.id = change >= 3 ? QOL_MSG_ITEM_RAISED_DRASTICALLY : change == 2 ? msg_0197_00759 : msg_0197_00756;
+#else
                 ctx->buffMsg.id = msg_0197_00756;
+#endif
                 ctx->buffMsg.tag = TAG_NICKNAME_ITEM_STAT;
                 ctx->buffMsg.param[0] = CreateNicknameTag(ctx, ctx->battlerIdStatChange);
                 ctx->buffMsg.param[1] = ctx->itemTemp;
                 ctx->buffMsg.param[2] = stat + 1;
             } else {
                 // "{0}'s {1} (sharply) rose!"
+#if QOL_MODERN_BATTLE
+                ctx->buffMsg.id = change >= 3 ? QOL_MSG_STAT_ROSE_DRASTICALLY : change == 2 ? msg_0197_00753 : msg_0197_00750;
+#else
                 ctx->buffMsg.id = (change == 1) ? msg_0197_00750 : msg_0197_00753;
+#endif
                 ctx->buffMsg.tag = TAG_NICKNAME_STAT;
                 ctx->buffMsg.param[0] = CreateNicknameTag(ctx, ctx->battlerIdStatChange);
                 ctx->buffMsg.param[1] = stat + 1;
@@ -1768,6 +1788,10 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
                 return FALSE;
             }
         }
+#if QOL_MODERN_BATTLE
+        change = Qol_GetActualStatStageDelta(ctx, ctx->battlerIdStatChange, stageBefore, change,
+            stageBefore > 0 && ignoreSimple && !CheckBattlerAbilityIfNotIgnored(ctx, ctx->battlerIdAttacker, ctx->battlerIdStatChange, ABILITY_SIMPLE));
+#endif
         if (ctx->statChangeType == 3) {
             // "{0}'s {1} cuts {2}'s {3}!"
             ctx->buffMsg.id = msg_0197_00662;
@@ -1778,7 +1802,11 @@ BOOL BtlCmd_ChangeStatStage(BattleSystem *battleSystem, BattleContext *ctx) {
             ctx->buffMsg.param[3] = stat + 1;
         } else {
             // "{0}'s {1} [harshly] fell!"
+#if QOL_MODERN_BATTLE
+            ctx->buffMsg.id = change <= -3 ? QOL_MSG_STAT_FELL_SEVERELY : change == -2 ? msg_0197_00765 : msg_0197_00762;
+#else
             ctx->buffMsg.id = (change == -1) ? msg_0197_00762 : msg_0197_00765;
+#endif
             ctx->buffMsg.tag = TAG_NICKNAME_STAT;
             ctx->buffMsg.param[0] = CreateNicknameTag(ctx, ctx->battlerIdStatChange);
             ctx->buffMsg.param[1] = stat + 1;
@@ -1824,6 +1852,16 @@ BOOL BtlCmd_UpdateMonData(BattleSystem *battleSystem, BattleContext *ctx) {
     int battlerId = BattleSystem_GetBattlerIDBySide(battleSystem, ctx, side);
     int var = GetBattlerVar(ctx, battlerId, varId, NULL);
 
+#if QOL_MODERN_BATTLE
+    // TEMP aliases must be resolved for classification, but the native setter
+    // still receives the original destination. All audited arithmetic is self-caused.
+    int resolvedVarId = varId == BMON_DATA_TEMP ? ctx->tempData : varId;
+    if (resolvedVarId >= BMON_DATA_STAT_CHANGE_ATK && resolvedVarId <= BMON_DATA_STAT_CHANGE_EVASION
+        && (opcode == 8 || opcode == 9 || opcode == 18)) {
+        int delta = opcode == 8 ? val : -(val);
+        var += Qol_GetActualStatStageDelta(ctx, battlerId, var, delta, FALSE);
+    } else
+#endif
     switch (opcode) {
     case 7:
         var = val;
@@ -2045,6 +2083,16 @@ BOOL BtlCmd_UpdateMonDataFromVar(BattleSystem *battleSystem, BattleContext *ctx)
     int var = GetBattlerVar(ctx, battlerId, varId, NULL);
     int *val = BattleScriptGetVarPointer(battleSystem, ctx, valId);
 
+#if QOL_MODERN_BATTLE
+    // TEMP aliases must be resolved for classification, but the native setter
+    // still receives the original destination. All audited arithmetic is self-caused.
+    int resolvedVarId = varId == BMON_DATA_TEMP ? ctx->tempData : varId;
+    if (resolvedVarId >= BMON_DATA_STAT_CHANGE_ATK && resolvedVarId <= BMON_DATA_STAT_CHANGE_EVASION
+        && (opcode == 8 || opcode == 9 || opcode == 18)) {
+        int delta = opcode == 8 ? *val : -(*val);
+        var += Qol_GetActualStatStageDelta(ctx, battlerId, var, delta, FALSE);
+    } else
+#endif
     switch (opcode) {
     case 7:
         var = *val;
@@ -5318,8 +5366,32 @@ BOOL BtlCmd_UseBagItem(BattleSystem *battleSystem, BattleContext *ctx) {
     int side = BattleScriptReadWord(ctx);
     int battlerId = BattleSystem_GetBattlerIDBySide(battleSystem, ctx, side);
 
+#if QOL_MODERN_BATTLE
+    int before[8];
+    int stat;
+    for (stat = STAT_ATK; stat <= STAT_EVASION; stat++) {
+        before[stat] = ctx->battleMons[battlerId].statChanges[stat];
+    }
+#endif
     BattleSystem_RecoverStatus(battleSystem, battlerId, ctx->selectedMonIndex[battlerId], 0, ctx->itemTemp);
 
+#if QOL_MODERN_BATTLE
+    // Player bag items already apply during selection. This opcode is the
+    // trainer path, so capture its one application without persistent scratch.
+    ctx->buffMsg.id = msg_0197_00607;
+    ctx->buffMsg.tag = TAG_NONE;
+    for (stat = STAT_ATK; stat <= STAT_EVASION; stat++) {
+        int delta = ctx->battleMons[battlerId].statChanges[stat] - before[stat];
+        if (delta > 0) {
+            ctx->buffMsg.id = delta >= 3 ? QOL_MSG_ITEM_RAISED_DRASTICALLY : delta == 2 ? msg_0197_00759 : msg_0197_00756;
+            ctx->buffMsg.tag = TAG_NICKNAME_ITEM_STAT;
+            ctx->buffMsg.param[0] = CreateNicknameTag(ctx, battlerId);
+            ctx->buffMsg.param[1] = ctx->itemTemp;
+            ctx->buffMsg.param[2] = stat;
+            break;
+        }
+    }
+#endif
     return FALSE;
 }
 

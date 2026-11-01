@@ -2,6 +2,8 @@
 
 #include "global.h"
 
+#include "qol_config.h"
+
 #include "constants/game_stats.h"
 #include "constants/message_tags.h"
 #include "constants/sndseq.h"
@@ -462,7 +464,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_ATK_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ATK, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ATK, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ATK, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ATK, 1);
+#endif
                 ret = TRUE;
             }
         }
@@ -471,7 +478,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_DEF_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_DEF, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_DEF, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_DEF, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_DEF, 1);
+#endif
                 ret = TRUE;
             }
         }
@@ -480,7 +492,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_SPATK_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPATK, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPATK, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPATK, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPATK, 1);
+#endif
                 ret = TRUE;
             }
         }
@@ -489,7 +506,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_SPDEF_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPDEF, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPDEF, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPDEF, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPDEF, 1);
+#endif
                 ret = TRUE;
             }
         }
@@ -498,7 +520,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_SPEED_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPEED, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPEED, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPEED, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_SPEED, 1);
+#endif
                 ret = TRUE;
             }
         }
@@ -507,7 +534,12 @@ BOOL BattleSystem_RecoverStatus(BattleSystem *battleSystem, int battlerId, int s
     if (GetItemAttr(item, ITEMATTR_ACCURACY_STAGES, HEAP_ID_BATTLE)) {
         if (index1 == selectedMonIndex || index2 == selectedMonIndex) {
             if (GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ACC, NULL) < STAT_UP_6) {
+#if QOL_MODERN_BATTLE
+                int before = GetBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ACC, NULL);
+                AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ACC, Qol_GetActualStatStageDelta(ctx, battlerId, before, 2, FALSE));
+#else
                 AddBattlerVar(ctx, battlerId, BMON_DATA_STAT_CHANGE_ACC, 1);
+#endif
                 ret = TRUE;
             }
         }

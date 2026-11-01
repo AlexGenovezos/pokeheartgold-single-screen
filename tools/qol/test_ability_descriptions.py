@@ -29,7 +29,11 @@ class AbilityDescriptionTests(unittest.TestCase):
         result,names=unpack_narc(module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt'))
         self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),830)
         words,key=unpack_messages(result[722]);self.assertEqual(key,26692)
-        expected={5:'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
+        expected={12:'Blocks infatuation,\nTaunt and Intimidate.',
+                  20:"Prevents confusion and\nIntimidate’s stat loss.",
+                  39:"Prevents flinching and\nIntimidate’s stat loss.",
+                  113:"Hits Ghosts. Blocks\nIntimidate’s stat loss.",
+                  5:'At full HP, survives a hit.\nBlocks 1-hit KO moves.',
                   31:'Draws in Electric moves.\nAbsorbs them for Sp. Atk.',
                   35:'Prevents accuracy loss.\nIgnores evasion changes.',
                   51:'Prevents accuracy loss.\nIgnores evasion changes.',
@@ -129,13 +133,15 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch('modern_rom.modern_sturdy_resources',return_value=b'sturdy') as sturdy, \
              patch('modern_rom.modern_cursed_body_resources',return_value=b'cursed') as cursed, \
              patch('modern_rom.modern_competitive_resources',return_value=b'competitive') as competitive, \
+             patch('modern_rom.modern_oblivious_intimidate_resources',return_value=b'oblivious') as oblivious, \
+             patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities') as abilities, \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
              patch('modern_rom.extended_move_resources',return_value=(b'data',b'moves',b'all')) as extended, \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'123456',ROOT/'charmap.txt',types=True,battle_rules=True,moves=True)
         sturdy.assert_called_once_with(b'absorption');abilities.assert_called_once_with(b'fairy',ROOT/'charmap.txt')
-        cursed.assert_called_once_with(b'sturdy');competitive.assert_called_once_with(b'cursed');drain.assert_called_once_with(b'competitive');self.assertEqual(extended.call_args.args[2],b'abilities')
+        cursed.assert_called_once_with(b'sturdy');competitive.assert_called_once_with(b'cursed');oblivious.assert_called_once_with(b'competitive');drain.assert_called_once_with(b'oblivious');self.assertEqual(extended.call_args.args[2],b'abilities')
         self.assertEqual(result['a/0/2/7'],b'all')
 
 

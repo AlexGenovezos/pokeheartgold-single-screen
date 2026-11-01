@@ -1040,6 +1040,7 @@ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1
     speedStatChange1 = ctx->battleMons[battlerId1].statChanges[3];
     speedStatChange2 = ctx->battleMons[battlerId2].statChanges[3];
 
+#if !QOL_MODERN_BATTLE
     if (GetBattlerAbility(ctx, battlerId1) == ABILITY_SIMPLE) {
         speedStatChange1 = 6 + (speedStatChange1 - 6) * 2;
 
@@ -1051,6 +1052,8 @@ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1
             speedStatChange1 = 0;
         }
     }
+#endif
+#if !QOL_MODERN_BATTLE
     if (GetBattlerAbility(ctx, battlerId2) == ABILITY_SIMPLE) {
         speedStatChange2 = 6 + (speedStatChange2 - 6) * 2;
 
@@ -1062,6 +1065,7 @@ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1
             speedStatChange2 = 0;
         }
     }
+#endif
 
     speed1 = ctx->battleMons[battlerId1].speed * sStatChangeTable[speedStatChange1][0] / sStatChangeTable[speedStatChange1][1];
     speed2 = ctx->battleMons[battlerId2].speed * sStatChangeTable[speedStatChange2][0] / sStatChangeTable[speedStatChange2][1];
@@ -2724,6 +2728,25 @@ u8 GetBattlerAbility(BattleContext *ctx, int battlerId) {
     }
 }
 
+// Simple modifies new changes, never the interpretation of an existing stage.
+// This helper deliberately does not announce Mold Breaker or mutate battle state.
+int Qol_GetActualStatStageDelta(BattleContext *ctx, int recipient, int before, int baseDelta, BOOL ignoreSimple) {
+    int after;
+#if QOL_MODERN_BATTLE
+    if (!ignoreSimple && GetBattlerAbility(ctx, recipient) == ABILITY_SIMPLE) {
+        baseDelta *= 2;
+    }
+#endif
+    after = before + baseDelta;
+    if (after > 12) {
+        after = 12;
+    }
+    if (after < 0) {
+        after = 0;
+    }
+    return after - before;
+}
+
 BOOL CheckBattlerAbilityIfNotIgnored(BattleContext *ctx, int battlerIdAttacker, int battlerIdTarget, int ability) {
     BOOL ret = FALSE;
 
@@ -3902,6 +3925,11 @@ BOOL CheckStatusHealAbility(BattleSystem *battleSystem, BattleContext *ctx, int 
         if (ctx->battleMons[battlerId].status2 & STATUS2_ATTRACT) {
             ctx->msgTemp = 6;
             ret = TRUE;
+#if QOL_MODERN_BATTLE
+        } else if (ctx->battleMons[battlerId].moveEffectData.tauntTurns) {
+            ctx->msgTemp = 7;
+            ret = TRUE;
+#endif
         }
         break;
     case ABILITY_UNBURDEN:
@@ -5963,6 +5991,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower = movePower * 125 / 100;
     }
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.ability == ABILITY_SIMPLE) {
         statChangeAtk *= 2;
         if (statChangeAtk < -6) {
@@ -5979,7 +6008,9 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
             statChangeSpAtk = 6;
         }
     }
+#endif
 
+#if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_SIMPLE) == TRUE) {
         statChangeDef *= 2;
         if (statChangeDef < -6) {
@@ -5996,6 +6027,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
             statChangeSpDef = 6;
         }
     }
+#endif
 
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_UNAWARE) == TRUE) {
         statChangeAtk = 0;
