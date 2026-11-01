@@ -23,11 +23,13 @@ existing non-HM moves. Compile the ROM and generate matching native layout.
   `src/field/field_control.c`.
 - [x] Add available actions in `PartyMenu_SetContextMenuItems_Field`, preserving
   menu capacity, optional HM teaching and learned non-HM field actions.
-- [ ] Run host tests and the full ROM build; investigate all compiler failures.
-- [ ] Regenerate native output from this build's NEF/layout, build and test with
+- [x] Run host tests and the full ROM build; investigate all compiler failures.
+- [x] Regenerate native output from this build's NEF/layout, build and test with
   copied save data. Deploy only verified output and retain rollback files.
 
-Independent review found no blocking logic issues. Added a Whirlpool-only menu
-regression and an allocation/file-free HM pocket lookup after review. All 18
-QoL host checks pass. Full ROM build currently fails in pre-existing networking
-source/header compatibility; build recovery is underway.
+Independent review found no blocking logic issues. A Whirlpool-only menu
+regression and allocation-free HM pocket lookup were added after review. The
+full QoL suite now has 22 checks; the full ROM and matching native builds pass.
+The native build is installed with a backup and unchanged real save. The current
+early-game test save has no HMs/badges; all eight late-game field environments
+remain gameplay checks in issue #4 rather than being inferred from host tests.

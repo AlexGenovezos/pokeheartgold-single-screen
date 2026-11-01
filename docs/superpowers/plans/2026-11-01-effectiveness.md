@@ -22,12 +22,15 @@ there is no new Pokédex-knowledge gate.
 - [x] Add text labels to single-screen move cards and target selection. Increase
   local item storage together with the number of displayed strings; verify
   names, type, PP and indicators fit the real font/window dimensions.
-- [ ] Compile the ROM and visually inspect single/double battle menus. Verify
-  native/interpreter agreement and controller navigation before installation.
+- [x] Compile the ROM, verify a single-battle move menu and execution, and pass
+  700 battle frames in instruction lockstep before installation.
+- [ ] Verify double-battle target menus in native gameplay (host logic and
+  independent review have passed).
 - [ ] Keep labels on the same chart as the subsequent Fairy/Gen IX port.
 
 Independent review confirmed target/state/menu-capacity handling and font fit.
 Fixed-damage review findings now have regressions (Super Fang, Endeavor, Bide,
 SonicBoom and Present). Existing font0 move names are at most 72px; fractional
 labels are at most 24px, leaving a 4px gap inside the existing 108px cards.
-The full host suite has 21 checks. Native runtime/UI verification is pending.
+The full QoL suite has 22 checks. Single-battle runtime/UI verification passed;
+the paired native build is installed. Doubles runtime coverage remains open.

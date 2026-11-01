@@ -1,7 +1,8 @@
 # QoL development tools
 
-These tools and source changes are in development; they have not been installed
-in the current native game.
+The first four QoL features are built and installed in the local Mac app.
+See [the installed checkpoint](../../docs/QOL.md) for source revisions and
+validation limits. Generation IX/Fairy is still pending.
 
 ## Host regression tests
 

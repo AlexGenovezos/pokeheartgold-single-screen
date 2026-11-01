@@ -62,3 +62,43 @@ single-screen native game or its save.
   effectiveness values. The move-selection and target-selection stages are
   separate. Avoid inventing a selected target during double battles.
 
+
+## Generation IX audit checkpoint (2026-11-01)
+
+No modern rules have been enabled in the installed game. The installed
+indicators currently use the original Generation IV battle chart. The hg-engine
+configuration defaults to generation 9, but its default configuration also
+expands abilities, items, saves and battle gimmicks. Importing those defaults
+wholesale would change the agreed game/story and save boundaries.
+
+Existing-roster Fairy typing covers 20 species:
+Clefairy, Clefable, Jigglypuff, Wigglytuff, Mr. Mime, Cleffa, Igglybuff,
+Togepi, Togetic, Marill, Azumarill, Snubbull, Granbull, Ralts, Kirlia,
+Gardevoir, Azurill, Mawile, Mime Jr. and Togekiss. Reference:
+`hg-engine/data/Species.c` at the reviewed revision.
+
+The move-data comparison found 109 existing moves with numeric differences:
+61 power, 30 accuracy, 29 PP, seven priority, four type and three effect-chance
+changes (some moves have several). Updating numbers alone would leave incorrect
+effect scripts, abilities and AI behavior. Examples include Knock Off, Leech
+Life, Hidden Power and recovery moves. Move expansion needs an explicit decision
+about newer moves/updated abilities; no later-generation Pokémon are required.
+That clarification is pending, not silently treated as approval.
+
+Port boundaries, to implement and validate before enabling a modern build:
+
+| Area | Source integration and required checks |
+| --- | --- |
+| Fairy/chart | `include/constants/pokemon.h`, `src/battle/battle_util.c`: slot 9 can follow hg-engine's Fairy convention; add all Fairy interactions and remove Steel's Ghost/Dark resistances. Damage, AI and previews must share one chart. Test all 18×18 matchups plus dual types/immunities. |
+| Species typing | `src/pokemon.c` personal loaders, including the open-NARC/form path, or a reproducible personal-data build transform. Cover all 20 species in existing saves, new encounters, summaries and AI. No save structure growth. |
+| Move typing | Update Charm, Sweet Kiss and Moonlight to Fairy; Curse becomes Ghost. Preserve Hidden Power's exclusion of slot 9. Audit Conversion/random-type paths, not just direct move loads. |
+| Type presentation | Type names use message bank 0735; sprite icons use `src/type_icon_resources.c`, NARC `a/0/0/8`, slot-9 character member 236. Supply source-generated Fairy artwork/name and test palettes, summary, Pokédex and battle menus. No ignored asset-only edits. |
+| Critical hits | `TryCriticalHit`, damage commands and AI: base chance 1/24, +1 1/8, +2 1/2, +3 guaranteed; damage 1.5× and correct Sniper multiplication/rounding. Retain stat-stage bypass, armor/Lucky Chant and RNG semantics. |
+| Status/turn rules | Burn 1/16, paralysis half speed, modern poison/Steel/Electric status immunities, powder immunity and Protect odds. Audit battle controller/scripts and AI together; do not add independent cosmetic approximations. |
+| Weather/abilities | Port finite ability weather, changed ability effects, move-specific interactions and turn ordering from established implementations with focused differential tests. Hail versus Gen IX snow needs all consumers, not a text rename. |
+| Data and save compatibility | Keep roster/story, learned-move IDs and save layout stable unless an explicit expansion requires migration. Test existing PP above newly reduced maxima, stored abilities/stats and old saves. Audit move effect/script changes alongside the 109 numeric differences. |
+
+Retain hg-engine credits/reuse terms with any actual code or asset port. Do not
+claim Generation IX parity until the individual mechanics and full native build
+have been tested. Mega Evolution, Z-Moves, Dynamax and Terastallization are
+separate features, not implied by updating the ordinary battle rules.
