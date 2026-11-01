@@ -28,10 +28,17 @@ done
 "$game_root/scripts/build.sh" GAME_VERSION=SOULSILVER COMPARE=0 "CLI_DEFINES=$game_defines"
 game_build="$game_root/build/soulsilver.us"
 game_rom="$game_build/pokesoulsilver.us.nds"
-if [[ "$modern_types" == 1 ]]; then
+if [[ "$modern_types" == 1 || "$modern_rules" == 1 ]]; then
     resource_dir="$(mktemp -d "$game_build/qol-resources.XXXXXX")"
     trap 'rm -rf "$resource_dir"' EXIT
-    "$python_bin" "$game_root/tools/qol/modern_rom.py" "$game_rom" "$resource_dir/modern.nds"
+    resource_args=()
+    if [[ "$modern_types" == 0 ]]; then
+        resource_args+=(--no-types)
+    fi
+    if [[ "$modern_rules" == 1 ]]; then
+        resource_args+=(--battle-rules)
+    fi
+    "$python_bin" "$game_root/tools/qol/modern_rom.py" "$game_rom" "$resource_dir/modern.nds" "${resource_args[@]}"
     game_rom="$game_build/pokesoulsilver-modern.us.nds"
     mv "$resource_dir/modern.nds" "$game_rom"
 fi

@@ -92,15 +92,39 @@ def modern_pokedex_resources(archive):
     return pack_narc(members, names)
 
 
-def modern_type_rom(rom, charmap):
+def modern_battle_resources(archive):
+    members, names = unpack_narc(archive)
+    if len(members) <= 26:
+        raise ValueError('Battle subscript archive is incomplete')
+    # Fixed-width operand replacements preserve every relative script jump.
+    # Opcodes/variables are defined by asm/macros/btlcmd.inc and battle_script.h.
+    # These two Gen V+/VII+ changes follow hg-engine at the pinned revision.
+    changes = ((26, (85, 32, 8), (85, 32, 16)),  # Burn: max HP /16, retain Heatproof.
+               (18, (56, 3, 2), (56, 2, 2)))    # Sleep: 2..4 counter, 1..3 active turns.
+    for member, before, after in changes:
+        old, new = struct.pack('<3I', *before), struct.pack('<3I', *after)
+        if members[member].count(old) != 1:
+            raise ValueError(f'Battle subscript {member} differs from the expected source')
+        members[member] = members[member].replace(old, new)
+    return pack_narc(members, names)
+
+
+def make_modern_rom(rom, charmap, types=True, battle_rules=False):
     files = rom_files(rom)
-    paths = ('a/0/0/8', 'a/0/2/7', 'a/0/6/8')
-    try:
-        source = [rom[files[p][1]:files[p][2]] for p in paths]
-    except KeyError as error:
-        raise ValueError(f'SoulSilver resource is absent: {error.args[0]}') from error
-    replacements = (*modern_type_resources(*source[:2], charmap), modern_pokedex_resources(source[2]))
-    return replace_rom_files(rom, dict(zip(paths, replacements)))
+    replacements = {}
+    def read(path):
+        try:
+            return rom[files[path][1]:files[path][2]]
+        except KeyError as error:
+            raise ValueError(f'SoulSilver resource is absent: {path}') from error
+    if types:
+        paths = ('a/0/0/8', 'a/0/2/7', 'a/0/6/8')
+        source = [read(p) for p in paths]
+        updated = (*modern_type_resources(*source[:2], charmap), modern_pokedex_resources(source[2]))
+        replacements.update(zip(paths, updated))
+    if battle_rules:
+        replacements['a/0/0/1'] = modern_battle_resources(read('a/0/0/1'))
+    return replace_rom_files(rom, replacements)
 
 
 def main():
@@ -108,12 +132,14 @@ def main():
     parser.add_argument('source', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--charmap', type=Path, default=Path(__file__).resolve().parents[2] / 'charmap.txt')
+    parser.add_argument('--no-types', action='store_true')
+    parser.add_argument('--battle-rules', action='store_true')
     args = parser.parse_args()
     # Exclusive creation prevents overwriting the built source, a clean ROM or a save.
-    output = modern_type_rom(args.source.read_bytes(), args.charmap)
+    output = make_modern_rom(args.source.read_bytes(), args.charmap, not args.no_types, args.battle_rules)
     with args.output.open('xb') as stream:
         stream.write(output)
-    print(f'{args.output}: modern type resources, {len(output)} bytes')
+    print(f'{args.output}: selected modern resources, {len(output)} bytes')
 
 
 if __name__ == '__main__':

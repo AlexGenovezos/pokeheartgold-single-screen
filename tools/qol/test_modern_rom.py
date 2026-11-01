@@ -66,3 +66,53 @@ class ModernRomTests(unittest.TestCase):
         self.assertEqual(graphic[:48], header)
         self.assertEqual(len(graphic), 432)
         self.assertNotEqual(graphic[48:], b'\x11' * 384)
+
+    def test_burn_and_sleep_script_changes_preserve_other_commands_and_fail_on_drift(self):
+        members = [b'untouched'] * 30
+        members[26] = struct.pack('<6I', 85, 32, 8, 85, 32, 2)
+        members[18] = struct.pack('<3I', 56, 3, 2)
+        actual, _ = nitro.unpack_narc(modern_rom.modern_battle_resources(nitro.pack_narc(members)))
+        self.assertEqual(struct.unpack('<6I', actual[26]), (85, 32, 16, 85, 32, 2))
+        self.assertEqual(struct.unpack('<3I', actual[18]), (56, 2, 2))
+        for i, member in enumerate(members):
+            if i not in (18, 26):
+                self.assertEqual(actual[i], member)
+        with self.assertRaises(ValueError):
+            modern_rom.modern_battle_resources(nitro.pack_narc(actual))
+
+    def test_actual_script_commands_apply_modern_burn_and_sleep_ranges(self):
+        import test_game_logic as game
+        members = [b''] * 27
+        members[26] = struct.pack('<6I', 85, 32, 8, 85, 32, 2)
+        members[18] = struct.pack('<3I', 56, 3, 2)
+        result, _ = nitro.unpack_narc(modern_rom.modern_battle_resources(nitro.pack_narc(members)))
+        words = [struct.unpack('<'+'I'*(len(result[i])//4), result[i]) for i in (26,18)]
+        declarations = '''
+#include <assert.h>
+typedef int BOOL;typedef struct {int random;} BattleSystem;
+typedef struct {int words[6],pos,hp,calcTemp;} BattleContext;
+#define FALSE 0
+void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;}
+int BattleScriptReadWord(BattleContext *c){return c->words[c->pos++];}
+int *BattleScriptGetVarPointer(BattleSystem *s,BattleContext *c,int v){(void)s;assert(v==32);return &c->hp;}
+int BattleSystem_Random(BattleSystem *s){return s->random;}
+'''
+        functions = '\n'.join((game.function_source('src/battle/battle_util.c','DamageDivide'),
+                               game.function_source('src/battle/battle_command.c','BtlCmd_DivideVarByValue'),
+                               game.function_source('src/battle/battle_command.c','BtlCmd_Random')))
+        check = '''
+int main(void){
+ BattleSystem s={0};
+ for(int hp=1;hp<=200;hp++){
+  BattleContext c={{BURN},0,hp,0};
+  BtlCmd_DivideVarByValue(&s,&c);assert(c.hp==(hp<16?1:hp/16));
+  BtlCmd_DivideVarByValue(&s,&c);assert(c.hp==(hp<32?1:(hp/16)/2));
+ }
+ for(int random=0;random<12;random++){
+  BattleContext c={{SLEEP},0,0,0};s.random=random;
+  BtlCmd_Random(&s,&c);assert(c.calcTemp-1==random%3+1);
+ }
+ return 0;
+}
+'''.replace('BURN',','.join(map(str,words[0]))).replace('SLEEP',','.join(map(str,words[1]))+',0,0,0')
+        game.GameLogicTests.compile_run(self, declarations+functions+check)
