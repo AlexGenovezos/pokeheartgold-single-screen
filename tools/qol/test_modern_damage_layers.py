@@ -134,8 +134,7 @@ int main(void){
   int chosen=filtered(stage,crit,0),offense=101;
 #if QOL_MODERN_BATTLE
   offense=staged(offense,chosen);
-  // Soul Dew deliberately retains its separate legacy stat effect until D2.
-  if(item==3)offense=offense*3/2;
+  // D2a1 Soul Dew has no stat bonus; Normal Swift has no matching BP boost.
   int numerator=1,denominator=1;
   if(item==1){numerator*=3;denominator*=2;}if(item==2)numerator*=2;
   if(a&&!suppressed){numerator*=3;denominator*=2;}

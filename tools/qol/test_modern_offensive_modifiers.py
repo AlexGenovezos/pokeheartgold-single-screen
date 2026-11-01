@@ -265,7 +265,7 @@ int main(void){
  return 0;}
 ''')
 
-    def test_soul_dew_retains_both_legacy_stat_effects_and_frontier_rule(self):
+    def test_soul_dew_legacy_only_stats_and_frontier_rule(self):
         source=layers.damage_source().replace('static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}',
                                              'static int battleType;static int BattleSystem_GetBattleType(BattleSystem *s){return battleType;}')
         self.variants(source+r'''
@@ -277,9 +277,9 @@ int main(void){
 #if QOL_MODERN_BATTLE
   offense=staged(offense,stage);
 #endif
+#if !QOL_MODERN_BATTLE
   if(!frontier&&!side)offense=offense*3/2;
   if(!frontier&&side)defense=defense*3/2;
-#if !QOL_MODERN_BATTLE
   offense=staged(offense,stage);
 #endif
   assert(run(&c,MOVE_SWIFT,0,1)==oracle(offense,defense));

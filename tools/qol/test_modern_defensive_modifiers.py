@@ -240,7 +240,7 @@ int main(void){
  return 0;}
 ''')
 
-    def test_explosion_minimum_and_retained_soul_dew_before_stage_weather(self):
+    def test_explosion_minimum_and_atomic_soul_dew_defense_removal(self):
         source=layers.damage_source().replace('static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}',
                                              'static int battleType;static int BattleSystem_GetBattleType(BattleSystem *s){return battleType;}')
         self.variants(source+ORACLE+r'''
@@ -253,11 +253,11 @@ int main(void){
  for(int stage=0;stage<=12;stage++)for(int frontier=0;frontier<2;frontier++)for(int current=0;current<3;current++)for(int crit=1;crit<=3;crit++){
   BattleContext c;defenseFixture(&c,MOVE_SWIFT,1,stage);battleType=frontier?BATTLE_TYPE_FRONTIER:0;
   vars[1][BMON_DATA_SPECIES]=current==0?SPECIES_LATIAS:current==1?SPECIES_LATIOS:SPECIES_CLAMPERL;
-  vars[1][BMON_DATA_STATUS2]=STATUS2_TRANSFORM;partySpecies[1]=SPECIES_PIKACHU; // retained legacy current-species ownership
+  vars[1][BMON_DATA_STATUS2]=STATUS2_TRANSFORM;partySpecies[1]=SPECIES_PIKACHU; // legacy uses current species; modern has no defensive Soul Dew
   items[1]=HOLD_EFFECT_LATI_SPECIAL;vars[1][BMON_DATA_TYPE_1]=TYPE_ROCK;
   int raw=!frontier&&current<2?151:101,chosen=crit>1&&stage>6?6:stage,d;
 #if QOL_MODERN_BATTLE
-  d=stageDefense(raw,chosen)*3/2;
+  d=stageDefense(101,chosen)*3/2; // Soul Dew defense removed atomically with BP owner.
 #else
   d=stageDefense(raw*3/2,chosen);
 #endif

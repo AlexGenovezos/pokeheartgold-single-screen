@@ -203,8 +203,8 @@ int main(void){
  BattleContext c=fixture();for(int s=1;s<=7;s++)c.battleMons[0].statChanges[s]=12;
  check(&c,503,860);check(&c,684,860);
  // Resolved-power eligibility survives modifiers crossing the threshold.
- // Expected final powers preserve the native sequential integer truncation;
- // modifier application stays in its existing position.
+ // Moves-only keeps sequential floors. Modern battle applies one BP group;
+ // intrinsic55 with Technician+HH becomes124 instead of123.
  const int cases[][7]={
   // move, raw item, Stored Power boosts, HH, Charge, supplied power, final power
   {515,ITEM_POTION,0,1,0,0,123}, // intrinsic55 -> HH82 -> Technician123
@@ -225,7 +225,8 @@ int main(void){
   // Unmodified explicit final power supplies an independent numeric oracle.
   BattleContext plain=c;plain.battleMons[0].ability=ABILITY_NONE;plain.turnData[0].helpingHandFlag=0;
   plain.battleMons[0].moveEffectFlags&=~MOVE_EFFECT_FLAG_CHARGE;
-  int expected=CalcMoveDamage(NULL,&plain,move,0,0,cases[k][6],0,0,1,1);
+  int finalPower=QOL_MODERN_BATTLE&&k==0?124:cases[k][6];
+  int expected=CalcMoveDamage(NULL,&plain,move,0,0,finalPower,0,0,1,1);
   assert(actual==expected);
   if(!cases[k][5]){
    c.trainerAIData.battlerIdTarget=1;u8 ivs[6]={0};
@@ -234,8 +235,8 @@ int main(void){
   assert(rngCalls==rngBefore);
  }
  // Native conditional effects use ctx->powerMultiplier for intrinsic power.
- // Pursuit153 sets20 on switching targets; Payback and Revenge likewise
- // resolve their doubling before Technician, as in pinned expansion.
+ // Pursuit153 and Revenge use20; this synthetic Payback20 is fallback
+ // arithmetic only. Real Payback writes explicit power (D2a1 producer test).
  const int conditional[][3]={{MOVE_PURSUIT,40,80},{MOVE_PAYBACK,50,100},{MOVE_REVENGE,60,120}};
  for(unsigned k=0;k<NELEMS(conditional);k++){
   c=fixture();c.powerMultiplier=20;c.battleMons[0].ability=ABILITY_TECHNICIAN;

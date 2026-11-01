@@ -44,7 +44,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
     source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly','src/battle/battle_util.c')+'#endif\n'
     source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
     source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainStatModifier','Qol_ApplyStatModifier','Qol_GetBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat','Qol_ModernDefenseStat'))+'#endif\n'
-    source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','CalcMoveDamage'))
+    source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+'#if QOL_MODERN_BATTLE\n'+''.join(native(n) for n in ('Qol_GetScriptBasePowerModifier','Qol_ModernBasePower'))+'#endif\n'+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','CalcMoveDamage'))
     return source+r'''
 static BattleContext fixture(void){
  BattleContext c={0};memset(vars,0,sizeof(vars));memset(items,0,sizeof(items));c.powerMultiplier=10;

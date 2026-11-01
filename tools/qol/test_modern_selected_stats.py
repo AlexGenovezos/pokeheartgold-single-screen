@@ -385,7 +385,9 @@ int main(void){
 int main(void){
 #if QOL_MODERN_MOVES
  BattleContext c=fixture();items[0]=HOLD_EFFECT_POWER_UP_SPEC;
- assert(calc(&c,476,0,1,0)==1000*120*22/101/50+2);
+ // Synthetic native modifier20 stays legacy120; modern Wise Glasses is
+ // pinned4505/4096, so its category BP is110 regardless of that old parameter.
+ assert(calc(&c,476,0,1,0)==1000*(QOL_MODERN_BATTLE?110:120)*22/101/50+2);
  items[0]=HOLD_EFFECT_POWER_UP_PHYS;
  assert(calc(&c,476,0,1,0)==oracle(1000,101));
  items[0]=HOLD_EFFECT_CHOICE_SPATK;

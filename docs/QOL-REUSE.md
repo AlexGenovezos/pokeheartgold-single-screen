@@ -989,3 +989,73 @@ before comparisons. Seven save, frozen production/test and all three tested
 artifact hashes matched. The253-test full sweep belongs to f673; D1c uses the
 107 affected checks, sanitizer/review checks, paired build and native proofs.
 The installed app, real ROM and real save remain unchanged.
+
+## Confirmed external base-power group (D2a1)
+
+Modern battle now chains the confirmed external BP effects once in pinned Q12
+priority order, then applies the completed group with halves down. Intrinsic
+power, explicit overrides, A14 dynamic callbacks and legitimate native doubles
+remain before Technician eligibility. The group owns Technician, Rivalry, Iron
+Fist, Reckless, target Dry Skin, existing type/species/category items, Soul Dew,
+Helping Hand, Charge, Sports, Solar Beam adverse weather and confirmed native
+Facade/Brine BP events. Muscle Band/Wise Glasses use pinned priority16 and4505;
+type items/orbs/Soul Dew use priority15 and4915. Sports uses1352. Active ability,
+held-item suppression, effective move type and supplied weather remain native
+inputs. Pure numeric helpers add no RNG or state mutation.
+
+Soul Dew migrates atomically: modern original/base Latios/Latias gain Psychic/
+Dragon BP4915, including Frontier, and both old SpAtk/SpDef bonuses are removed.
+Other species orbs also use original/base species under actual Transform;
+modern Griseous Orb no longer inherits the legacy blanket Transform exclusion.
+Battle-off keeps the complete old Soul Dew and item behavior. Flags remain
+independent/default off; no ABI/context/save/packet/resource/catalog changes or
+Sharpness242 enabling occurs.
+
+Exact native Reckless12 and Facade/Brine20 values are consumed once only with
+their effect/state prerequisites; unknown multipliers preserve a legacy fallback.
+Me First retains both old numerical and lifecycle owners until D2a2 supplies
+explicit local route/projection provenance. Semi-invulnerable/Minimize doubles
+retain old placement and Technician eligibility until D3; conflicting pinned
+Fly/Bounce reference placement remains unresolved. Sports lifetime, Charge
+consumption, hypothetical AI/ambient-multiplier projection, exceptional routes
+and later formula/final layers remain explicit compatibility limits. This is
+confirmed BP subset support, not full BP or all-route Generation IX parity.
+
+Actual production damage/AI, original producer commands/scripts, independent
+integer oracles and verification evidence are detailed in
+`docs/superpowers/plans/2026-11-01-gen9-confirmed-bp-group.md`. The earlier D1c
+Soul Dew exception above describes that historical phase and is superseded here.
+Fresh reviews and paired SDK/native integration remain root-owned gates.
+
+Soul Dew's player-facing description remains a deferred resource/UI task:
+`GetItemDescIntoString` reads bank221/item225, whose source row and packed words
+still advertise raising Sp. Atk/Sp. Def. This source-only phase changes neither
+that text nor the resource pipeline. A battle-flagged description update and UI
+validation remain necessary before claiming full item UI parity.
+
+D2a1 host verification passed89 inspected SDK-free methods in127.184s and the11
+new methods under address/undefined sanitizers in29.240s. Corrected primary
+fixtures replayed against frozen f72c fail with12 intended modern assertions,
+zero compiler/battle-off failures. All four battle-off calculator token streams
+match f72c exactly. A preliminary run was interrupted after a mixed host class
+entered its SDK method; it is not counted as passing evidence. The clean runner
+explicitly excludes that method and guards SDK entry. Contract/log references
+and the source freeze manifest are in the D2a1 plan. Fresh independent reviews
+and paired SDK/native integration remain outstanding root-owned gates; the
+installed app, real ROM and real save remain unchanged.
+
+D2a1 integration passed89 guarded SDK-free checks in127.184s and11 new sanitizer
+checks in29.240s. Fresh independent spec and quality reviews each passed16
+selected methods across eight flags (new11 plus five changed regressions), all
+four legacy token comparisons, ten hashes and whitespace. The matching SDK
+ROM/resources/layout/native build passed. Two fresh data-only RAM fixtures
+confirmed Acrobatics/Technician/Sharp Beak45→46 damage and Soul Dew41→49. The
+Soul Dew result excludes keeping both old bonuses with new BP48, only attacker72,
+only defender33 or missing BP41. Current Normal types deliberately isolate the
+fixture's neutral/no-STAB arithmetic. Both seed12 runs retained their18/19 RNG
+calls and final states. Each1700-frame battle comparison matched every ARM9
+instruction with zero fallbacks, guard failures or evictions (3400 total); the
+initial boot is separate. Seven save, eight frozen production/test and three
+artifact hashes matched. The253-test sweep belongs to f673; no full rerun was
+claimed for D2a1. Remaining Me First/final/lifecycle/projection/UI scope above
+still blocks installing the complete modern ruleset. Live app/ROM/save untouched.

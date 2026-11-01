@@ -5767,7 +5767,7 @@ static BOOL Qol_HasPlusMinusAlly(BattleSystem *battleSystem, BattleContext *ctx,
     return FALSE;
 }
 
-// Bounded original-roster stats only: use wide intermediates, rather than
+// Bounded original-roster numeric layers: use wide intermediates, rather than
 // infer cartridge overflow behavior for synthetic stats. Q12 chain rounds a
 // half up; applying the completed group rounds a half down.
 static u32 Qol_ChainStatModifier(u32 accumulated, u32 modifier) {
@@ -5892,6 +5892,104 @@ static u32 Qol_ModernDefenseStat(u32 stat, BOOL marvelScale, int flowerGiftProvi
 }
 #endif
 
+#if QOL_MODERN_BATTLE
+// POWER_MULTI also carries intrinsic doubles and deferred final effects. Only
+// these exact native script values/prerequisites have a confirmed BP owner.
+// Default10 permits read-only projection; unknown values keep the legacy path.
+static u32 Qol_GetScriptBasePowerModifier(int effect, int multiplier, const MoveDamageCalc *user, const MoveDamageCalc *target) {
+    switch (effect) {
+    case MOVE_EFFECT_CRASH_ON_MISS:
+    case MOVE_EFFECT_RECOIL_QUARTER_DAMAGE_DELT:
+    case MOVE_EFFECT_RECOIL_THIRD:
+    case MOVE_EFFECT_RECOIL_BURN_HIT:
+    case MOVE_EFFECT_RECOIL_PARALYZE_HIT:
+    case MOVE_EFFECT_RECOIL_HALF:
+        if ((multiplier == 10 || multiplier == 12) && user->ability == ABILITY_RECKLESS) {
+            return 4915;
+        }
+        break;
+    case MOVE_EFFECT_DOUBLE_POWER_WHEN_STATUSED:
+        if ((multiplier == 10 || multiplier == 20) && (user->status & STATUS_FACADE_BOOST)) {
+            return 8192;
+        }
+        break;
+    case MOVE_EFFECT_DOUBLE_POWER_WHEN_BELOW_HALF:
+        if ((multiplier == 10 || multiplier == 20) && target->hp <= target->maxHp / 2) {
+            return 8192;
+        }
+        break;
+    }
+    return 4096;
+}
+
+// Confirmed external BP events only, in pinned priority order. All inputs are
+// local snapshots; this collector never changes battle state or draws RNG.
+// Me First and semi-invulnerable/Minimize routes retain their prior owners.
+static u32 Qol_ModernBasePower(u32 power, int move, int category, int type, const MoveDamageCalc *user, const MoveDamageCalc *target, u16 baseSpecies, u32 scriptModifier, BOOL drySkin, BOOL helpingHand, BOOL charge, BOOL sport, BOOL adverseWeather) {
+    u32 modifier = 4096;
+    int i;
+
+    if (!power || (category != CATEGORY_PHYSICAL && category != CATEGORY_SPECIAL)) {
+        return power;
+    }
+    if (move != MOVE_STRUGGLE && power <= 60 && user->ability == ABILITY_TECHNICIAN) {
+        modifier = Qol_ChainStatModifier(modifier, 6144); //30
+    }
+    if (user->ability == ABILITY_RIVALRY && user->gender != MON_GENDERLESS && target->gender != MON_GENDERLESS) {
+        modifier = Qol_ChainStatModifier(modifier, user->gender == target->gender ? 5120 : 3072); //24
+    }
+    if (user->ability == ABILITY_IRON_FIST) {
+        for (i = 0; i < NELEMS(sPunchingMoves); i++) {
+            if (sPunchingMoves[i] == move) {
+                modifier = Qol_ChainStatModifier(modifier, 4915); //23
+                break;
+            }
+        }
+    }
+    if (scriptModifier == 4915) {
+        modifier = Qol_ChainStatModifier(modifier, 4915); //Reckless23
+    }
+    if (drySkin) {
+        modifier = Qol_ChainStatModifier(modifier, 5120); //17
+    }
+    // The pinned Muscle Band/Wise Glasses callbacks have priority16 (not15).
+    if ((user->item == HOLD_EFFECT_POWER_UP_PHYS && category == CATEGORY_PHYSICAL)
+        || (user->item == HOLD_EFFECT_POWER_UP_SPEC && category == CATEGORY_SPECIAL)) {
+        modifier = Qol_ChainStatModifier(modifier, 4505);
+    }
+    for (i = 0; i < NELEMS(sTypeEnhancingItems); i++) {
+        if (user->item == sTypeEnhancingItems[i][0] && type == sTypeEnhancingItems[i][1]) {
+            modifier = Qol_ChainStatModifier(modifier, 4915); //15
+            break;
+        }
+    }
+    // Species item callbacks use original/base species, including Transform.
+    if ((user->item == HOLD_EFFECT_DIALGA_BOOST && baseSpecies == SPECIES_DIALGA && (type == TYPE_DRAGON || type == TYPE_STEEL))
+        || (user->item == HOLD_EFFECT_PALKIA_BOOST && baseSpecies == SPECIES_PALKIA && (type == TYPE_DRAGON || type == TYPE_WATER))
+        || (user->item == HOLD_EFFECT_GIRATINA_BOOST && baseSpecies == SPECIES_GIRATINA && (type == TYPE_DRAGON || type == TYPE_GHOST))
+        || (user->item == HOLD_EFFECT_LATI_SPECIAL && (baseSpecies == SPECIES_LATIOS || baseSpecies == SPECIES_LATIAS) && (type == TYPE_PSYCHIC || type == TYPE_DRAGON))) {
+        modifier = Qol_ChainStatModifier(modifier, 4915); //15
+    }
+    if (helpingHand) {
+        modifier = Qol_ChainStatModifier(modifier, 6144); //10
+    }
+    if (charge) {
+        modifier = Qol_ChainStatModifier(modifier, 8192); //9
+    }
+    if (sport) {
+        modifier = Qol_ChainStatModifier(modifier, 1352); //1
+    }
+    if (adverseWeather) {
+        modifier = Qol_ChainStatModifier(modifier, 2048); //default0
+    }
+    if (scriptModifier == 8192) {
+        modifier = Qol_ChainStatModifier(modifier, 8192); //Facade/Brine default0
+    }
+    power = Qol_ApplyStatModifier(power, modifier);
+    return power ? power : 1;
+}
+#endif
+
 // Intrinsic move power only. Explicit script power overrides bypass this helper.
 // Read stored stages once (including accuracy/evasion); Simple and Unaware do
 // not reinterpret these boosts. Raw held items remain present under Klutz.
@@ -5952,7 +6050,9 @@ BOOL Qol_MoveIgnoresTargetStatStages(int move) {
 }
 
 int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit) {
+#if !QOL_MODERN_BATTLE
     int i;
+#endif
     s32 dmg = 0;
     s32 dmg2 = 0;
     u8 moveType;
@@ -5979,8 +6079,13 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     s8 statChangeSpAtk;
     s8 statChangeSpDef;
     u8 level;
+#if QOL_MODERN_BATTLE
+    u32 movePower;
+    u32 scriptBasePowerModifier;
+#else
     u16 movePower;
-#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+#endif
+#if !QOL_MODERN_BATTLE && QOL_MODERN_MOVES
     BOOL technicianEligible;
 #endif
     u16 item;
@@ -6054,10 +6159,31 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         moveType = type & 0x3F;
     }
 
+#if QOL_MODERN_BATTLE
+    GF_ASSERT(ctx->powerMultiplier >= 10);
+    moveCategory = BATTLE_MOVE_DATA(ctx, moveNo).category;
+    scriptBasePowerModifier = Qol_GetScriptBasePowerModifier(BATTLE_MOVE_DATA(ctx, moveNo).effect, ctx->powerMultiplier, &calcAttacker, &calcTarget);
+    if (scriptBasePowerModifier == 4096) {
+        // Includes intrinsic Pursuit/Revenge/cure doubles, unresolved final
+        // doubles and every unknown multiplier. Preserve Technician eligibility
+        // for deferred routes exactly; never recover power by dividing a floor.
+        movePower = (u32)((u64)movePower * ctx->powerMultiplier / 10);
+    }
+    movePower = Qol_ModernBasePower(movePower, moveNo, moveCategory, moveType, &calcAttacker, &calcTarget,
+        Qol_GetBaseSpecies(battleSystem, ctx, battlerIdAttacker), scriptBasePowerModifier,
+        moveType == TYPE_FIRE && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_DRY_SKIN),
+        ctx->turnData[battlerIdAttacker].helpingHandFlag,
+        (ctx->battleMons[battlerIdAttacker].moveEffectFlags & MOVE_EFFECT_FLAG_CHARGE) && moveType == TYPE_ELECTRIC,
+        (moveType == TYPE_ELECTRIC && CheckMoveEffectOnField(battleSystem, ctx, MOVE_EFFECT_FLAG_MUD_SPORT))
+            || (moveType == TYPE_FIRE && CheckMoveEffectOnField(battleSystem, ctx, MOVE_EFFECT_FLAG_WATER_SPORT)),
+        moveNo == MOVE_SOLAR_BEAM && (fieldCondition & FIELD_CONDITION_WEATHER_NO_SUN)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE)
+            && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK));
+#else
     GF_ASSERT(ctx->powerMultiplier >= 10);
     movePower = movePower * ctx->powerMultiplier / 10;
-#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
-    // Native conditional effects (e.g. Pursuit/Payback/Revenge) use POWER_MULTI
+#if QOL_MODERN_MOVES
+    // Native intrinsic doubles and compatibility multipliers use POWER_MULTI
     // to resolve intrinsic power. Capture after those, before Charge/Helping
     // Hand; keep Technician itself at the existing native rounding point.
     technicianEligible = moveNo != MOVE_STRUGGLE && movePower <= 60;
@@ -6072,7 +6198,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 
     if (calcAttacker.ability == ABILITY_TECHNICIAN
-#if QOL_MODERN_BATTLE || QOL_MODERN_MOVES
+#if QOL_MODERN_MOVES
         && technicianEligible
 #else
         && moveNo != MOVE_STRUGGLE && movePower <= 60
@@ -6082,6 +6208,8 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 
     moveCategory = BATTLE_MOVE_DATA(ctx, moveNo).category;
+
+#endif
 
 #if QOL_MODERN_BATTLE
     // Source selection above precedes crit/defending Unaware. Simple's doubled
@@ -6115,12 +6243,14 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     for (i = 0; i < NELEMS(sTypeEnhancingItems); i++) {
         if (calcAttacker.item == sTypeEnhancingItems[i][0] && moveType == sTypeEnhancingItems[i][1]) {
             movePower = movePower * (100 + calcAttacker.mod) / 100;
             break;
         }
     }
+#endif
 
 #if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_CHOICE_ATK) {
@@ -6131,18 +6261,17 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
-    // Soul Dew remains the legacy stat boost (including Frontier restriction)
-    // until its BP and defensive migration can land atomically.
+#if !QOL_MODERN_BATTLE
+    // Battle-off keeps both native Soul Dew stat bonuses and Frontier rule.
     if (calcAttacker.item == HOLD_EFFECT_LATI_SPECIAL && !(battleType & BATTLE_TYPE_FRONTIER) && (calcAttacker.species == SPECIES_LATIOS || calcAttacker.species == SPECIES_LATIAS)) {
         monSpAtk = monSpAtk * 150 / 100;
     }
 
-    // Compatibility exception: keep Soul Dew's raw-SpDef floor before stage,
-    // weather and the modern group until both old stat bonuses migrate in D2.
     if (calcTarget.item == HOLD_EFFECT_LATI_SPECIAL && !(battleType & BATTLE_TYPE_FRONTIER) && (calcTarget.species == SPECIES_LATIOS || calcTarget.species == SPECIES_LATIAS)) {
         monSpDef = monSpDef * 150 / 100;
     }
 
+#endif
 #if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_CLAMPERL_SPATK && calcAttacker.species == SPECIES_CLAMPERL) {
         monSpAtk *= 2;
@@ -6173,6 +6302,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.item == HOLD_EFFECT_DIALGA_BOOST && (moveType == TYPE_DRAGON || moveType == TYPE_STEEL) && calcAttacker.species == SPECIES_DIALGA) {
         movePower = movePower * (100 + calcAttacker.mod) / 100;
     }
@@ -6193,6 +6323,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower = movePower * (100 + calcAttacker.mod) / 100;
     }
 
+#endif
 #if !QOL_MODERN_BATTLE
     if (CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_THICK_FAT) == TRUE && (moveType == TYPE_FIRE || moveType == TYPE_ICE)) {
         movePower /= 2;
@@ -6223,6 +6354,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (moveType == TYPE_ELECTRIC && CheckMoveEffectOnField(battleSystem, ctx, MOVE_EFFECT_FLAG_MUD_SPORT)) {
         movePower /= 2;
     }
@@ -6231,6 +6363,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         movePower /= 2;
     }
 
+#endif
 #if !QOL_MODERN_BATTLE
     if (moveType == TYPE_GRASS && calcAttacker.ability == ABILITY_OVERGROW && calcAttacker.hp <= calcAttacker.maxHp / 3) {
         movePower = movePower * 150 / 100;
@@ -6253,9 +6386,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     }
 #endif
 
+#if !QOL_MODERN_BATTLE
     if (moveType == TYPE_FIRE && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_DRY_SKIN) == TRUE) {
         movePower = movePower * 125 / 100;
     }
+#endif
 
 #if !QOL_MODERN_BATTLE
     if (calcAttacker.ability == ABILITY_SIMPLE) {
@@ -6318,6 +6453,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     statChangeSpAtk += 6;
     statChangeSpDef += 6;
 
+#if !QOL_MODERN_BATTLE
     if (calcAttacker.ability == ABILITY_RIVALRY && calcAttacker.gender == calcTarget.gender && calcAttacker.gender != MON_GENDERLESS && calcTarget.gender != MON_GENDERLESS) {
         movePower = movePower * 125 / 100;
     }
@@ -6332,6 +6468,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         }
     }
 
+#endif
     if (!CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_CLOUD_NINE) && !CheckAbilityActive(battleSystem, ctx, CHECK_ABILITY_ALL_HP, 0, ABILITY_AIR_LOCK)) {
 #if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_SUN_ALL) && calcAttacker.ability == ABILITY_SOLAR_POWER) {
@@ -6394,7 +6531,6 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
         int flowerGiftProviders;
 
         // Select once, without changing the category (Psyshock stays Special).
-        // Retained legacy Soul Dew has already floored raw SpDef above.
         selectedDefense = physical ? monDef : monSpDef;
         selectedDefenseStage = physical ? statChangeDef : statChangeSpDef;
         if (crit == 1 || selectedDefenseStage < 6) {
@@ -6532,9 +6668,11 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
             }
         }
 
+#if !QOL_MODERN_BATTLE
         if ((fieldCondition & FIELD_CONDITION_WEATHER_NO_SUN) && moveNo == MOVE_SOLAR_BEAM) {
             dmg /= 2;
         }
+#endif
         if (fieldCondition & FIELD_CONDITION_SUN_ALL) {
             switch (moveType) {
             case TYPE_FIRE:
