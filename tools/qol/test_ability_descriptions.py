@@ -25,7 +25,7 @@ class AbilityDescriptionTests(unittest.TestCase):
     def test_original_entries_survive_and_all_three_banks_extend_atomically(self):
         module=self.module()
         banks=[b'original bank']*830;original=original_descriptions()
-        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),26692)
+        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),{720:7280,721:50258,722:26692}[bank])
         result,names=unpack_narc(module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt'))
         self.assertEqual(names,unpack_narc(pack_narc(banks))[1]);self.assertEqual(len(result),830)
         words,key=unpack_messages(result[722]);self.assertEqual(key,26692)
@@ -42,19 +42,23 @@ class AbilityDescriptionTests(unittest.TestCase):
                   51:'Prevents accuracy loss.\nIgnores evasion changes.',
                   114:'Draws in Water moves.\nAbsorbs them for Sp. Atk.',
                   130:'May disable a move that\nhits this Pokémon.',
-                  172:'Stat loss from a foe\nsharply raises Sp. Atk.'}
-        self.assertEqual(len(words),173)
+                  172:'Stat loss from a foe\nsharply raises Sp. Atk.',
+                  242:'Powers up slicing moves\nby 50%.'}
+        self.assertEqual(len(words),243)
         for index,word in enumerate(words[:124]):
             self.assertEqual(word,game_text(expected[index],ROOT/'charmap.txt') if index in expected else original[index])
         self.assertEqual(result[:720],banks[:720]);self.assertEqual(result[723:],banks[723:])
         for bank,label in ((720,'Cursed Body'),(721,'CURSED BODY'),(722,'May disable a move that\nhits this Pokémon.')):
-            extended,key=unpack_messages(result[bank]);self.assertEqual(key,26692)
-            self.assertEqual(len(extended),173)
+            extended,key=unpack_messages(result[bank]);self.assertEqual(key,{720:7280,721:50258,722:26692}[bank])
+            self.assertEqual(len(extended),243)
             self.assertEqual(extended[130],game_text(label,ROOT/'charmap.txt'))
             self.assertEqual(extended[124:130],[game_text(' -',ROOT/'charmap.txt')]*6)
             competitive={720:'Competitive',721:'COMPETITIVE',722:expected[172]}
             self.assertEqual(extended[172],game_text(competitive[bank],ROOT/'charmap.txt'))
             self.assertEqual(extended[131:172],[game_text(' -',ROOT/'charmap.txt')]*41)
+            sharpness={720:'Sharpness',721:'SHARPNESS',722:expected[242]}
+            self.assertEqual(extended[242],game_text(sharpness[bank],ROOT/'charmap.txt'))
+            self.assertEqual(extended[173:242],[game_text(' -',ROOT/'charmap.txt')]*69)
             if bank!=722:self.assertEqual(extended[:124],original_descriptions(bank))
         summary=(ROOT/'src/pokemon_summary_text.c').read_text()
         self.assertIn('NARC_msg_msg_0722_bin',summary)
@@ -74,7 +78,7 @@ class AbilityDescriptionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'absent'):
             module.modern_ability_description_resources(pack_narc([b'']*722),ROOT/'charmap.txt')
         banks=[b'']*829
-        for bank in (720,721):banks[bank]=pack_messages(original_descriptions(bank),26692)
+        for bank in (720,721):banks[bank]=pack_messages(original_descriptions(bank),{720:7280,721:50258,722:26692}[bank])
         words[5]=game_text('wrong',ROOT/'charmap.txt');banks[722]=pack_messages(words,26692)
         with self.assertRaisesRegex(ValueError,'match'):
             module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt')
@@ -84,17 +88,17 @@ class AbilityDescriptionTests(unittest.TestCase):
 
     def test_every_ability_bank_rejects_source_or_binary_drift_before_returning_archive(self):
         module=self.module();banks=[b'keep']*830
-        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),26692)
+        for bank in (720,721,722):banks[bank]=pack_messages(original_descriptions(bank),{720:7280,721:50258,722:26692}[bank])
         for bank in (720,721,722):
             corrupt=list(banks);words=original_descriptions(bank);words[26]=game_text('wrong',ROOT/'charmap.txt')
             corrupt[bank]=pack_messages(words,26692)
             with self.assertRaisesRegex(ValueError,f'bank{bank}.*match'):
                 module.modern_ability_description_resources(pack_narc(corrupt),ROOT/'charmap.txt')
-            read_text=Path.read_text
+            read_bytes=Path.read_bytes
             def read(path,*args,**kwargs):
-                text=read_text(path,*args,**kwargs)
-                return text+'\n' if path.name==f'msg_{bank:04}.gmm' else text
-            with patch.object(Path,'read_text',read),self.assertRaisesRegex(ValueError,f'bank{bank}.*expected source'):
+                data=read_bytes(path,*args,**kwargs)
+                return data+b'\n' if path.name==f'msg_{bank:04}.gmm' else data
+            with patch.object(Path,'read_bytes',read),self.assertRaisesRegex(ValueError,f'bank{bank}.*expected source'):
                 module.modern_ability_description_resources(pack_narc(banks),ROOT/'charmap.txt')
 
     def test_real_fairy_and_extended_move_transforms_compose_with_ability_descriptions(self):
@@ -140,6 +144,7 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch.multiple('modern_rom', modern_simple_resources=lambda data:data,
                             modern_simple_message_resources=lambda data,charmap:data,
                             modern_snow_message_resources=lambda data,charmap:data,
+                            modern_soul_dew_message_resources=lambda data,charmap:data,
                             modern_snow_effect_resources=lambda data:b'snow'), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities') as abilities, \
              patch('modern_rom.modern_drain_resources',return_value=b'drain') as drain, \
@@ -155,6 +160,65 @@ class AbilityDescriptionTests(unittest.TestCase):
         self.assertEqual(result['a/0/0/1'],b'stat-moves')
         self.assertEqual(result['a/0/3/0'],b'move-effects')
         self.assertEqual(result['a/0/2/7'],b'all')
+
+    def test_rejects_source_byte_drift_even_when_text_newlines_decode_equally(self):
+        import tempfile
+        module=self.module();archive=(ROOT/'files/msgdata/msg.narc').read_bytes()
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);target=root/'files/msgdata/msg';target.mkdir(parents=True)
+            for bank in (720,721,722):
+                data=(ROOT/f'files/msgdata/msg/msg_{bank:04}.gmm').read_bytes()
+                (target/f'msg_{bank:04}.gmm').write_bytes(data.replace(b'\n',b'\r\n') if bank==720 else data)
+            with self.assertRaisesRegex(ValueError,'bank720.*expected source'):
+                module.modern_ability_description_resources(archive,ROOT/'charmap.txt',root)
+
+    def test_sparse_guards_keys_counts_duplicate_names_and_real_consumers(self):
+        module=self.module()
+        import subprocess
+        import test_game_logic as game
+        archive=(ROOT/'files/msgdata/msg.narc').read_bytes()
+        original,names=unpack_narc(archive)
+        result=module.modern_ability_description_resources(archive,ROOT/'charmap.txt')
+        after,after_names=unpack_narc(result);self.assertEqual(names,after_names)
+        for bank in (720,721,722):
+            words,key=unpack_messages(original[bank])
+            for corrupt_words,corrupt_key in ((words,key+1),(words[:-1],key),(words+[words[0]],key)):
+                banks=list(original);banks[bank]=pack_messages(corrupt_words,corrupt_key)
+                with self.subTest(bank=bank,count=len(corrupt_words),key=corrupt_key),self.assertRaises(ValueError):
+                    module.modern_ability_description_resources(pack_narc(banks,names),ROOT/'charmap.txt')
+            extended,newkey=unpack_messages(after[bank]);self.assertEqual(newkey,key)
+            for ability in range(124,243):
+                expected=module.SPARSE_ABILITIES.get(ability,{}).get(bank,' -')
+                self.assertEqual(extended[ability],game_text(expected,ROOT/'charmap.txt'))
+        with self.assertRaises(ValueError):module.modern_ability_description_resources(result,ROOT/'charmap.txt')
+        source=(ROOT/'files/msgdata/msg/msg_0722.gmm').read_text()
+        old,new=module.modern_ability_description_source(source,ROOT/'charmap.txt')
+        self.assertEqual(old,original_descriptions());self.assertEqual(new,unpack_messages(after[722])[0])
+        for bank in (720,721):
+            font=(ROOT/'files/graphic/font/font_00000000.bin').read_bytes();widths=struct.unpack_from('<I',font,4)[0]
+            self.assertLessEqual(sum(font[widths+glyph-1] for glyph in unpack_messages(after[bank])[0][242][:-1]),149)
+        self.assertIn('NARC_msg_msg_0722_bin',(ROOT/'src/battle/battle_party_menu.c').read_text())
+        self.assertIn('NARC_msg_msg_0722_bin',(ROOT/'src/pokemon_summary_text.c').read_text())
+        self.assertIn('#define EC_WORDS_ABILITY_COUNT     (124)',(ROOT/'include/constants/easy_chat.h').read_text())
+        for path in ('src/easy_chat.c','include/constants/easy_chat.h','include/pokemon_types_def.h'):
+            self.assertEqual((ROOT/path).read_text(),subprocess.check_output(['git','show','d37566880c390cf485f4d286a81ba174a5e4dff9:'+path],text=True))
+        # Run the actual unbounded ability-name consumer with the new sparse ID.
+        c=r'''
+#include <assert.h>
+#include <stddef.h>
+typedef unsigned int u32;
+typedef struct {int heapID;int *buffer;} MessageFormat;
+typedef int MsgData;
+enum {MSGDATA_LOAD_LAZY,NARC_msgdata_msg,NARC_msg_msg_0720_bin};
+static MsgData bank;static int readId=-1,placeholder=-1;
+static MsgData *NewMsgDataFromNarc(int mode,int narc,int member,int heap){assert(member==NARC_msg_msg_0720_bin);return &bank;}
+static void ReadMsgDataIntoString(MsgData *data,int id,int *buffer){assert(id>=0&&id<243);readId=id;*buffer=id;}
+static void SetStringAsPlaceholder(MessageFormat *fmt,int field,int *buffer,void *unused){placeholder=*buffer;}
+static void DestroyMsgData(MsgData *data){}
+'''+game.function_source('src/message_format.c','BufferAbilityName')+r'''
+int main(void){int text=0;MessageFormat fmt={0,&text};BufferAbilityName(&fmt,0,242);assert(readId==242&&placeholder==242);return 0;}
+'''
+        game.GameLogicTests().compile_run(c)
 
 
 if __name__=='__main__':unittest.main()

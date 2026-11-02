@@ -5950,6 +5950,9 @@ static u32 Qol_ModernBasePower(u32 power, int move, int category, int type, cons
     if (scriptModifier == 4915) {
         modifier = Qol_ChainStatModifier(modifier, 4915); //Reckless23
     }
+    if (user->ability == ABILITY_SHARPNESS && Qol_IsSlicingMove(move)) {
+        modifier = Qol_ChainStatModifier(modifier, 6144); //19
+    }
     if (drySkin) {
         modifier = Qol_ChainStatModifier(modifier, 5120); //17
     }

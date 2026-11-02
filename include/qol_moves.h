@@ -12,6 +12,7 @@ const MoveTbl *Qol_GetBattleMoveData(const MoveTbl *legacy, u16 moveId);
 u16 Qol_GetMoveAnimation(u16 moveId);
 u16 Qol_GetMetronomeMove(u16 index);
 BOOL Qol_IsSoundMove(u16 moveId);
+BOOL Qol_IsSlicingMove(u16 moveId);
 BOOL Qol_MoveBypassesSubstitute(u16 moveId);
 
 #if QOL_MODERN_MOVES

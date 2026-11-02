@@ -269,11 +269,17 @@ class CursedBodyResourceTests(unittest.TestCase):
 class ModernAbilityStorageTests(unittest.TestCase):
     compile_run = game.GameLogicTests.compile_run
 
+    def flags(self):
+        import itertools
+        return [tuple(f'-DQOL_MODERN_{name}={value}' for name,value in zip(('TYPES','BATTLE','MOVES'),bits))
+                for bits in itertools.product((0,1),repeat=3)]
+
     def test_all_personal_read_paths_and_stored_choices_preserve_native_layout(self):
         self.assertTrue((ROOT/'src/qol_abilities.c').is_file(), 'Modern ability adapter is missing')
         data=json.loads((ROOT/'files/poketool/personal/personal.json').read_text())['baseStats']
         for species,ability in ((278,'ABILITY_KEEN_EYE'),(279,'ABILITY_KEEN_EYE'),(324,'ABILITY_WHITE_SMOKE'),(349,'ABILITY_SWIFT_SWIM')):
             self.assertEqual(data[species]['abilities'],[ability,'ABILITY_NONE'])
+        self.assertEqual(data[475]['abilities'],['ABILITY_STEADFAST','ABILITY_STEADFAST'])
         header=(ROOT/'include/constants/abilities.h').read_text()
         ids={name:int(number) for name,number in re.findall(r'#define (ABILITY_\w+)\s+(\d+)',header)}
         original=','.join('{'+','.join(str(ids[a]) for a in r['abilities'])+'}' for r in data)
@@ -289,7 +295,7 @@ typedef unsigned char u8;typedef unsigned short u16;typedef unsigned int u32;typ
 #define TRUE 1
 #define FALSE 0
 enum {HEAP_ID_DEFAULT,NARC_poketool_personal_personal};
-typedef struct {u8 abilities[2];} BASE_STATS;
+typedef struct {u8 abilities[2],types[2];} BASE_STATS;
 typedef int NARC;
 '''+f'static const u8 original[][2]={{{original}}};\n'
         adapter=(ROOT/'src/qol_abilities.c').read_text()
@@ -301,6 +307,7 @@ static void *Heap_Alloc(int heap,size_t size){return malloc(size);}
 static void Heap_Free(void *p){free(p);}
 static int GetPersonalAttr(BASE_STATS *p,int attr){return p->abilities[attr==BASE_ABILITY_2];}
 '''
+        source+='#if QOL_MODERN_TYPES\n'+game.function_source('src/pokemon.c','Qol_ApplyModernMonTypes')+'\n#endif\n'
         for function in ('LoadMonPersonal','LoadMonBaseStats_HandleAlternateForm','GetMonBaseStatEx_HandleAlternateForm'):
             source+=game.function_source('src/pokemon.c',function)+'\n'
         getter=(ROOT/'src/pokemon.c').read_text().split('static u32 GetBoxMonDataInternal(BoxPokemon *boxMon, int attr, void *dest) {',1)[1]
@@ -319,6 +326,7 @@ int main(void) {
                 if(slot==1&&species==SPECIES_PELIPPER)expected=2;
                 if(slot==1&&species==SPECIES_TORKOAL)expected=70;
                 if(slot==1&&species==SPECIES_FEEBAS)expected=12;
+                if(slot==1&&species==SPECIES_GALLADE)expected=242;
             }
             assert(p.abilities[slot]==expected);
             assert(GetMonBaseStatEx_HandleAlternateForm(NULL,species,0,slot?BASE_ABILITY_2:BASE_ABILITY_1)==expected);
@@ -333,6 +341,7 @@ int main(void) {
                 if(slot==1&&species==SPECIES_PELIPPER)expected=2;
                 if(slot==1&&species==SPECIES_TORKOAL)expected=70;
                 if(slot==1&&species==SPECIES_FEEBAS)expected=12;
+                if(slot==1&&species==SPECIES_GALLADE)expected=242;
             }
             assert(p.abilities[slot]==expected);
         }
@@ -349,20 +358,74 @@ int main(void) {
             if(species==SPECIES_PELIPPER&&ability==51)expected=2;
             if(species==SPECIES_TORKOAL&&ability==73)expected=70;
             if(species==SPECIES_FEEBAS&&ability==33)expected=12;
+            if(species==SPECIES_GALLADE&&ability==80)expected=242;
         }
         assert(Qol_GetStoredAbility(species,form,ability,pid)==expected);
         assert(stored(species,form,ability,pid)==expected);
     }
-    int pairs[]={SPECIES_WINGULL,SPECIES_PELIPPER,SPECIES_TORKOAL,SPECIES_FEEBAS};
-    for(int p=0;p<4;p++)for(int form=1;form<256;form++)for(int ability=0;ability<256;ability++)for(u32 pid=0;pid<4;pid++)
+    int pairs[]={SPECIES_WINGULL,SPECIES_PELIPPER,SPECIES_TORKOAL,SPECIES_FEEBAS,SPECIES_GALLADE};
+    for(int p=0;p<5;p++)for(int form=1;form<256;form++)for(int ability=0;ability<256;ability++)for(u32 pid=0;pid<4;pid++)
         assert(Qol_GetStoredAbility(pairs[p],form,ability,pid)==ability);
-    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&(id==130||id==172))));
+    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&(id==130||id==172||id==242))));
     assert(NUM_ABILITIES==123);
     return 0;
 }
 '''
-        for flags in ((),('-DQOL_MODERN_BATTLE=1',)):
+        for flags in self.flags():
             self.compile_run(source,*flags,'-Wno-unused-function')
+
+    def test_original_lifecycle_consumers_and_personal_sources_are_unchanged(self):
+        import subprocess
+        revision='d37566880c390cf485f4d286a81ba174a5e4dff9'
+        for path in ('src/pokemon.c','src/evolution_scene.c','src/get_egg.c',
+                     'include/pokemon_types_def.h','files/poketool/personal/personal.json',
+                     'include/data/qol_move_entries.inc','include/data/qol_learnsets.inc'):
+            if not (ROOT/path).is_file():
+                self.fail('Expected native lifecycle source is absent: '+path)
+            expected=subprocess.check_output(['git','show',revision+':'+path])
+            self.assertEqual((ROOT/path).read_bytes(),expected,path)
+        self.assertIn('CreateBoxMon(&mon->box',game.function_source('src/pokemon.c','CreateMon'))
+        self.assertIn('CreateMon(mon, species',game.function_source('src/get_egg.c','SetBreedEggStats'))
+        self.assertIn('UpdateMonAbility(data->mon)',(ROOT/'src/evolution_scene.c').read_text())
+        self.assertIn('UpdateBoxMonAbility(&mon->box)',game.function_source('src/pokemon.c','UpdateMonAbility'))
+        self.assertNotIn('MON_DATA_ABILITY',game.function_source('src/pokemon.c','CalcMonLevelAndStats'))
+        self.assertNotIn('MON_DATA_ABILITY',game.function_source('src/pokemon.c','CalcMonStats'))
+
+    def battle_consumer_source(self):
+        actual=game.function_source('src/battle/battle_util.c','BattleSystem_GetBattleMon')
+        fields=set(re.findall(r'ctx->battleMons\[battlerId\]\.(\w+)',actual))
+        arrays={'moves','movePPCur','movePP','statChanges','nickname','otName'}
+        scalar=fields-arrays-{'moveEffectData'}
+        return r'''
+typedef struct {BoxPokemon box;} Pokemon;
+typedef int BattleSystem;
+typedef struct {int '''+','.join(sorted(scalar))+r''';
+ int moves[4],movePPCur[4],movePP[4],statChanges[8],nickname[11],otName[8];
+ struct {int knockOffFlag;} moveEffectData;} BattleMon;
+typedef struct {BattleMon battleMons[4];int battleStatus,selectedMonIndex[4];
+ struct {int battlerBitKnockedOffItem;} fieldSideConditionData[2];} BattleContext;
+struct PokedexData {int unused;};
+enum {HEAP_ID_BATTLE};
+static Pokemon *consumerMon;static int consumerBattleType;
+static Pokemon *BattleSystem_GetPartyMon(BattleSystem *s,int b,int slot){return consumerMon;}
+static u32 GetMonData(Pokemon *mon,int attr,void *dest){
+ if(attr==MON_DATA_ABILITY||attr==MON_DATA_SPECIES||attr==MON_DATA_FORM||attr==MON_DATA_PERSONALITY)
+  return GetBoxMonData(&mon->box,attr,dest);
+ return 0; // Other stats/presentation are outside this ability-consumer fixture.
+}
+static int GetMonGender(Pokemon *m){return 0;}
+static int MonIsShiny(Pokemon *m){return 0;}
+static int BattleSystem_GetBattleType(BattleSystem *s){return consumerBattleType;}
+static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
+static int BattleSystem_GetMonBall(BattleSystem *s,Pokemon *m){return 0;}
+static void SetDexBanksByGiratinaForm(int form){}
+static struct PokedexData *PokedexData_Create(int heap){static struct PokedexData data;return &data;}
+static void PokedexData_LoadAll(struct PokedexData *data,int x,int heap){}
+static int PokedexData_GetWeight(struct PokedexData *data,int species){return 0;}
+static void PokedexData_UnloadAll(struct PokedexData *data){}
+static void PokedexData_Delete(struct PokedexData *data){}
+static unsigned MaskOfFlagNo(int n){return 1u<<n;}
+'''+actual+'\n'
 
     def test_real_encrypted_getter_preserves_bytes_and_native_new_mon_choice(self):
         header=(ROOT/'include/pokemon_types_def.h').read_text()
@@ -372,7 +435,7 @@ int main(void) {
         setter=game.function_source('src/pokemon.c','SetBoxMonDataInternal')
         set_ability=setter.split('    case MON_DATA_ABILITY:\n',1)[1].split('    case ',1)[0]
         create=game.function_source('src/pokemon.c','CreateBoxMon')
-        choice=create[create.index('    exp = (u32)GetMonBaseStat(species, BASE_ABILITY_1);'):create.index('    exp = GetBoxMonGender(boxMon);')]
+
         source=r'''
 #include <assert.h>
 #include <stddef.h>
@@ -381,6 +444,8 @@ int main(void) {
 #include "constants/abilities.h"
 #include "constants/species.h"
 #include "constants/pokemon.h"
+#include "constants/items.h"
+#include "constants/battle.h"
 #define TRUE 1
 #define FALSE 0
 #define GF_ASSERT assert
@@ -414,26 +479,34 @@ static u32 GetBoxMonDataInternal(BoxPokemon *boxMon,int attr,void *dest) {
         source+=r'''
 static void SetBoxMonDataInternal(BoxPokemon *boxMon,int attr,const void *value) {
  PokemonDataBlockA *blockA=&GetSubstruct(boxMon,boxMon->personality,0)->blockA;
- assert(attr==MON_DATA_ABILITY);
+ if(attr==MON_DATA_PERSONALITY){boxMon->personality=*(const u32 *)value;return;}
+ if(attr==MON_DATA_SPECIES){blockA->species=*(const u16 *)value;return;}
+ if(attr!=MON_DATA_ABILITY)return; // Other native constructor fields are outside this ability fixture.
 #define VALUE(type) (*(const type *)value)
  switch(attr){case MON_DATA_ABILITY:
 '''+set_ability+'}\n#undef VALUE\n}\n'
         source+=game.function_source('src/pokemon.c','SetBoxMonData')+'\n'
         source+=r'''
-static const int speciesList[]={SPECIES_WINGULL,SPECIES_PELIPPER,SPECIES_TORKOAL,SPECIES_FEEBAS};
-static const int first[]={51,51,73,33},second[]={93,2,70,12};
+static const int speciesList[]={SPECIES_WINGULL,SPECIES_PELIPPER,SPECIES_TORKOAL,SPECIES_FEEBAS,SPECIES_GALLADE};
+static const int first[]={51,51,73,33,80},second[]={93,2,70,12,242};
 static int GetMonBaseStat_HandleAlternateForm(int species,int form,int attr) {
  BASE_STATS p={{0,0}};int row=-1;
- for(int i=0;i<4;i++)if(species==speciesList[i]){row=i;p.abilities[0]=first[i];}
+ for(int i=0;i<5;i++)if(species==speciesList[i]){row=i;p.abilities[0]=first[i];p.abilities[1]=species==SPECIES_GALLADE?80:0;}
  assert(row>=0);Qol_ApplyModernMonAbilities(species,&p);return p.abilities[attr==BASE_ABILITY_2];
 }
 static int GetMonBaseStat(int species,int attr){return GetMonBaseStat_HandleAlternateForm(species,0,attr);}
 '''+game.function_source('src/pokemon.c','UpdateBoxMonAbility')+r'''
-static void new_choice(BoxPokemon *boxMon,int species,int fixedPersonality) {u32 exp,iv;
-'''+choice+'}\n'+r'''
+static unsigned gGameLanguage,gGameVersion;
+static int LCRandom(void){return 1234;}
+#define SHINY_CHECK(ot,pid) 0
+static void MI_CpuClearFast(void *p,unsigned size){memset(p,0,size);}
+static int GetMonExpBySpeciesAndLevel(int species,int level){return 1;}
+static int GetBoxMonGender(BoxPokemon *box){return 0;}
+static void InitBoxMonMoveset(BoxPokemon *box){}
+'''+game.function_source('src/pokemon.c','ZeroBoxMonData')+'\n'+create+'\n'+self.battle_consumer_source()+r'''
 int main(void) {
  assert(sizeof(BoxPokemon)==136&&sizeof(PokemonDataBlock)==32);
- for(int row=0;row<4;row++)for(int form=0;form<2;form++)for(int byte=0;byte<256;byte++)for(int parity=0;parity<2;parity++)for(int permutation=0;permutation<32;permutation++) {
+ for(int row=0;row<5;row++)for(int form=0;form<2;form++)for(int byte=0;byte<256;byte++)for(int parity=0;parity<2;parity++)for(int permutation=0;permutation<32;permutation++) {
   BoxPokemon box={0};box.personality=(permutation<<13)|parity;
   PokemonDataBlockA *a=&GetSubstruct(&box,box.personality,0)->blockA;
   PokemonDataBlockB *b=&GetSubstruct(&box,box.personality,1)->blockB;
@@ -442,12 +515,22 @@ int main(void) {
   int expected=QOL_MODERN_BATTLE&&form==0&&parity&&byte==first[row]?second[row]:byte;
   assert(GetBoxMonData(&box,MON_DATA_ABILITY,NULL)==(u32)expected);
   assert(!memcmp(&before,&box,sizeof(box)));
+  if(row==4&&(byte==0||byte==80||byte==242||byte==17)){
+   Pokemon mon={box};consumerMon=&mon;BattleContext ctx={0};
+   const int modes[]={0,BATTLE_TYPE_SAFARI,BATTLE_TYPE_PAL_PARK};
+   for(int mode=0;mode<3;mode++)for(int slot=0;slot<4;slot++){
+    consumerBattleType=modes[mode];BattleSystem_GetBattleMon(NULL,&ctx,slot,0);
+    assert(ctx.battleMons[slot].ability==(mode?0:expected));
+    assert(!memcmp(&before,&mon.box,sizeof(box)));
+   }
+  }
  }
- for(int row=0;row<4;row++)for(int pid=0;pid<4;pid++) {
+ for(int row=0;row<5;row++)for(int pid=0;pid<4;pid++) {
   BoxPokemon box={0};box.personality=pid;box.boxDecrypted=TRUE;
   GetSubstruct(&box,pid,0)->blockA.species=speciesList[row];
   int expected=QOL_MODERN_BATTLE&&(pid&1)?second[row]:first[row];
-  new_choice(&box,speciesList[row],pid);
+  CreateBoxMon(&box,speciesList[row],50,0,TRUE,pid,1,0);
+  assert(!box.boxDecrypted);AcquireBoxMonLock(&box);
   assert(GetSubstruct(&box,pid,0)->blockA.ability==expected&&box.personality==(u32)pid);
   GetSubstruct(&box,pid,0)->blockA.ability=0;
   UpdateBoxMonAbility(&box);
@@ -456,7 +539,7 @@ int main(void) {
  return 0;
 }
 '''
-        for flags in ((),('-DQOL_MODERN_BATTLE=1',)):
+        for flags in self.flags():
             self.compile_run(source,*flags,'-Wno-unused-function','-Wno-unused-variable','-Wno-sign-compare')
 
 

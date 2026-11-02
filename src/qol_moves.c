@@ -108,3 +108,29 @@ BOOL Qol_MoveBypassesSubstitute(u16 moveId) {
     return FALSE;
 #endif
 }
+
+// Gen IX slicing membership is independent of contact and King's Rock flags.
+// Later IDs are classified only when their move implementation is available.
+BOOL Qol_IsSlicingMove(u16 moveId) {
+    switch (moveId) {
+    case MOVE_CUT:
+    case MOVE_RAZOR_LEAF:
+    case MOVE_SLASH:
+    case MOVE_FURY_CUTTER:
+    case MOVE_AIR_CUTTER:
+    case MOVE_AERIAL_ACE:
+    case MOVE_LEAF_BLADE:
+    case MOVE_NIGHT_SLASH:
+    case MOVE_AIR_SLASH:
+    case MOVE_X_SCISSOR:
+    case MOVE_PSYCHO_CUT:
+    case MOVE_CROSS_POISON:
+#if QOL_MODERN_MOVES
+    case MOVE_SACRED_SWORD:
+    case MOVE_RAZOR_SHELL:
+    case MOVE_AQUA_CUTTER:
+#endif
+        return TRUE;
+    }
+    return FALSE;
+}

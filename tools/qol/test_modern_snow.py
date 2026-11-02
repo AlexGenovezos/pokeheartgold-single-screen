@@ -47,6 +47,7 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
     source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainStatModifier','Qol_ApplyStatModifier','Qol_GetBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat','Qol_ModernDefenseStat'))+'#endif\n'
     private_header=(ROOT/'include/battle/qol_damage_internal.h').read_text()
     source+='\n'+re.sub(r'^#include[^\n]*', '', private_header, flags=re.M)+'\n'
+    source+=native('Qol_IsSlicingMove','src/qol_moves.c')
     source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+'#if QOL_MODERN_BATTLE\n'+''.join(native(n) for n in ('Qol_GetScriptBasePowerModifier','Qol_ModernBasePower'))+'#endif\n'+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','Qol_IsMeFirstEligible','Qol_CalcMoveDamageInternal','CalcMoveDamage'))
     return source+r'''
 static BattleContext fixture(void){
@@ -244,7 +245,7 @@ class SnowResourceTests(unittest.TestCase):
             'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
             'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources',
             'modern_simple_message_resources','modern_ability_description_resources','modern_drain_resources',
-            'modern_move_stat_resources','modern_move_effect_resources']
+            'modern_move_stat_resources','modern_move_effect_resources','modern_soul_dew_message_resources']
         paths={p:(0,0,3) for p in ('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/3/0','a/0/1/1','a/0/0/0')}
         for types,battle,moves in ((False,False,False),(True,False,False),(False,False,True),(True,True,True),(False,True,False)):
             with self.subTest(types=types,battle=battle,moves=moves),ExitStack() as stack:

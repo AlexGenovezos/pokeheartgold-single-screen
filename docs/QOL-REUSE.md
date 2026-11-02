@@ -1115,3 +1115,72 @@ dispatch are host-tested, not inferred from this native command-state fixture.
 Ten frozen files, seven prior plus two new validation saves and three tested
 artifact hashes matched. No253-test full-suite rerun was claimed for D2a2.
 The installed four-QoL app, real ROM and real save remain untouched.
+
+
+## Sharpness and Soul Dew text (D2b)
+
+The shared modern BP collector supports Sharpness242 at priority19 using the
+active attacker snapshot and an explicit slicing classifier. The twelve original
+slicing IDs work with battle alone; Sacred Sword536/Razor Shell537/Aqua Cutter898
+also require modern moves. Every other u16 is false, including Champions-only
+claws. Air Cutter314/Air Slash403 remain Special. No native move flag/contest
+byte/table/ABI is widened. Public/AI paths receive Sharpness while Me First still
+requires explicit ordinary-command origin and eligibility.75+Sharpness+Helping
+Hand groups to169 (base76 at L50/SpA100/SpDef100); adding a20% type item groups
+to203 under the pinned Q12 arithmetic. The old ready-plan202 expectation was an
+exact-rational boundary error. Explicit41+Sharpness+Me First+Helping Hand gives
+138 instead of sequential136.
+
+Modern Gallade uses[Steadfast80,Sharpness242]. The original source pair is
+[80,80]. On read only, original stored80/oddPID/baseform maps to242; even80,
+zero/custom/242, other species/forms survive. Native constructor/explicit update
+slot selection is unchanged. The actual encrypted getter preserves all bytes,
+checksums and block permutations; no save migration or silent unrelated
+normalization is introduced. NUM_ABILITIES/Easy Chat limits and byte layouts
+remain original.
+
+Ability banks720/721/722 now have243 rows with sparse130/172/242 and placeholders
+for all unsupported gaps. Sharpness reads “Powers up slicing moves\nby 50%.”
+Full source-byte/encoded-row/key guards preserve existing names/descriptions.
+Soul Dew's original source bank221 stays unchanged; a battle-only resource
+transform validates the full exact post-Snow bank, then replaces only item225
+with the20% Psychic/Dragon move wording. It preserves Snow282/334, all536 other
+incoming rows, keys and NARC members/names. The63-character three-line text
+measures137/137/73px and stays within the149px/130-character bounds. All eight
+message-pipeline flag combinations are host-tested with script edges isolated.
+
+The contract, source pins, RED/GREEN commands, resource owners, guarded host and
+ASan/UBSan coverage are in
+`docs/superpowers/plans/2026-11-01-gen9-sharpness-and-item-text.md`.
+Fresh specification/quality reviews, complete SDK/resource integration and
+matching native/summary/bag acceptance remain root gates. Full Gen IX support
+is still incomplete; the installed app, real ROM and real save remain untouched.
+
+D2b source verification passed164 explicitly guarded SDK-free methods in221.926s
+plus four updated routing-owner checks. The38-method ASan/UBSan sweep passed
+in104.827s; a latest9-method Sharpness sanitizer rerun passed in22.330s. The
+accepted-d375 numerical replay has exactly16 intended modern failures across
+four methods/all eight flags, zero legacy failures and zero compiler errors.
+All four accepted-d375 battle-off worker/default/raw command token comparisons
+and the original public header guard pass. The source/test/doc freeze manifest
+is `.local-tools/validation/sharpness-frozen-hashes.json`. These are host results;
+complete SDK/resource integration, matching native and UI gates remain pending.
+
+
+D2b integration is verified. Both fresh independent reviews passed22 focused
+methods plus8/10 routing checks. The complete319-test host/SDK suite passed
+in1058.774s without failures/errors/skips, and the matching SDK ROM/resources/
+layout/native build passed. Built ability banks have243 rows; Soul Dew225 has
+the20% Psychic/Dragon text while retaining Snow282/334 and all other bank221
+rows. Fresh native constructor boots observed odd Gallade80→242 and even80→80.
+Six data-only neutral/no-STAB battle fixtures confirmed Sacred Sword61 versus
+control41, Air Slash51 versus35, suppressed Air Slash35 and non-slicing
+Earthquake46. Seed12 retained18/19 RNG calls and the expected final states.
+All10200 compared battle frames matched every ARM9 instruction, with zero
+fallbacks, guard failures or evictions. Root accepted both Gallade ability
+screens and the three-line Soul Dew item description without clipping. Ten
+validation saves, frozen production/test hashes and tested ROM/native/layout
+hashes matched. Evidence is in `sharpness-native-green-proof.json` and the
+Sharpness plan above. Support stays72 moves/336 learning rows/237 species;
+Wind Rider, Neutralizing Gas and other remaining Gen IX scope are unfinished.
+The installed four-QoL app, real ROM and real save remain unchanged.

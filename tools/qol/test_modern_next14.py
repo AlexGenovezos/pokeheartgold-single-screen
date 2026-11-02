@@ -149,6 +149,7 @@ int main(void){(void)BattleSystem_Random;
     def test_shared_damage_and_actual_ai_resolve_before_technician_and_honor_override(self):
         self.assertTrue('Qol_GetMoveBasePower(' in (ROOT/'src/battle/battle_util.c').read_text())
         source=snow.damage_source()
+        source=source.replace(snow.native('Qol_IsSlicingMove','src/qol_moves.c'),'')
         definitions='\n#undef BATTLE_MOVE_DATA\n#undef Qol_IsSupportedMove\n'+''.join(moves.no_includes((ROOT/p).read_text()) for p in ('include/move.h','include/qol_moves.h','src/qol_moves.c'))+'\ntypedef MoveTbl Move;'
         source=source.replace('typedef struct {int power,type,category,effect,range;} Move;',definitions)
         source=source.replace('(Move){500,TYPE_NORMAL,CATEGORY_PHYSICAL,0,0}', '(Move){.power=100,.type=TYPE_NORMAL,.category=CATEGORY_PHYSICAL}')
@@ -327,7 +328,7 @@ class Next14SourceTests(unittest.TestCase):
           'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
           'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources',
           'modern_snow_effect_resources','modern_ability_description_resources','modern_simple_message_resources',
-          'modern_snow_message_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
+          'modern_snow_message_resources','modern_soul_dew_message_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
         for battle in (False,True):
             for enabled in (False,True):
                 calls=[]
@@ -345,6 +346,8 @@ class Next14SourceTests(unittest.TestCase):
                 self.assertEqual(names.count('modern_move_effect_resources'),int(enabled))
                 self.assertEqual(names.count('modern_ability_description_resources'),int(battle))
                 self.assertEqual(names.count('modern_snow_message_resources'),int(battle))
+                self.assertEqual(names.count('modern_soul_dew_message_resources'),int(battle))
+                if battle:self.assertLess(names.index('modern_snow_message_resources'),names.index('modern_soul_dew_message_resources'))
                 if enabled:
                     self.assertEqual(next(args[1] for n,args in calls if n=='modern_move_stat_resources'),battle)
                 if battle and enabled:

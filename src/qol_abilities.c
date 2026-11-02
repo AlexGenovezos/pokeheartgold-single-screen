@@ -7,7 +7,7 @@
 BOOL Qol_IsSupportedAbility(u16 ability) {
     return ability <= NUM_ABILITIES
 #if QOL_MODERN_BATTLE
-        || ability == ABILITY_CURSED_BODY || ability == ABILITY_COMPETITIVE
+        || ability == ABILITY_CURSED_BODY || ability == ABILITY_COMPETITIVE || ability == ABILITY_SHARPNESS
 #endif
         ;
 }
@@ -26,6 +26,11 @@ u8 Qol_GetStoredAbility(u16 species, u8 form, u8 ability, u32 personality) {
                 && ability == ABILITY_CUTE_CHARM)
             || (species == SPECIES_MILOTIC && ability == ABILITY_MARVEL_SCALE))) {
         return ABILITY_COMPETITIVE;
+    }
+    // Gallade originally stores Steadfast in both standard slots. Recover only
+    // that original byte for odd PIDs; explicit custom choices remain intact.
+    if (species == SPECIES_GALLADE && form == 0 && ability == ABILITY_STEADFAST && (personality & 1)) {
+        return ABILITY_SHARPNESS;
     }
     if (form == 0 && (personality & 1)) {
         if (species == SPECIES_WINGULL && ability == ABILITY_KEEN_EYE) {
@@ -50,6 +55,8 @@ void Qol_ApplyModernMonAbilities(int species, BASE_STATS *personal) {
     } else if (species == SPECIES_JIGGLYPUFF || species == SPECIES_WIGGLYTUFF || species == SPECIES_IGGLYBUFF
         || species == SPECIES_MILOTIC) {
         personal->abilities[1] = ABILITY_COMPETITIVE;
+    } else if (species == SPECIES_GALLADE) {
+        personal->abilities[1] = ABILITY_SHARPNESS;
     } else if (species == SPECIES_WINGULL) {
         personal->abilities[1] = ABILITY_HYDRATION;
     } else if (species == SPECIES_PELIPPER) {

@@ -45,6 +45,7 @@ def ai_source():
     # Fixture writes include extended IDs; the real accessor still selects the
     # production extended table, but fixture setup must remain in bounds.
     source = snow.damage_source().replace('moveData[NUM_MOVES+1]', 'moveData[900]')
+    source = source.replace(snow.native('Qol_IsSlicingMove','src/qol_moves.c'), '')
     definitions = '\n#undef BATTLE_MOVE_DATA\n#undef Qol_IsSupportedMove\n' + ''.join(
         moves.no_includes((selected.ROOT / p).read_text()) for p in
         ('include/move.h', 'include/qol_moves.h', 'src/qol_moves.c')) + '\ntypedef MoveTbl Move;'

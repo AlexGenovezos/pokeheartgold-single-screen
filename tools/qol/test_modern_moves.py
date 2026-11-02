@@ -312,6 +312,9 @@ int main(void) {
     ctx.battleMons[0].type1=ctx.battleMons[0].type2=TYPE_NONE;
     const int ids[]={577,580,586,588,608,587,673,670,696,532,687,898,622,621,575,589,854,476,543,495,779,536,666};
     const int types[]={9,9,9,9,9,9,12,4,17,4,8,11,4,11,12,0,0,14,14,17,1,1,17};
+    const int abilities[]={80,242};
+    for(int user=0;user<2;user++)for(int target=0;target<2;target++) {
+    ctx.battleMons[0].ability=abilities[user];ctx.battleMons[1].ability=abilities[target];
     for(unsigned i=0;i<NELEMS(ids);i++) {
         for(int type=0;type<NUMBER_OF_MON_TYPES;type++) {
             ctx.battleMons[1].type1=ctx.battleMons[1].type2=type;
@@ -330,6 +333,7 @@ int main(void) {
             assert(!memcmp(&ctx,&before,sizeof(ctx)));
         }
     }
+    }
     assert(Qol_PreviewTypeEffectiveness(&ctx,65535,0,1)==-1);
     assert(Qol_PreviewTypeEffectiveness(&ctx,578,0,1)==-1);
     ctx.battleMons[1].type1=ctx.battleMons[1].type2=TYPE_NORMAL;
@@ -345,7 +349,9 @@ int main(void) {
     return 0;
 }
 '''
-        for flags in ((),('-DQOL_MODERN_MOVES=1',),('-DQOL_MODERN_MOVES=1','-DQOL_MODERN_TYPES=1')):
+        import itertools
+        for bits in itertools.product((0,1),repeat=3):
+            flags=tuple(f'-DQOL_MODERN_{name}={value}' for name,value in zip(('TYPES','BATTLE','MOVES'),bits))
             self.compile_run(self.source()+declarations+actual+checks,*flags,
                              '-Wno-sign-compare','-Wno-unused-but-set-variable')
 

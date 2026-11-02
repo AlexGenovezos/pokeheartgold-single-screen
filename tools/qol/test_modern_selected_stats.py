@@ -255,6 +255,7 @@ int main(void){
 
     def test_real_trainer_ai_shared_selected_stats_numeric_damage_no_rng(self):
         source=snow.damage_source()
+        source=source.replace(snow.native('Qol_IsSlicingMove','src/qol_moves.c'),'')
         definitions='\n#undef BATTLE_MOVE_DATA\n#undef Qol_IsSupportedMove\n'+''.join(moves.no_includes((ROOT/p).read_text()) for p in ('include/move.h','include/qol_moves.h','src/qol_moves.c'))+'\ntypedef MoveTbl Move;'
         source=source.replace('typedef struct {int power,type,category,effect,range;} Move;',definitions)
         source=source.replace('(Move){500,TYPE_NORMAL,CATEGORY_PHYSICAL,0,0}', '(Move){.power=100,.type=TYPE_NORMAL,.category=CATEGORY_PHYSICAL}')
