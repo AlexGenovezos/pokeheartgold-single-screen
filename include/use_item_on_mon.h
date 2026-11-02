@@ -3,11 +3,14 @@
 
 #include "item.h"
 #include "pokemon_types_def.h"
+#include "save.h"
 
 BOOL CanUseItemOnPokemon(Pokemon *mon, u16 itemID, s32 moveIdx, enum HeapID heapID);
 BOOL CanUseItemOnMonInParty(Party *party, u16 itemID, s32 partyIdx, s32 moveIdx, enum HeapID heapID);
 BOOL UseItemOnPokemon(Pokemon *mon, u16 itemID, u16 moveIdx, u16 location, enum HeapID heapID);
 BOOL UseItemOnMonInParty(Party *party, u16 itemID, s32 partyIdx, u8 moveIdx, u16 location, enum HeapID heapID);
+BOOL CanUseItemOnMonInPartyField(SaveData *saveData, Party *party, u16 itemID, s32 partyIdx, s32 moveIdx, enum HeapID heapID);
+BOOL UseItemOnMonInPartyField(SaveData *saveData, Party *party, u16 itemID, s32 partyIdx, u8 moveIdx, u16 location, enum HeapID heapID);
 BOOL MonMoveCanRestorePP(Pokemon *mon, int moveIdx);
 BOOL MonMoveRestorePP(Pokemon *mon, int moveIdx, int ppRestore);
 BOOL BoostMonMovePpUpBy(Pokemon *mon, int moveIdx, int nPpUp);

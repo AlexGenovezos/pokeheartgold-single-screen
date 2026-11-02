@@ -2448,7 +2448,17 @@ static int PartyMenu_HandleUseItemOnMon(PartyMenu *partyMenu) {
         return PARTY_MENU_STATE_SELECT_MOVE;
     }
 
-    if (CanUseItemOnMonInParty(partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex, 0, HEAP_ID_PARTY_MENU) == TRUE) {
+    BOOL canUse;
+#if QOL_LEVEL_CAPS
+    if (partyMenu->args->context == PARTY_MENU_CONTEXT_USE_ITEM && partyMenu->args->fieldSystem != NULL) {
+        canUse = CanUseItemOnMonInPartyField(partyMenu->args->fieldSystem->saveData,
+            partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex, 0, HEAP_ID_PARTY_MENU);
+    } else
+#endif
+    {
+        canUse = CanUseItemOnMonInParty(partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex, 0, HEAP_ID_PARTY_MENU);
+    }
+    if (canUse == TRUE) {
         Bag_TakeItem(partyMenu->args->bag, partyMenu->args->itemId, 1, HEAP_ID_PARTY_MENU);
         if (GetItemAttr_PreloadedItemData(itemData, ITEMATTR_EVOLVE)) {
             Pokemon *mon = Party_GetMonByIndex(partyMenu->args->party, partyMenu->partyMonIndex);

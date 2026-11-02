@@ -23,6 +23,10 @@ endif
 CRT0_OBJ := lib/NitroSDK/src/crt0.o
 include filesystem.mk
 
+# A fresh BUILD_DIR has no C depfile yet. Prepare the Options message header
+# through its normal .h -> .bin -> .gmm rule before compiling this overlay.
+$(BUILD_DIR)/src/options_app.o: files/msgdata/msg/msg_0045.h
+
 # BEGIN GAME DEFINE TRACKING
 # Keep compiler options in a real dependency: changing QoL flags must rebuild
 # game objects, while an unchanged invocation should reuse them.

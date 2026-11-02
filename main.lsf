@@ -258,6 +258,8 @@ Static main
     Object src/field_warp_state.o
     Object src/field_move.o
     Object src/qol_field_moves.o
+    Object src/qol_level_caps.o
+    Object src/qol_level_cap_save.o
     Object src/field_move_environment.o
     Object src/field_effects.o
     Object src/gymmick_init.o

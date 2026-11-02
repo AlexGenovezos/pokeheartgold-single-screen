@@ -378,8 +378,11 @@
 #define VAR_UNK_416B                       0x416B
 #define VAR_UNK_416C                       0x416C
 #define VAR_UNK_416D                       0x416D
-#define VAR_UNK_416E                       0x416E
-#define VAR_UNK_416F                       0x416F
+// Reserved in every build; SaveVarsFlags retains its original size.
+// Phase: D100..D1FF = schema 1 / low-byte breeding clock; otherwise uninitialized.
+// Config: 0000 = Off, exact C701 = On / schema 1; all other values read Off.
+#define VAR_QOL_DAYCARE_BREEDING_PHASE      0x416E
+#define VAR_QOL_LEVEL_CAP_CONFIG           0x416F
 
 #define NUM_VARS (0x170)
 

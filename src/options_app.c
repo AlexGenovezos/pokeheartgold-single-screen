@@ -1,4 +1,11 @@
 #include "options_app.h"
+#include "qol_config.h"
+
+#if QOL_LEVEL_CAPS
+#include "constants/trainers.h"
+#include "message_format.h"
+#include "qol_level_cap_save.h"
+#endif
 
 #include <nitro/spi/ARM9/pm.h>
 
@@ -72,13 +79,16 @@ typedef struct OptionsApp_Data {
     MsgData *msgData;
     u8 filler2C[0x8];
     union {
-        Window asArray[5];
+        Window asArray[5 + QOL_LEVEL_CAPS];
         struct {
             Window optionsTitle;
             Window selectedOption;
             Window frameAndTextSpeedTest;
             Window quitButton;
             Window confirmButton;
+#if QOL_LEVEL_CAPS
+            Window pageHint;
+#endif
         };
     } windows;
     OptionsApp_MenuEntry menuEntries[MENU_ENTRY_COUNT];
@@ -89,7 +99,16 @@ typedef struct OptionsApp_Data {
     u32 menuInputState;
     String *frameNumText;
     u8 textPrinter;
-} OptionsApp_Data; // size: 0x32c
+#if QOL_LEVEL_CAPS
+    u8 capPage;
+    u8 firstPageMenuEntry;
+    u8 capMenuEntry;
+    BOOL pendingCap;
+    MessageFormat *capMessageFormat;
+    String *capFormatTemplate;
+    String *capFormatResult;
+#endif
+} OptionsApp_Data; // Base overlay size: 0x32c; cap UI adds only transient state.
 
 static const s8 sOptionsApp_ClearRectXOffsets[MENU_ENTRY_COUNT] = {
 #if QOL_INSTANT_TEXT
@@ -200,6 +219,21 @@ static const u32 sOptionsAppHitboxEntryValues[15 + QOL_INSTANT_TEXT][2] = {
     { MENU_ENTRY_6,            5 },
     { MENU_ENTRY_6,            6 },
 };
+
+#if QOL_LEVEL_CAPS
+static const TouchscreenHitbox sLevelCapPageHintHitboxes[] = {
+    { .rect = { .top = 0, .bottom = 24, .left = 112, .right = 248 } },
+    { TOUCHSCREEN_RECTLIST_END },
+};
+
+static const TouchscreenHitbox sLevelCapTouchscreenHitboxes[] = {
+    { .rect = { .top = 26, .bottom = 46, .left = 128, .right = 172 } },
+    { .rect = { .top = 26, .bottom = 46, .left = 184, .right = 228 } },
+    { .rect = { .top = 172, .bottom = 191, .left = 128, .right = 180 } },
+    { .rect = { .top = 172, .bottom = 191, .left = 183, .right = 255 } },
+    { TOUCHSCREEN_RECTLIST_END },
+};
+#endif
 
 static const UnmanagedSpriteTemplate sOptionsAppSpriteTemplates[9] = {
     {
@@ -353,6 +387,12 @@ static void OptionsApp_SetupSpriteRenderer(OptionsApp_Data *data);
 static void OptionsApp_FreeSpriteRenderer(OptionsApp_Data *data);
 static void OptionsApp_SetupSprites(OptionsApp_Data *data);
 static void OptionsApp_SetActiveButtonsXPosition(OptionsApp_Data *data);
+#if QOL_LEVEL_CAPS
+static void OptionsApp_SwitchPage(OptionsApp_Data *data);
+static void OptionsApp_DrawCapPage(OptionsApp_Data *data);
+static void OptionsApp_DrawPageHint(OptionsApp_Data *data);
+static void OptionsApp_HandleCapTouch(OptionsApp_Data *data);
+#endif
 static BOOL OptionsApp_ConfirmAndQuitButtonsAreDoneAnimating(OptionsApp_Data *data);
 
 BOOL OptionsMenu_Init(OverlayManager *manager, int *state) {
@@ -375,6 +415,12 @@ BOOL OptionsMenu_Init(OverlayManager *manager, int *state) {
     data->playerOptions = args->options;
     data->menuInputState = MenuInputStateMgr_GetState(data->menuInputPtr);
     data->frameNumText = String_New(40, data->heapID);
+#if QOL_LEVEL_CAPS
+    data->pendingCap = Qol_LevelCapEnabledForSave(SaveData_Get());
+    data->capMessageFormat = MessageFormat_New(data->heapID);
+    data->capFormatTemplate = String_New(128, data->heapID);
+    data->capFormatResult = String_New(128, data->heapID);
+#endif
 
     TextFlags_SetCanABSpeedUpPrint(FALSE);
     TextFlags_SetCanTouchSpeedUpPrint(FALSE);
@@ -402,6 +448,9 @@ BOOL OptionsMenu_Exit(OverlayManager *manager, int *state) {
         Options_SetSoundMethod(data->playerOptions, data->options.soundMethod);
         Options_SetButtonMode(data->playerOptions, data->options.buttonMode);
         Options_SetFrame(data->playerOptions, data->options.frame);
+#if QOL_LEVEL_CAPS
+        Qol_LevelCapSetEnabledForSave(SaveData_Get(), data->pendingCap);
+#endif
     } else if (data->exitChoice == 2) {
         GF_SndSetMonoFlag(data->options.soundMethod);
         Options_SetButtonModeOnMain(NULL, data->options.buttonMode);
@@ -409,6 +458,11 @@ BOOL OptionsMenu_Exit(OverlayManager *manager, int *state) {
     }
 
     String_Delete(data->frameNumText);
+#if QOL_LEVEL_CAPS
+    MessageFormat_Delete(data->capMessageFormat);
+    String_Delete(data->capFormatTemplate);
+    String_Delete(data->capFormatResult);
+#endif
 
     TextFlags_SetCanABSpeedUpPrint(TRUE);
     TextFlags_SetCanTouchSpeedUpPrint(TRUE);
@@ -699,13 +753,16 @@ static void OptionsApp_SetupWindows(OptionsApp_Data *data) {
     AddWindowParameterized(data->bgConfig, &data->windows.quitButton, GF_BG_LYR_MAIN_1, 24, 21, 7, 3, 13, 0x24A);
     AddWindowParameterized(data->bgConfig, &data->windows.frameAndTextSpeedTest, GF_BG_LYR_SUB_1, 2, 19, 27, 4, 12, 0x1);
     AddWindowParameterized(data->bgConfig, &data->windows.confirmButton, GF_BG_LYR_MAIN_1, 15, 21, 7, 3, 13, 0x25F);
+#if QOL_LEVEL_CAPS
+    AddWindowParameterized(data->bgConfig, &data->windows.pageHint, GF_BG_LYR_MAIN_1, 14, 0, 17, 3, 13, 0x274);
+#endif
 
     LoadUserFrameGfx2(data->bgConfig, GF_BG_LYR_SUB_1, 0x6D, 15, data->options.frame, data->heapID);
     LoadFontPal0(GF_PAL_LOCATION_MAIN_BG, GF_PAL_SLOT_13_OFFSET, data->heapID);
     LoadFontPal0(GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_13_OFFSET, data->heapID);
     LoadFontPal1(GF_PAL_LOCATION_MAIN_BG, GF_PAL_SLOT_12_OFFSET, data->heapID);
     LoadFontPal1(GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_12_OFFSET, data->heapID);
-#if QOL_INSTANT_TEXT
+#if QOL_INSTANT_TEXT || QOL_LEVEL_CAPS
     static const u16 speedButtonColors[] = {
         GX_RGB(8, 16, 20), GX_RGB(4, 10, 14), GX_RGB(10, 20, 28)
     };
@@ -717,6 +774,10 @@ static void OptionsApp_SetupWindows(OptionsApp_Data *data) {
     FillWindowPixelBuffer(&data->windows.quitButton, 0x00);
     FillWindowPixelBuffer(&data->windows.confirmButton, 0x00);
     FillWindowPixelBuffer(&data->windows.frameAndTextSpeedTest, 0xFF);
+#if QOL_LEVEL_CAPS
+    FillWindowPixelBuffer(&data->windows.pageHint, 0x00);
+    ClearWindowTilemap(&data->windows.pageHint);
+#endif
 
     ClearWindowTilemap(&data->windows.frameAndTextSpeedTest);
     ClearWindowTilemap(&data->windows.selectedOption);
@@ -788,8 +849,116 @@ static void OptionsApp_SetupInterfaceText(OptionsApp_Data *data) {
     CopyWindowToVram(&data->windows.confirmButton);
     CopyWindowToVram(&data->windows.frameAndTextSpeedTest);
 
+#if QOL_LEVEL_CAPS
+    OptionsApp_DrawPageHint(data);
+#endif
     String_Delete(tmpString);
 }
+
+#if QOL_LEVEL_CAPS
+static void OptionsApp_DrawPageHint(OptionsApp_Data *data) {
+    FillWindowPixelBuffer(&data->windows.pageHint, 0);
+    ReadMsgDataIntoString(data->msgData, data->capPage ? msg_0045_00068 : msg_0045_00067, data->capFormatTemplate);
+    AddTextPrinterParameterizedWithColor(&data->windows.pageHint, 0, data->capFormatTemplate,
+        0, 5, TEXT_SPEED_INSTANT, MAKE_TEXT_COLOR(15, 2, 0), NULL);
+    CopyWindowToVram(&data->windows.pageHint);
+}
+
+static void OptionsApp_DrawCapPage(OptionsApp_Data *data) {
+    Window *window = &data->windows.selectedOption;
+    QolLevelCap cap = Qol_LevelCapForSave(SaveData_Get());
+    u16 choice;
+
+    FillWindowPixelBuffer(&data->windows.optionsTitle, 0);
+    ReadMsgDataIntoString(data->msgData, msg_0045_00060, data->capFormatTemplate);
+    AddTextPrinterParameterizedWithColor(&data->windows.optionsTitle, 0, data->capFormatTemplate,
+        2, 5, TEXT_SPEED_INSTANT, MAKE_TEXT_COLOR(15, 2, 0), NULL);
+    CopyWindowToVram(&data->windows.optionsTitle);
+
+    FillWindowPixelBuffer(window, 5);
+    ReadMsgDataIntoString(data->msgData, msg_0045_00061, data->capFormatTemplate);
+    AddTextPrinterParameterizedWithColor(window, 0, data->capFormatTemplate,
+        4, 5, TEXT_SPEED_NOTRANSFER, MAKE_TEXT_COLOR(15, 2, 5), NULL);
+    for (choice = 0; choice < 2; choice++) {
+        u16 left = 116 + choice * 56;
+        u16 fill = choice == data->pendingCap ? 15 : 3;
+        FillWindowPixelRect(window, data->currentMenuEntryId == 0 ? 4 : 5, left, 2, 48, 20);
+        FillWindowPixelRect(window, fill, left + 1, 3, 46, 18);
+        ReadMsgDataIntoString(data->msgData, msg_0045_00062 + choice, data->capFormatTemplate);
+        AddTextPrinterParameterizedWithColor(window, 0, data->capFormatTemplate,
+            120 + choice * 56, 5, TEXT_SPEED_NOTRANSFER,
+            choice == data->pendingCap ? MAKE_TEXT_COLOR(1, 2, 15) : MAKE_TEXT_COLOR(15, 2, 3), NULL);
+    }
+    ReadMsgDataIntoString(data->msgData, msg_0045_00064, data->capFormatTemplate);
+    AddTextPrinterParameterizedWithColor(window, 0, data->capFormatTemplate,
+        4, 37, TEXT_SPEED_NOTRANSFER, MAKE_TEXT_COLOR(15, 2, 5), NULL);
+    if (cap.trainerId == TRAINER_NONE) {
+        ReadMsgDataIntoString(data->msgData, msg_0045_00065, data->capFormatResult);
+    } else {
+        BufferTrainerName(data->capMessageFormat, 0, cap.trainerId);
+        BufferIntegerAsString(data->capMessageFormat, 1, cap.level, 3, PRINTING_MODE_LEFT_ALIGN, TRUE);
+        ReadMsgDataIntoString(data->msgData, msg_0045_00069, data->capFormatTemplate);
+        StringExpandPlaceholders(data->capMessageFormat, data->capFormatResult, data->capFormatTemplate);
+    }
+    AddTextPrinterParameterizedWithColor(window, 0, data->capFormatResult,
+        4, 61, TEXT_SPEED_NOTRANSFER, MAKE_TEXT_COLOR(15, 2, 5), NULL);
+    ReadMsgDataIntoString(data->msgData, msg_0045_00066, data->capFormatTemplate);
+    AddTextPrinterParameterizedWithColor(window, 0, data->capFormatTemplate,
+        4, 109, TEXT_SPEED_NOTRANSFER, MAKE_TEXT_COLOR(15, 2, 5), NULL);
+    CopyWindowToVram(window);
+}
+
+static void OptionsApp_SwitchPage(OptionsApp_Data *data) {
+    int i;
+    if (!data->capPage) {
+        data->firstPageMenuEntry = data->currentMenuEntryId;
+        data->currentMenuEntryId = data->capMenuEntry;
+        data->capPage = 1;
+        ToggleBgLayer(GF_BG_LYR_MAIN_2, GF_PLANE_TOGGLE_OFF);
+        ToggleBgLayer(GF_BG_LYR_MAIN_0, GF_PLANE_TOGGLE_OFF);
+        for (i = 0; i < 7; i++) {
+            Sprite_SetDrawFlag(data->sprites[i], FALSE);
+        }
+    } else {
+        data->capMenuEntry = data->currentMenuEntryId;
+        data->currentMenuEntryId = data->firstPageMenuEntry;
+        data->capPage = 0;
+        FillWindowPixelBuffer(&data->windows.optionsTitle, 0);
+        FillWindowPixelBuffer(&data->windows.selectedOption, 0);
+        ToggleBgLayer(GF_BG_LYR_MAIN_2, GF_PLANE_TOGGLE_ON);
+        for (i = 0; i < 7; i++) {
+            Sprite_SetDrawFlag(data->sprites[i], TRUE);
+        }
+#if QOL_INSTANT_TEXT
+        Sprite_SetDrawFlag(data->sprites[0], FALSE);
+#endif
+        OptionsApp_SetupInterfaceText(data);
+        OptionsApp_SetActiveButtonsXPosition(data);
+    }
+    OptionsApp_UpdateSelectionHighlight(data, data->currentMenuEntryId);
+    OptionsApp_DrawPageHint(data);
+    PlaySE(SEQ_SE_DP_SELECT);
+}
+
+static void OptionsApp_HandleCapTouch(OptionsApp_Data *data) {
+    int hitbox = TouchscreenHitbox_FindRectAtTouchNew(sLevelCapTouchscreenHitboxes);
+    if (hitbox == 0 || hitbox == 1) {
+        data->pendingCap = hitbox;
+        data->currentMenuEntryId = 0;
+        OptionsApp_UpdateSelectionHighlight(data, 0);
+        PlaySE(SEQ_SE_DP_SELECT);
+    } else if (hitbox == 2 || hitbox == 3) {
+        data->currentMenuEntryId = MENU_ENTRY_6;
+        data->exitChoice = hitbox == 2 ? 1 : 2;
+        data->menuEntries[MENU_ENTRY_6].value = hitbox == 2;
+        data->menuInputState = 1;
+        MenuInputStateMgr_SetState(data->menuInputPtr, MENU_INPUT_STATE_TOUCH);
+        OptionsApp_UpdateSelectionHighlight(data, MENU_ENTRY_6);
+        PlaySE(hitbox == 2 ? SEQ_SE_DP_SAVE : SEQ_SE_GS_GEARCANCEL);
+        Sprite_SetAnimCtrlSeq(data->sprites[hitbox == 2 ? 8 : 7], 3);
+    }
+}
+#endif
 
 static void OptionsApp_LoadMenuEntriesData(OptionsApp_Data *data) {
     u16 i, j;
@@ -838,6 +1007,11 @@ static void OptionsApp_DrawTextSpeedButtons(OptionsApp_Data *data) {
 #endif
 
 static void OptionsApp_UpdateMenuEntry(OptionsApp_Data *data, u16 menuEntryId) {
+#if QOL_LEVEL_CAPS
+    if (data->capPage) {
+        return;
+    }
+#endif
     u32 selectedColor = MAKE_TEXT_COLOR(1, 2, 0);
     u32 notSelectedColor = MAKE_TEXT_COLOR(15, 2, 0);
     u32 color;
@@ -913,6 +1087,31 @@ static void OptionsApp_UpdateMenuEntryCarousel(OptionsApp_Data *data, u32 menuEn
 }
 
 static void OptionsApp_HandleKeyInput(OptionsApp_Data *data, OptionsApp_MenuEntry *menuEntry) {
+#if QOL_LEVEL_CAPS
+    if (data->capPage && data->currentMenuEntryId == 0) {
+        if (gSystem.newKeys & PAD_BUTTON_B) {
+            MenuInputStateMgr_SetState(data->menuInputPtr, MENU_INPUT_STATE_BUTTONS);
+            PlaySE(SEQ_SE_GS_GEARCANCEL);
+            Sprite_SetAnimCtrlSeq(data->sprites[7], 2);
+            data->exitChoice = 2;
+        } else if (gSystem.newKeys & (PAD_KEY_UP | PAD_KEY_DOWN)) {
+            data->currentMenuEntryId = MENU_ENTRY_6;
+            OptionsApp_UpdateSelectionHighlight(data, MENU_ENTRY_6);
+            PlaySE(SEQ_SE_DP_SELECT);
+        } else if (gSystem.newKeys & (PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_BUTTON_A)) {
+            if (gSystem.newKeys & PAD_KEY_RIGHT) {
+                data->pendingCap = TRUE;
+            } else if (gSystem.newKeys & PAD_KEY_LEFT) {
+                data->pendingCap = FALSE;
+            } else {
+                data->pendingCap = !data->pendingCap;
+            }
+            OptionsApp_DrawCapPage(data);
+            PlaySE(SEQ_SE_DP_SELECT);
+        }
+        return;
+    }
+#endif
     if (data->currentMenuEntryId != MENU_ENTRY_6) {
         if (gSystem.newKeys & PAD_KEY_RIGHT) {
             OptionsApp_UpdateMenuEntryCarousel(data, data->currentMenuEntryId, menuEntry, 1);
@@ -941,11 +1140,25 @@ static void OptionsApp_HandleKeyInput(OptionsApp_Data *data, OptionsApp_MenuEntr
     }
 
     if (gSystem.newKeys & PAD_KEY_UP) {
-        data->currentMenuEntryId = (data->currentMenuEntryId + (MENU_ENTRY_COUNT - 1)) % MENU_ENTRY_COUNT;
+#if QOL_LEVEL_CAPS
+        if (data->capPage) {
+            data->currentMenuEntryId = 0;
+        } else
+#endif
+        {
+            data->currentMenuEntryId = (data->currentMenuEntryId + (MENU_ENTRY_COUNT - 1)) % MENU_ENTRY_COUNT;
+        }
         OptionsApp_UpdateSelectionHighlight(data, data->currentMenuEntryId);
         PlaySE(SEQ_SE_DP_SELECT);
     } else if (gSystem.newKeys & PAD_KEY_DOWN) {
-        data->currentMenuEntryId = (data->currentMenuEntryId + 1) % MENU_ENTRY_COUNT;
+#if QOL_LEVEL_CAPS
+        if (data->capPage) {
+            data->currentMenuEntryId = 0;
+        } else
+#endif
+        {
+            data->currentMenuEntryId = (data->currentMenuEntryId + 1) % MENU_ENTRY_COUNT;
+        }
         OptionsApp_UpdateSelectionHighlight(data, data->currentMenuEntryId);
         PlaySE(SEQ_SE_DP_SELECT);
     } else if ((gSystem.newKeys & PAD_BUTTON_A) && data->currentMenuEntryId == MENU_ENTRY_6) {
@@ -973,6 +1186,17 @@ static void OptionsApp_HandleKeyInput(OptionsApp_Data *data, OptionsApp_MenuEntr
 }
 
 static void OptionsApp_HandleInput(OptionsApp_Data *data) {
+#if QOL_LEVEL_CAPS
+    if ((gSystem.newKeys & PAD_BUTTON_X)
+        || (gSystem.touchNew && TouchscreenHitbox_FindRectAtTouchNew(sLevelCapPageHintHitboxes) == 0)) {
+        OptionsApp_SwitchPage(data);
+        return;
+    }
+    if (data->capPage && gSystem.touchNew) {
+        OptionsApp_HandleCapTouch(data);
+        return;
+    }
+#endif
     if (gSystem.touchNew != 0) {
         const int hitboxIndex = TouchscreenHitbox_FindRectAtTouchNew(sOptionsAppTouchscreenHitboxes);
         switch (hitboxIndex) {
@@ -1032,6 +1256,15 @@ static void OptionsApp_HandleInput(OptionsApp_Data *data) {
 }
 
 static void OptionsApp_UpdateSelectionHighlight(OptionsApp_Data *data, u32 menuEntryId) {
+#if QOL_LEVEL_CAPS
+    if (data->capPage) {
+        ToggleBgLayer(GF_BG_LYR_MAIN_0, GF_PLANE_TOGGLE_OFF);
+        Sprite_SetAnimCtrlSeq(data->sprites[7], menuEntryId == MENU_ENTRY_6 && data->menuEntries[MENU_ENTRY_6].value == 0);
+        Sprite_SetAnimCtrlSeq(data->sprites[8], menuEntryId == MENU_ENTRY_6 && data->menuEntries[MENU_ENTRY_6].value == 1);
+        OptionsApp_DrawCapPage(data);
+        return;
+    }
+#endif
     if (menuEntryId == MENU_ENTRY_6) {
         ToggleBgLayer(GF_BG_LYR_MAIN_0, GF_PLANE_TOGGLE_OFF);
         if (data->menuEntries[menuEntryId].value == 0) {
@@ -1050,6 +1283,12 @@ static void OptionsApp_UpdateSelectionHighlight(OptionsApp_Data *data, u32 menuE
 }
 
 static void OptionsApp_HideBorderOnConfirmRow(OptionsApp_Data *data) {
+#if QOL_LEVEL_CAPS
+    if (data->capPage) {
+        ToggleBgLayer(GF_BG_LYR_MAIN_0, GF_PLANE_TOGGLE_OFF);
+        return;
+    }
+#endif
     if (data->currentMenuEntryId == MENU_ENTRY_6) {
         ToggleBgLayer(GF_BG_LYR_MAIN_0, GF_PLANE_TOGGLE_OFF);
     }
@@ -1118,6 +1357,11 @@ static void OptionsApp_SetupSprites(OptionsApp_Data *data) {
 }
 
 static void OptionsApp_SetActiveButtonsXPosition(OptionsApp_Data *data) {
+#if QOL_LEVEL_CAPS
+    if (data->capPage) {
+        return;
+    }
+#endif
     for (int i = 0; i < 5; i++) {
         s16 x, y;
         Sprite_GetPositionXY(data->sprites[i], &x, &y);

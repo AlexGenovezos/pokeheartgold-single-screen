@@ -580,7 +580,22 @@ static int PartyMenu_ItemUseFunc_LevelUp(PartyMenu *partyMenu) {
     partyMenu->levelUpStatsTmp[3] = GetMonData(mon, MON_DATA_SP_ATK, NULL);
     partyMenu->levelUpStatsTmp[4] = GetMonData(mon, MON_DATA_SP_DEF, NULL);
     partyMenu->levelUpStatsTmp[5] = GetMonData(mon, MON_DATA_SPEED, NULL);
-    UseItemOnMonInParty(partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex, 0, PartyMenu_GetCurrentMapSec(partyMenu), HEAP_ID_PARTY_MENU);
+#if QOL_LEVEL_CAPS
+    if (partyMenu->args->context == PARTY_MENU_CONTEXT_USE_ITEM && partyMenu->args->fieldSystem != NULL) {
+        if (!UseItemOnMonInPartyField(partyMenu->args->fieldSystem->saveData,
+                partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex,
+                0, PartyMenu_GetCurrentMapSec(partyMenu), HEAP_ID_PARTY_MENU)) {
+            Bag_AddItem(partyMenu->args->bag, ITEM_RARE_CANDY, 1, HEAP_ID_PARTY_MENU);
+            PartyMenu_PrintMessageOnWindow34(partyMenu, msg_0300_00102, TRUE);
+            partyMenu->partyMonIndex = PARTY_MON_SELECTION_CONFIRM;
+            partyMenu->itemUseCallback = PartyMenu_ItemUseFunc_WaitTextPrinterThenExit;
+            return PARTY_MENU_STATE_ITEM_USE_CB;
+        }
+    } else
+#endif
+    {
+        UseItemOnMonInParty(partyMenu->args->party, partyMenu->args->itemId, partyMenu->partyMonIndex, 0, PartyMenu_GetCurrentMapSec(partyMenu), HEAP_ID_PARTY_MENU);
+    }
     partyMenu->monsDrawState[partyMenu->partyMonIndex].level = GetMonData(mon, MON_DATA_LEVEL, NULL);
     partyMenu->monsDrawState[partyMenu->partyMonIndex].hp = GetMonData(mon, MON_DATA_HP, NULL);
     partyMenu->monsDrawState[partyMenu->partyMonIndex].maxHp = GetMonData(mon, MON_DATA_MAX_HP, NULL);

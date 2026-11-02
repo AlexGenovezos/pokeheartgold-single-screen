@@ -439,7 +439,7 @@ int PokewalkerApp_StartStroll_PrintRegistered(PokewalkerApp *app);
 int PokewalkerApp_StartStroll_WaitRegistered(PokewalkerApp *app);
 int PokewalkerApp_StartStroll_End(PokewalkerApp *app);
 void PokewalkerApp_ReturnStrollMon(PokewalkerApp *app);
-BOOL PokewalkerApp_AddStrollExp(BoxPokemon *boxMon, Pokemon *mon, int exp);
+BOOL PokewalkerApp_AddStrollExp(SaveData *saveData, BoxPokemon *boxMon, Pokemon *mon, int exp);
 void PokewalkerApp_GiveStarfBerry(PokewalkerApp *app);
 void PokewalkerApp_AddStrollFriendship(BoxPokemon *boxMon, int steps);
 void PokewalkerApp_CreateWalkerMonWithOT(Pokemon *mon, PlayerProfile *profile, const PokewalkerMon *walkerMon, u32 nature, BOOL genMode);

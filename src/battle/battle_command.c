@@ -5,6 +5,7 @@
 #include "global.h"
 
 #include "qol_config.h"
+#include "qol_level_cap_save.h"
 
 #include "constants/abilities.h"
 #include "constants/battle.h"
@@ -6394,6 +6395,12 @@ static void Task_GetExp(SysTask *task, void *inData) {
 
             u32 newExp = GetMonData(mon, MON_DATA_EXPERIENCE, NULL);
             data->tempData[DATA_GET_EXP_PREV_PROGRESS_TO_NEXT_LEVEL] = newExp - GetMonBaseExperienceAtCurrentLevel(mon);
+#if QOL_LEVEL_CAPS
+            if (!(battleType & (BATTLE_TYPE_NO_EXP | BATTLE_TYPE_TUTORIAL))) {
+                totalExp = Qol_LevelCapLimitPlayerExp(SaveData_Get(),
+                    GetMonData(mon, MON_DATA_SPECIES, NULL), newExp, totalExp);
+            }
+#endif
             newExp += totalExp;
 
             if (slot == data->ctx->selectedMonIndex[expBattler]) {

@@ -29,13 +29,16 @@ and game assets documented in INSTALL.md are supplied:
 ```
 
 `QOL_MODS=1` currently enables `QOL_INSTANT_TEXT`, `QOL_REUSABLE_TMS`,
-`QOL_HM_ACTIONS` and `QOL_EFFECTIVENESS`.
+`QOL_HM_ACTIONS`, `QOL_EFFECTIVENESS` and `QOL_LEVEL_CAPS` support. Level caps
+start Off in each save; see [level-cap behavior](../../docs/LEVEL-CAPS.md).
 Override each macro individually with 0 or 1 to test it in isolation.
 Select the new Instant text-speed choice in the in-game Options menu; this is
 not automatic dialog advancement. HM actions require their original item and
 badge, with existing field restrictions. Battle modernization is still pending.
-Effectiveness labels show type multipliers; `?` means a target must be chosen
-or a reliable multiplier is unavailable (status/fixed-damage/variable-type moves).
+The controls cleanup source omits effectiveness labels for status moves.
+Damaging moves retain type multipliers, including neutral `1x`; `?` means a
+target must be chosen or a reliable forecast is unavailable (for example,
+fixed-damage or variable-type moves). Native visual/input acceptance is pending.
 
 The Makefile tracks gameplay definitions and rebuilds game objects when they
 change. Identical invocations reuse objects. The three fixed-profile C++ library
@@ -73,6 +76,31 @@ Use the paired `qol-mods` branch of AlexGenovezos/ssrecomp in a sibling
 ```sh
 ./scripts/build-qol-native.sh ../ssrecomp-qol
 ```
+
+This opt-in wrapper also defaults to skipping the Route 29 catching lesson.
+Set `QOL_SKIP_CATCHING_TUTORIAL=0` to retain it:
+
+```sh
+QOL_SKIP_CATCHING_TUTORIAL=0 ./scripts/build-qol-native.sh ../ssrecomp-qol
+```
+
+Tutorial skipping is a separate data transform, not a C definition. It writes
+`pokesoulsilver-qol.us.nds` after any modern resource transforms and passes that
+same ROM into layout generation and native translation. The raw source ROM is
+retained. It keeps the original five-ball reward and story completion; saves
+that already completed the event do not replay it. Gameplay acceptance and
+installation of the skip remain pending.
+
+To create a separate tutorial-skip ROM from an existing USA SoulSilver build:
+
+```sh
+python3 tools/qol/skip_catching_tutorial.py /path/to/base.nds /path/to/new-skip.nds
+```
+
+The transform accepts only the reviewed original Route 29 script or its exact
+patched form. It changes two bounded script regions in place, preserves
+all executable and layout bytes, and refuses existing output paths. Confirm
+compatibility with the actual native layout before reusing an executable.
 
 This builds the opt-in QoL ROM, generates layout metadata from its own ELF/NEF and
 ROM, verifies every section against that layout, and compiles the native app.

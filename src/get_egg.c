@@ -1,4 +1,6 @@
 #include "get_egg.h"
+#include "qol_config.h"
+#include "qol_level_cap_save.h"
 
 #include "global.h"
 
@@ -100,7 +102,13 @@ static void DaycareMon_CopyFromPartySlot(Party *party, int partyIdx, DaycareMon 
 
 void Save_Daycare_PutMonIn(Party *party, u8 partyIdx, Daycare *dayCare, SaveData *saveData) {
     GameStats_Inc(Save_GameStats_Get(saveData), GAME_STAT_MONS_SENT_TO_DAYCARE);
-    DaycareMon_CopyFromPartySlot(party, partyIdx, Save_Daycare_GetMonX(dayCare, Save_Daycare_GetAvailableSlot(dayCare)), saveData);
+    int availableSlot = Save_Daycare_GetAvailableSlot(dayCare);
+    DaycareMon_CopyFromPartySlot(party, partyIdx, Save_Daycare_GetMonX(dayCare, availableSlot), saveData);
+#if QOL_LEVEL_CAPS
+    if (availableSlot == 1) {
+        Qol_LevelCapResetDaycarePhase(saveData);
+    }
+#endif
 }
 
 static void Save_Daycare_Compaction(Daycare *daycare) {
@@ -163,6 +171,9 @@ static int Save_Daycare_MoveMonToParty(Party *party, DaycareMon *daycareMon, Mes
 u16 Save_Daycare_RetrieveMon(Party *party, MessageFormat *msgFmt, Daycare *daycare, u8 daycareSlot) {
     u16 ret = Save_Daycare_MoveMonToParty(party, Save_Daycare_GetMonX(daycare, daycareSlot), msgFmt);
     Save_Daycare_Compaction(daycare);
+#if QOL_LEVEL_CAPS
+    Qol_LevelCapResetDaycarePhase(SaveData_Get());
+#endif
     return ret;
 }
 
@@ -766,15 +777,36 @@ BOOL HandleDaycareStep(Daycare *dayCare, Party *party, FieldSystem *fieldSystem)
     u32 slot;
 
     Daycare_GetBothBoxMonsPtr(dayCare, parents);
+#if QOL_LEVEL_CAPS
+    u8 breedingPhase = Qol_LevelCapAdvanceDaycarePhase(fieldSystem->saveData, Save_Daycare_GetMonX(dayCare, 1));
+#endif
     u32 monsInDaycare = 0;
     for (slot = 0; slot < NUM_DAYCARE_MONS; slot++) {
         if (GetBoxMonData(parents[slot], MON_DATA_SPECIES_EXISTS, NULL)) {
+#if QOL_LEVEL_CAPS
+            DaycareMon *daycareMon = Save_Daycare_GetMonX(dayCare, slot);
+            u32 pendingExp = GetBoxMonData(parents[slot], MON_DATA_EXPERIENCE, NULL);
+            u32 steps = DaycareMon_GetSteps(daycareMon);
+            // Saturate only the limiter's input; preserve all legacy pending
+            // growth, including steps already above a newly enabled cap.
+            pendingExp = steps > 0xFFFFFFFFu - pendingExp ? 0xFFFFFFFFu : pendingExp + steps;
+            u32 accepted = Qol_LevelCapLimitPlayerExp(fieldSystem->saveData,
+                GetBoxMonData(parents[slot], MON_DATA_SPECIES, NULL), pendingExp, 1);
+            if (accepted) {
+                DaycareMon_AddSteps(daycareMon, accepted);
+            }
+#else
             DaycareMon_AddSteps(Save_Daycare_GetMonX(dayCare, slot), 1);
+#endif
             monsInDaycare++;
         }
     }
     if (!Save_Daycare_HasEgg(dayCare) && monsInDaycare == NUM_DAYCARE_MONS) {
+#if QOL_LEVEL_CAPS
+        u8 steps = breedingPhase;
+#else
         u8 steps = DaycareMon_GetSteps(Save_Daycare_GetMonX(dayCare, 1));
+#endif
         if (steps == 255) {
             u8 compat = Save_Daycare_CalcCompatibilityInternal(dayCare);
             if (compat > (LCRandom() * 100 / 0xFFFFu)) {

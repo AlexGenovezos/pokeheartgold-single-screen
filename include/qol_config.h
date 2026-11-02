@@ -17,6 +17,9 @@
 #ifndef QOL_EFFECTIVENESS
 #define QOL_EFFECTIVENESS QOL_MODS
 #endif
+#ifndef QOL_LEVEL_CAPS
+#define QOL_LEVEL_CAPS QOL_MODS
+#endif
 // An independently testable foundation; the current QoL build stays Gen IV.
 #ifndef QOL_MODERN_TYPES
 #define QOL_MODERN_TYPES 0

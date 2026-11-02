@@ -13,6 +13,8 @@
 #include "pokedex.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
+#include "qol_config.h"
+#include "qol_level_cap_save.h"
 #include "pokewalker.h"
 #include "save.h"
 #include "save_arrays.h"
@@ -136,7 +138,7 @@ void PokewalkerApp_ReturnStrollMon(PokewalkerApp *app) {
     if (!app->peerIdentity.hasWalkerMon) {
         received = Pokewalker_TryGetBoxMon(app->pokewalker, boxMon);
         if (received) {
-            app->strollMonLeveledUp = PokewalkerApp_AddStrollExp(boxMon, mon, app->strollSteps);
+            app->strollMonLeveledUp = PokewalkerApp_AddStrollExp(app->saveData, boxMon, mon, app->strollSteps);
         }
         PokewalkerApp_AddStrollFriendship(boxMon, app->strollSteps);
         app->strollSteps = 0;
@@ -161,10 +163,14 @@ void PokewalkerApp_ReturnStrollMon(PokewalkerApp *app) {
 #pragma opt_propagation reset
 
 // Adds the steps walked as experience, at most up to the next level. Returns whether the Pokemon leveled up.
-BOOL PokewalkerApp_AddStrollExp(BoxPokemon *boxMon, Pokemon *mon, int exp) {
+BOOL PokewalkerApp_AddStrollExp(SaveData *saveData, BoxPokemon *boxMon, Pokemon *mon, int exp) {
     BOOL leveledUp = FALSE;
+    u32 oldLevel = GetBoxMonData(boxMon, MON_DATA_LEVEL, NULL);
 
-    if (GetBoxMonData(boxMon, MON_DATA_LEVEL, NULL) < MAX_LEVEL) {
+    // The return path needs a populated Pokemon even when no EXP is accepted.
+    CopyBoxPokemonToPokemon(boxMon, mon);
+
+    if (oldLevel < MAX_LEVEL) {
         int toNextLevel;
         if (exp < 0) {
             exp = 0;
@@ -172,15 +178,17 @@ BOOL PokewalkerApp_AddStrollExp(BoxPokemon *boxMon, Pokemon *mon, int exp) {
         toNextLevel = CalcBoxMonExpToNextLevel(boxMon);
         if (exp >= toNextLevel) {
             exp = toNextLevel;
-            leveledUp = TRUE;
         }
         {
             u32 totalExp = GetBoxMonData(boxMon, MON_DATA_EXPERIENCE, NULL);
+#if QOL_LEVEL_CAPS
+            exp = Qol_LevelCapLimitPlayerExp(saveData, GetBoxMonData(boxMon, MON_DATA_SPECIES, NULL), totalExp, exp);
+#endif
             totalExp += exp;
-            CopyBoxPokemonToPokemon(boxMon, mon);
             SetMonData(mon, MON_DATA_EXPERIENCE, &totalExp);
         }
         CalcMonLevelAndStats(mon);
+        leveledUp = GetMonData(mon, MON_DATA_LEVEL, NULL) > oldLevel;
         if (leveledUp) {
             MonApplyFriendshipMod(mon, 0, 8);
         }

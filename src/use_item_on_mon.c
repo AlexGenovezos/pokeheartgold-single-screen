@@ -10,6 +10,26 @@
 #include "party.h"
 #include "pokemon.h"
 #include "pokemon_mood.h"
+#include "qol_config.h"
+#include "qol_level_cap_save.h"
+
+BOOL CanUseItemOnMonInPartyField(SaveData *saveData, Party *party, u16 itemID, s32 partyIdx, s32 moveIdx, enum HeapID heapID) {
+#if QOL_LEVEL_CAPS
+    if (itemID == ITEM_RARE_CANDY && !Qol_LevelCapCanUseRareCandy(saveData, Party_GetMonByIndex(party, partyIdx))) {
+        return FALSE;
+    }
+#endif
+    return CanUseItemOnMonInParty(party, itemID, partyIdx, moveIdx, heapID);
+}
+
+BOOL UseItemOnMonInPartyField(SaveData *saveData, Party *party, u16 itemID, s32 partyIdx, u8 moveIdx, u16 location, enum HeapID heapID) {
+#if QOL_LEVEL_CAPS
+    if (itemID == ITEM_RARE_CANDY && !Qol_LevelCapCanUseRareCandy(saveData, Party_GetMonByIndex(party, partyIdx))) {
+        return FALSE;
+    }
+#endif
+    return UseItemOnMonInParty(party, itemID, partyIdx, moveIdx, location, heapID);
+}
 
 BOOL CanUseItemOnPokemon(Pokemon *mon, u16 itemID, s32 moveIdx, enum HeapID heapID) {
     int atkEv;

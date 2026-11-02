@@ -18,6 +18,29 @@ The features remain opt-in at build time. See [development commands](../tools/qo
 | 3 | [HM field actions #4](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/4) | Receiving each HM unlocks its field action without teaching a party member. Preserve normal badge, story and location requirements. |
 | 4 | [Effectiveness indicators #5](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/5) | Show move effectiveness against the selected target using the active battle rules. |
 | 5 | [Gen IX battle mechanics / Fairy type #6](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/6) | Target Generation IX rules and Fairy typing; audit and reuse existing implementations before porting mechanics. |
+| 6 | [Battle controls cleanup #7](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/7) | Retain pixel art, improve move-card spacing and controller focus, align touch targets, and keep doubles health panels clear of moves and opponents. |
+| 7 | [Optional level caps #8](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/8) | Add a saved Off/On option covering Johto, the first League run and Kanto. Automatically follow the lowest-level unbeaten Gym Leader. |
+| 8 | [Skip the catching tutorial #9](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/9) | Skip the Route 29 lesson and demonstration, retain the normal five Poké Balls and complete the same story event. |
+
+The level-cap integration and controls cleanup are implemented in source and
+undergoing paired game/native acceptance. They are independent of the unfinished
+Generation IX rules. [Level-cap behavior and save compatibility](LEVEL-CAPS.md)
+describe progression, EXP sources, Rare Candy and existing over-cap Pokémon.
+Tutorial skipping is also implemented in source; gameplay acceptance and
+installation remain pending. Existing completed introductions stay completed.
+
+The matching classic Mac build now passes fresh boot and genuine doubles
+instruction comparisons. A normally saved cap-On setting survives a fresh boot;
+the compact player panels and move cards render clearly at the checked sizes.
+Native battle/item/daycare acceptance and installation remain open. Battler
+arrows are a preexisting omission: their resources load, but the existing game
+code does not create the sprites. Button selection highlights remain present.
+
+An intermittent bottom-menu problem reported with Instant text remains under
+investigation in [issue #2](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/2).
+The exact installed build has been replayed on a private current-save copy;
+opening the X menu and the focused text tests did not reproduce the report.
+This does not establish that the reported transition is safe or fixed.
 
 HM coverage: Cut, Fly, Surf, Strength, Rock Smash, Waterfall, Rock Climb and
 Whirlpool. Existing saves that already contain an HM must receive the same
@@ -103,8 +126,10 @@ and save normally. Quit discards option changes. Existing saves keep their
 previous speed until changed. HM actions require each HM item and its normal
 badge, plus the game's existing location/story restrictions. Select an eligible
 non-egg party member to access actions such as Fly; the member needs no HM move.
-Effectiveness labels are type multipliers; `?` marks status/unpredictable moves
-or a target that has not been chosen.
+In the controls cleanup source, status moves have no effectiveness label.
+Damaging moves show type multipliers, including neutral `1x`; `?` means a
+reliable forecast is unavailable or a target has not been chosen. Native build
+and visual/input acceptance of this cleanup are pending.
 
 Validation: 22 QoL and 36 progress-tool checks, plus 26 native checks passed.
 Fresh native/interpreter instruction comparisons covered 600 boot frames,
