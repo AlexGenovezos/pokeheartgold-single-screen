@@ -510,4 +510,23 @@ int main(void){
                 self.assertEqual(function(old, name), game.function_source(path, name))
         for path in ('src/battle/trainer_ai.c', 'src/battle/battle_controller_player.c',
                      'src/battle/battle_controller_opponent.c'):
-            self.assertEqual(baseline(path), (game.ROOT / path).read_text())
+            old = baseline(path)
+            if path == 'src/battle/battle_controller_player.c':
+                # Tailwind owns the field timer and its new private helpers.
+                # Every other original controller function still protects the
+                # unchanged Me First/confusion/exceptional damage routes.
+                # Column-zero closing braces delimit these native functions;
+                # counting raw braces fails on their existing #if/#else arms.
+                pattern = r'^[A-Za-z_][\w *]*\b([A-Za-z_]\w*)\([^;{}]*\)\s*\{.*?^\}'
+                bodies = lambda text: {m.group(1): m.group(0)
+                                       for m in re.finditer(pattern, text, re.M | re.S)}
+                old_bodies = bodies(old)
+                new_bodies = bodies((game.ROOT / path).read_text())
+                self.assertIn('BattleControllerPlayer_UpdateFieldCondition', old_bodies)
+                self.assertIn('BattleControllerPlayer_ApplyTypeEffectiveness', old_bodies)
+                self.assertEqual(set(old_bodies), set(new_bodies) - {'Qol_GetTailwindTurns', 'Qol_SetTailwindTurns'})
+                for name, body in old_bodies.items():
+                    if name != 'BattleControllerPlayer_UpdateFieldCondition':
+                        self.assertEqual(body, new_bodies[name], name)
+            else:
+                self.assertEqual(old, (game.ROOT / path).read_text())

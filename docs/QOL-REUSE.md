@@ -1184,3 +1184,57 @@ hashes matched. Evidence is in `sharpness-native-green-proof.json` and the
 Sharpness plan above. Support stays72 moves/336 learning rows/237 species;
 Wind Rider, Neutralizing Gas and other remaining Gen IX scope are unfinished.
 The installed four-QoL app, real ROM and real save remain unchanged.
+
+
+Tailwind's bounded modern duration change is implemented: battle-on starts at
+four turns including the casting turn; battle-off retains three. Public
+presence remains0x300, with private bit11 encoding the fourth turn as0xB00.
+Speed/AI masks, context/save layouts, roster/story, and the72/336/237 support
+counts remain unchanged. The script owner guards original160 SDK parity and
+changes only its successful OR operand. The message owner validates exact
+post-Snow bank749/key27800/468rows, changes only description366 to four turns,
+and runs after Soul Dew before move extension. Snow258, Soul Dew225, names,
+keys, archive members and ability banks243/124 retain their owners.
+
+The source contract and evidence are in
+`docs/superpowers/plans/2026-11-01-gen9-tailwind-four-turns.md`. Numerical RED
+proved three actual residual ticks versus four expected for all battle-on flag
+pairs. Final focused host17 passed in36.510s, ASan/UBSan11 in23.028s, SDK2 in
+25.212s and nine neighboring routing methods in11.225s. Host coverage includes
+all eight flags, real message pipelines, every other allocated side-bit
+combination/storage pattern/setter value, high bits, actual speed/AI/Gyro Ball,
+Snatch, hazards, context lifecycle, ARM declarations and accepted-b385 battle-off
+tokens. SDK verified unchanged96-byte160 parity, sole word17=0x300→0xB00,
+actual225→121→160 VM routing and expiry233. The Snatch sanitizer fixture alone
+normalizes a pre-existing signed1<<31 macro to unsigned0x80000000; production
+is unchanged and the original-literal sanitizer failure is retained. Leak
+detection is disabled on macOS; no leak or full native matrix claim is made.
+The freeze manifest is `.local-tools/validation/tailwind-frozen-hashes.json`.
+Fresh root reviews, broad suite, matching SDK/native build, four-versus-three
+native duration/speed, summary UI and save/artifact acceptance remain pending.
+The installed app and real ROM/save are untouched. Wind Rider and Neutralizing
+Gas remain separate unfinished work.
+
+
+Tailwind integration passed fresh independent specification/quality reviews,
+the matching SDK ROM/resources/layout/native build and the complete338-test
+host/SDK suite in861.705s without failures/errors/skips. One historical Me First
+whole-controller source guard was narrowed to74 protected function bodies plus
+its75-function inventory, allowing only the Tailwind owner/two new helpers;
+fresh spec/quality mutation checks passed. The interrupted earlier broad run is
+retained and not counted as green. Runtime/artifact hashes did not change for
+that test-only correction.
+
+Five native restored turns preserve modern Tailwind's fourth-turn Speed/order,
+then expire before turn5. A failed recast does not refresh it; a staggered-side
+hazard fixture preserves two layers each of Spikes/Toxic Spikes while the foe's
+Tailwind and Lucky Chant expire independently. All seven comparisons match
+every ARM9 instruction over12100 frames, with zero fallbacks, guard failures or
+evictions. Normal turns retain15 RNG calls each and the control's first four
+final states. The four-turn Summary text fits cleanly. Fourteen validation saves,
+frozen production/test hashes, tested ROM/native/layout and the installed game/
+current real-save guards matched. See the Tailwind plan and ignored
+`tailwind-native-green-proof.json` for measured scope; initialB00 is binary/SDK
+VM evidence rather than a native-frame capture. Wind Rider/Gas, dynamic mid-turn
+ordering and remaining Gen IX work are still unfinished; the installed four-QoL
+app and real game files remain unchanged.

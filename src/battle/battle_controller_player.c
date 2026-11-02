@@ -822,10 +822,46 @@ typedef enum UpdateFieldConditionState {
     UFC_STATE_END
 } UpdateFieldConditionState;
 
+#if QOL_MODERN_BATTLE
+// Keep the public 0x300 presence mask truthful throughout the four-turn timer.
+typedef char Qol_TailwindPresenceMaskCheck[(SIDE_CONDITION_TAILWIND == 0x300) ? 1 : -1];
+typedef char Qol_TailwindStorageMaskCheck[(QOL_TAILWIND_STORAGE_MASK == 0xB00) ? 1 : -1];
+typedef char Qol_TailwindStorageDisjointCheck[((QOL_TAILWIND_STORAGE_MASK
+    & (SIDE_CONDITION_REFLECT | SIDE_CONDITION_LIGHT_SCREEN | SIDE_CONDITION_SPIKES
+        | SIDE_CONDITION_SAFEGUARD | SIDE_CONDITION_FUTURE_SIGHT | SIDE_CONDITION_WISH
+        | SIDE_CONDITION_MIST | SIDE_CONDITION_STEALTH_ROCKS | SIDE_CONDITION_TOXIC_SPIKES
+        | SIDE_CONDITION_LUCKY_CHANT)) == 0) ? 1 : -1];
+
+static u8 Qol_GetTailwindTurns(u32 flags) {
+    u32 base = flags & SIDE_CONDITION_TAILWIND;
+    if (base == 0) {
+        return 0;
+    }
+    if (flags & QOL_TAILWIND_FOURTH_TURN) {
+        return 4;
+    }
+    return (u8)(base >> SIDE_CONDITION_TAILWIND_SHIFT);
+}
+
+static u32 Qol_SetTailwindTurns(u32 flags, u8 turns) {
+    if (turns > 4) {
+        turns = 4;
+    }
+    flags &= ~QOL_TAILWIND_STORAGE_MASK;
+    if (turns == 4) {
+        return flags | QOL_TAILWIND_STORAGE_MASK;
+    }
+    return flags | ((u32)turns << SIDE_CONDITION_TAILWIND_SHIFT);
+}
+#endif
+
 static void BattleControllerPlayer_UpdateFieldCondition(BattleSystem *battleSystem, BattleContext *ctx) {
     int flag = 0;
     int side;
     int maxBattlers = BattleSystem_GetMaxBattlers(battleSystem);
+#if QOL_MODERN_BATTLE
+    u8 tailwindTurns;
+#endif
 
     do {
         if (TryFaintMon(ctx, ctx->command, ctx->command, 1) == TRUE) {
@@ -938,9 +974,17 @@ static void BattleControllerPlayer_UpdateFieldCondition(BattleSystem *battleSyst
         case UFC_STATE_TAILWIND:
             while (ctx->fieldConditionUpdateData < 2) {
                 side = ctx->fieldConditionUpdateData;
+#if QOL_MODERN_BATTLE
+                tailwindTurns = Qol_GetTailwindTurns(ctx->fieldSideConditionFlags[side]);
+                ctx->fieldSideConditionFlags[side] = Qol_SetTailwindTurns(
+                    ctx->fieldSideConditionFlags[side], tailwindTurns ? tailwindTurns - 1 : 0);
+                if (tailwindTurns != 0) {
+                    if (tailwindTurns == 1) {
+#else
                 if (ctx->fieldSideConditionFlags[side] & SIDE_CONDITION_TAILWIND) {
                     ctx->fieldSideConditionFlags[side] -= 1 << SIDE_CONDITION_TAILWIND_SHIFT;
                     if ((ctx->fieldSideConditionFlags[side] & SIDE_CONDITION_TAILWIND) == 0) {
+#endif
                         ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_TAILWIND_END);
                         ctx->commandNext = ctx->command;
                         ctx->command = CONTROLLER_COMMAND_RUN_SCRIPT;

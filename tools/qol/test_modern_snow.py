@@ -243,9 +243,9 @@ class SnowResourceTests(unittest.TestCase):
         from contextlib import ExitStack
         transforms=['modern_battle_resources','modern_paralysis_resources','modern_weather_resources',
             'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
-            'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources',
+            'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources','modern_tailwind_resources',
             'modern_simple_message_resources','modern_ability_description_resources','modern_drain_resources',
-            'modern_move_stat_resources','modern_move_effect_resources','modern_soul_dew_message_resources']
+            'modern_move_stat_resources','modern_move_effect_resources','modern_soul_dew_message_resources','modern_tailwind_message_resources']
         paths={p:(0,0,3) for p in ('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/3/0','a/0/1/1','a/0/0/0')}
         for types,battle,moves in ((False,False,False),(True,False,False),(False,False,True),(True,True,True),(False,True,False)):
             with self.subTest(types=types,battle=battle,moves=moves),ExitStack() as stack:

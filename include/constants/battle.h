@@ -283,6 +283,10 @@ typedef enum Terrain {
 #define SIDE_CONDITION_TOXIC_SPIKES  (1 << 10)
 #define SIDE_CONDITION_LUCKY_CHANT   (7 << 12)
 
+// Private modern timer storage; public presence checks keep the original mask.
+#define QOL_TAILWIND_FOURTH_TURN  (1 << 11)
+#define QOL_TAILWIND_STORAGE_MASK (SIDE_CONDITION_TAILWIND | QOL_TAILWIND_FOURTH_TURN)
+
 #define SIDE_CONDITION_TAILWIND_SHIFT    8
 #define SIDE_CONDITION_LUCKY_CHANT_SHIFT 12
 

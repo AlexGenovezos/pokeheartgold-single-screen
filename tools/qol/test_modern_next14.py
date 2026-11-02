@@ -326,9 +326,9 @@ class Next14SourceTests(unittest.TestCase):
         paths={p:(0,0,3) for p in ('a/0/0/1','a/0/3/0','a/0/1/1','a/0/0/0','a/0/2/7')}
         transforms=('modern_battle_resources','modern_paralysis_resources','modern_weather_resources',
           'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
-          'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources',
+          'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources','modern_tailwind_resources',
           'modern_snow_effect_resources','modern_ability_description_resources','modern_simple_message_resources',
-          'modern_snow_message_resources','modern_soul_dew_message_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
+          'modern_snow_message_resources','modern_soul_dew_message_resources','modern_tailwind_message_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
         for battle in (False,True):
             for enabled in (False,True):
                 calls=[]
@@ -377,7 +377,7 @@ class Next14SourceTests(unittest.TestCase):
                     # covered separately, so its toolchain is not needed here.
                     for name in ('modern_battle_resources','modern_paralysis_resources','modern_weather_resources',
                       'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
-                      'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources',
+                      'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources','modern_tailwind_resources',
                       'modern_snow_effect_resources','modern_drain_resources','modern_move_effect_resources'):
                         stack.enter_context(patch('modern_rom.'+name,side_effect=lambda data:data))
                     stack.enter_context(patch('modern_rom.modern_move_stat_resources',side_effect=lambda data,battle:data))

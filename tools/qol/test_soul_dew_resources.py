@@ -75,7 +75,7 @@ class SoulDewResourceTests(unittest.TestCase):
         for i,(path,data) in enumerate(originals.items()):paths[path]=(i,len(rom),len(rom)+len(data));rom+=data
         scripts=('modern_battle_resources','modern_paralysis_resources','modern_weather_resources','modern_absorption_resources',
                  'modern_sturdy_resources','modern_cursed_body_resources','modern_competitive_resources','modern_oblivious_intimidate_resources',
-                 'modern_simple_resources','modern_snow_effect_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
+                 'modern_simple_resources','modern_tailwind_resources','modern_snow_effect_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
         for types,battle,moves in itertools.product((False,True),repeat=3):
             with self.subTest(types=types,battle=battle,moves=moves),ExitStack() as stack:
                 stack.enter_context(patch('modern_rom.rom_files',return_value=paths))

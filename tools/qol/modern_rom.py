@@ -7,6 +7,7 @@ import struct
 from battle_scripts import modern_paralysis_script, modern_drain_script, modern_weather_script, WEATHER_SCRIPTS
 from snow_resources import modern_snow_effect_resources, modern_snow_message_resources
 from soul_dew_resources import modern_soul_dew_message_resources
+from tailwind_resources import modern_tailwind_resources, modern_tailwind_message_resources
 from next14_scripts import modern_move_stat_resources, modern_move_effect_resources
 from game_text import game_text
 from simple_scripts import SIMPLE_SCRIPTS, modern_simple_script, modern_simple_message_resources
@@ -204,7 +205,7 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
         for transform in (modern_battle_resources, modern_paralysis_resources,
                           modern_weather_resources, modern_absorption_resources,
                           modern_sturdy_resources, modern_cursed_body_resources, modern_competitive_resources,
-                          modern_oblivious_intimidate_resources, modern_simple_resources):
+                          modern_oblivious_intimidate_resources, modern_simple_resources, modern_tailwind_resources):
             archive = transform(archive)
         replacements['a/0/0/1'] = archive
         replacements['a/0/3/0'] = modern_snow_effect_resources(read('a/0/3/0'))
@@ -212,6 +213,7 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
             modern_simple_message_resources(
                 modern_ability_description_resources(read('a/0/2/7'), charmap), charmap), charmap)
         replacements['a/0/2/7'] = modern_soul_dew_message_resources(read('a/0/2/7'), charmap)
+        replacements['a/0/2/7'] = modern_tailwind_message_resources(read('a/0/2/7'), charmap)
     if moves:
         paths = ('a/0/1/1', 'a/0/0/0', 'a/0/2/7')
         entries = read_entries(Path(__file__).resolve().parents[2] / 'include/data/qol_move_entries.inc')

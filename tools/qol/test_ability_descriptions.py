@@ -142,6 +142,8 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch('modern_rom.modern_competitive_resources',return_value=b'competitive') as competitive, \
              patch('modern_rom.modern_oblivious_intimidate_resources',return_value=b'oblivious') as oblivious, \
              patch.multiple('modern_rom', modern_simple_resources=lambda data:data,
+                            modern_tailwind_resources=lambda data:data,
+                            modern_tailwind_message_resources=lambda data,charmap:data,
                             modern_simple_message_resources=lambda data,charmap:data,
                             modern_snow_message_resources=lambda data,charmap:data,
                             modern_soul_dew_message_resources=lambda data,charmap:data,
