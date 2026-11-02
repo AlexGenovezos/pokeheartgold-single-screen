@@ -5,6 +5,35 @@ including Fairy typing for existing Pokémon. Additional Pokémon are a separate
 scope. Implementation completeness must be checked feature by feature rather
 than inferred from a project's generation label.
 
+Before each new mod, search existing implementations and record the inspected
+sources, revision, compatibility and reuse decision here and in its issue.
+
+## Catching tutorial skip (2026-11-02)
+
+[IronMONHGSS](https://github.com/PyroMikeGit/IronMONHGSS/blob/main/README.md)
+documents SilverstarStream's intro-skip patch alongside broader dialogue,
+frame-limit and story-scene changes. Its linked PokéCommunity page was not
+accessible during this audit, so no claim is made about its internal tutorial
+implementation or direct compatibility with the native app.
+
+The public
+[pokeheartgold-skipIntro Route 29 source](https://github.com/rahe3431/pokeheartgold-skipIntro/blob/a0bc795a057169f6b9b290ce39e5e3b68f2914de/files/fielddata/script/scr_seq/scr_seq_0225_R29.s)
+still contains `catching_tutorial`; its inspected `ScrCmd_CatchingTutorial`
+also calls `SetupAndStartTutorialBattle`. The repository name therefore does
+not establish a reusable catching-only skip. The local pinned hg-engine source
+was searched without finding an applicable isolated implementation.
+
+Use the existing Route 29 reward and completion sequence for a small data-only
+change: branch after follower reset/LockAll to the five-ball reward, then to
+the original NPC hiding, route state, story flags and ReleaseAll. Close the
+reward textbox before that second branch: the standard gift script returns
+with it open, and ReleaseAll does not close it. Skip the
+lesson dialogue, demonstration and movements that assume the old demonstration
+positions. Keep script size and all executable/overlay bytes unchanged so this
+change can use the matching native code. Validate both genders, reward-once,
+control restoration and save/reload. Implementation and runtime acceptance are
+tracked separately from the currently compiling controls/level-cap family.
+
 ## hg-engine
 
 Sources:

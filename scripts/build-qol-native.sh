@@ -7,10 +7,11 @@ native_root="$(cd "$native_root" && pwd)"
 modern_types="${QOL_MODERN_TYPES:-0}"
 modern_rules="${QOL_MODERN_BATTLE:-0}"
 modern_moves="${QOL_MODERN_MOVES:-0}"
-for feature_flag in "$modern_types" "$modern_rules" "$modern_moves"; do
+skip_catching_tutorial="${QOL_SKIP_CATCHING_TUTORIAL:-1}"
+for feature_flag in "$modern_types" "$modern_rules" "$modern_moves" "$skip_catching_tutorial"; do
     case "$feature_flag" in
         0|1) ;;
-        *) echo 'QOL_MODERN_TYPES, QOL_MODERN_BATTLE and QOL_MODERN_MOVES must be 0 or 1.' >&2; exit 1 ;;
+        *) echo 'QOL_MODERN_TYPES, QOL_MODERN_BATTLE, QOL_MODERN_MOVES and QOL_SKIP_CATCHING_TUTORIAL must be 0 or 1.' >&2; exit 1 ;;
     esac
 done
 game_defines='-DQOL_MODS=1'
@@ -34,9 +35,10 @@ done
 "$game_root/scripts/build.sh" GAME_VERSION=SOULSILVER COMPARE=0 "CLI_DEFINES=$game_defines"
 game_build="$game_root/build/soulsilver.us"
 game_rom="$game_build/pokesoulsilver.us.nds"
+resource_dir=''
+trap 'if [[ -n "$resource_dir" ]]; then rm -rf "$resource_dir"; fi' EXIT
 if [[ "$modern_types" == 1 || "$modern_rules" == 1 || "$modern_moves" == 1 ]]; then
     resource_dir="$(mktemp -d "$game_build/qol-resources.XXXXXX")"
-    trap 'rm -rf "$resource_dir"' EXIT
     resource_args=()
     if [[ "$modern_types" == 0 ]]; then
         resource_args+=(--no-types)
@@ -50,6 +52,14 @@ if [[ "$modern_types" == 1 || "$modern_rules" == 1 || "$modern_moves" == 1 ]]; t
     "$python_bin" "$game_root/tools/qol/modern_rom.py" "$game_rom" "$resource_dir/modern.nds" "${resource_args[@]}"
     game_rom="$game_build/pokesoulsilver-modern.us.nds"
     mv "$resource_dir/modern.nds" "$game_rom"
+fi
+if [[ "$skip_catching_tutorial" == 1 ]]; then
+    if [[ -z "$resource_dir" ]]; then
+        resource_dir="$(mktemp -d "$game_build/qol-resources.XXXXXX")"
+    fi
+    "$python_bin" "$game_root/tools/qol/skip_catching_tutorial.py" "$game_rom" "$resource_dir/skip-tutorial.nds"
+    game_rom="$game_build/pokesoulsilver-qol.us.nds"
+    mv "$resource_dir/skip-tutorial.nds" "$game_rom"
 fi
 layout_file="$game_build/qol-layout.json"
 generated_dir="$native_root/gen"
