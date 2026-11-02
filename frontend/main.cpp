@@ -1493,9 +1493,10 @@ int main(int argc, char** argv)
                         const int sx = moves ? 14 + (i & 1) * 120 : 133 + (i & 1) * 52;
                         const int sy = moves ? 131 + (i >> 1) * 32 : 149 + (i >> 1) * 20;
                         Element b = { 0, sx, sy, bw, bh, moves ? (float)sx : x, moves ? (float)sy : y, sb, 0, 255, false };
-                        b.border = true;
-                        b.borderColor = i == shown ? 0xF04040 : 0x101218;
-                        b.borderWidth = i == shown ? 16 : 6;
+                        b.border = !moves || i == shown;
+                        b.borderColor = moves ? 0xFFDE6B : (i == shown ? 0xF04040 : 0x101218);
+                        b.borderWidth = moves ? 8 : (i == shown ? 16 : 6);
+                        b.borderRadius = moves ? 3 : 0;
                         sc.items.push_back(b);
                         x += bw * sb + gap;
                     }
