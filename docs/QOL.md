@@ -7,7 +7,9 @@ The original project remains the `upstream` remote; `origin` points to this fork
 ## Backlog
 
 Instant text, reusable TMs, HM actions and effectiveness previews are installed
-in the existing Mac app as of 2026-11-01. Generation IX/Fairy is still pending.
+in the existing Mac app. The pixel battle-control cleanup and X-menu transition
+recovery were installed on 2026-11-02. Level caps, tutorial skipping and
+Generation IX/Fairy remain pending.
 The features remain opt-in at build time. See [development commands](../tools/qol/README.md).
 
 | Order | Issue | Intended behavior |
@@ -22,23 +24,23 @@ The features remain opt-in at build time. See [development commands](../tools/qo
 | 7 | [Optional level caps #8](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/8) | Add a saved Off/On option covering Johto, the first League run and Kanto. Automatically follow the lowest-level unbeaten Gym Leader. |
 | 8 | [Skip the catching tutorial #9](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/9) | Skip the Route 29 lesson and demonstration, retain the normal five Poké Balls and complete the same story event. |
 
-The level-cap integration and controls cleanup are implemented in source and
-undergoing paired game/native acceptance. They are independent of the unfinished
+The level-cap integration is implemented in source and undergoing gameplay
+acceptance. It is independent of the unfinished
 Generation IX rules. [Level-cap behavior and save compatibility](LEVEL-CAPS.md)
 describe progression, EXP sources, Rare Candy and existing over-cap Pokémon.
 Tutorial skipping is also implemented in source; gameplay acceptance and
 installation remain pending. Existing completed introductions stay completed.
 
-The matching classic Mac build now passes fresh boot and genuine doubles
+The private cap-enabled classic Mac build passes fresh boot and genuine doubles
 instruction comparisons. A normally saved cap-On setting survives a fresh boot;
 the compact player panels and move cards render clearly at the checked sizes.
-Native battle/item/daycare acceptance and installation remain open. Battler
+Further progression acceptance and level-cap installation remain open. Battler
 arrows are a preexisting omission: their resources load, but the existing game
 code does not create the sprites. Button selection highlights remain present.
 
 An intermittent bottom-menu problem reported with Instant text remains under
 investigation in [issue #2](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/2).
-The exact installed build has been replayed on a private current-save copy;
+The pre-recovery installed build was replayed on a private current-save copy;
 opening the X menu and the focused text tests did not reproduce the report.
 This does not establish that the reported transition is safe or fixed.
 
@@ -47,8 +49,14 @@ and retries a dropped return request using the existing panel cleanup and
 initialization sequence. A controlled native app transition leaves the older
 build stuck; the recovery build restores actions and closes to the field with
 Instant selected. That comparison also passes instruction lockstep. The
-natural trigger of the reported incident remains uncaptured, and delivery is
-tracked separately in issue #2.
+natural trigger of the reported incident remains uncaptured, so issue #2 stays
+open. The final Mac delivery pairs game revision `fdb93007f` with native revision
+`e4a0643`, with level caps and all modern flags disabled and the tutorial script
+unpatched. Fresh boot (2,530 frames) and controlled recovery (1,570 resumed
+frames) pass instruction lockstep; early cancellation and a Metal/Cocoa window
+run also pass. The previous installation was backed up and the current save,
+settings, clean ROM and app launchers were preserved. Physical Steam Controller
+and Steam Deck coverage is not claimed.
 
 HM coverage: Cut, Fly, Surf, Strength, Rock Smash, Waterfall, Rock Climb and
 Whirlpool. Existing saves that already contain an HM must receive the same
