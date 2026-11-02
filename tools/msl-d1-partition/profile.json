@@ -9,7 +9,7 @@
     "lib/include/nitro/code32.h": "1b920b5d4420f07164ab0b6d378e8f7f64c1d76341f578baf71cd9584f7987c4"
   },
   "modules": {
-    "build.py": "21aab19b4560f57fe8c5b5b2d858b2e2ff78c44161f88509d1ac40fa5bd22e21",
+    "build.py": "7be17e12b54fdcffd256a7409dd3247b803775fc92cc8e0448b2a8880954da76",
     "shape.py": "cc26491c69384097da9a1d50c50bc393ed4ae45459d1ea86268a0e45c7a924b2",
     "select-d1.py": "7b655f5f2baffb9e75f805b3c0a8018caa4ec899ba2ff1ac4789771eb118f212",
     "producer-shape.json": "72dd44096f210c6866945c401d96efeb80dc230e273fb8473c60bf447582e8ce"

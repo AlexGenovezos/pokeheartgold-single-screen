@@ -63,14 +63,22 @@ def publish(source,obj,game,nodep,command,c):
  atomic(obj,child)
  return record
 
-def build(source,obj,game,nodep,command):
- source=Path(source).resolve();obj=Path(obj).resolve();obj.parent.mkdir(parents=True,exist_ok=True)
+def registered_object(source,obj,game,build_dir=None):
+ assert game in ('heartgold','soulsilver'),'unregistered game'
+ base=(ROOT/'build').resolve()
+ selected=(base/f'{game}.us' if build_dir is None else ROOT/Path(build_dir)).resolve()
+ assert selected!=base and selected.is_relative_to(base),'build directory outside registered build tree'
+ obj=Path(obj).resolve()
+ assert obj.is_relative_to(selected) and obj==(selected/'src'/(Path(source).stem+'.o')).resolve(),'unregistered object or dishonest basename'
+ return obj
+
+def build(source,obj,game,nodep,command,build_dir=None):
+ source=Path(source).resolve();obj=registered_object(source,obj,game,build_dir);obj.parent.mkdir(parents=True,exist_ok=True)
  full,md,dep,receipt=paths(obj)
  # Remove the last commit record before validation/compilation; no stale pair may survive a failure.
  remove(obj);remove(receipt);remove(dep);remove(md)
  try:
   c=config();assert source==(ROOT/c['source']).resolve() and digest(source)==c['source_sha256'],'unregistered source'
-  assert obj==(ROOT/'build'/f'{game}.us'/'src'/(source.stem+'.o')).resolve(),'unregistered object or dishonest basename'
   tokens=shlex.split(command);expected=c['GNU_CPP_tokens'][game]
   assert len(tokens)>1 and Path(tokens[1]).resolve()==(ROOT/expected[1]).resolve(),'production compiler path drift'
   assert tokens[:1]+tokens[2:]==expected[:1]+expected[2:]+([]if nodep else['-gccdep','-MD'])+['-c','-o'],'production command profile drift'
@@ -93,4 +101,4 @@ def build(source,obj,game,nodep,command):
   raise
 if __name__=='__main__':
  import argparse
- p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--object',required=True);p.add_argument('--game',choices=['heartgold','soulsilver'],required=True);p.add_argument('--nodep',default='');p.add_argument('--command',required=True);a=p.parse_args();build(a.source,a.object,a.game,bool(a.nodep),a.command)
+ p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--object',required=True);p.add_argument('--game',choices=['heartgold','soulsilver'],required=True);p.add_argument('--build-dir');p.add_argument('--nodep',default='');p.add_argument('--command',required=True);a=p.parse_args();build(a.source,a.object,a.game,bool(a.nodep),a.command,a.build_dir)
