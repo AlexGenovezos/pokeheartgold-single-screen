@@ -610,7 +610,22 @@ static BOOL Task_StartMenu_HandleInput(TaskManager *taskManager) {
     StartMenuTaskData *startMenu = (StartMenuTaskData *)TaskManager_GetEnvironment(taskManager);
 
 #ifdef SINGLE_SCREEN
-    if (!FieldSystem_GetBottomScreenAppId(fieldSystem) && FieldSystem_GetBottomScreenAppState(fieldSystem) == TRUE) {
+    // The visible panel must remain cancellable while a bottom-screen app
+    // finishes switching. Its switch API ignores requests during a fade.
+    if (gSystem.newKeys & (PAD_BUTTON_B | PAD_BUTTON_X)) {
+        PlaySE(SEQ_SE_DP_SELECT);
+        startMenu->state = START_MENU_STATE_CLOSE;
+        return TRUE;
+    }
+    if (FieldSystem_GetBottomScreenAppId(fieldSystem) != BOTTOM_SCREEN_APP_TOUCHSCREEN_MENU) {
+        if (FieldSystem_GetBottomScreenAppState(fieldSystem) == BOTTOM_SCREEN_APP_STATE_RUNNING) {
+            StartMenu_RemoveCursorAndIcons(startMenu, fieldSystem);
+            FieldSystem_SwitchBottomScreenApp(fieldSystem, BOTTOM_SCREEN_APP_TOUCHSCREEN_MENU, NULL);
+            startMenu->state = START_MENU_STATE_2;
+        }
+        return TRUE;
+    }
+    if (FieldSystem_GetBottomScreenAppState(fieldSystem) == BOTTOM_SCREEN_APP_STATE_RUNNING) {
         return StartMenu_HandleListInput(taskManager, fieldSystem, startMenu);
     }
 #else

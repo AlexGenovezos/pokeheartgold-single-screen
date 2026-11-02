@@ -42,6 +42,14 @@ The exact installed build has been replayed on a private current-save copy;
 opening the X menu and the focused text tests did not reproduce the report.
 This does not establish that the reported transition is safe or fixed.
 
+The X-menu recovery source now accepts B/X through the input readiness gate
+and retries a dropped return request using the existing panel cleanup and
+initialization sequence. A controlled native app transition leaves the older
+build stuck; the recovery build restores actions and closes to the field with
+Instant selected. That comparison also passes instruction lockstep. The
+natural trigger of the reported incident remains uncaptured, and delivery is
+tracked separately in issue #2.
+
 HM coverage: Cut, Fly, Surf, Strength, Rock Smash, Waterfall, Rock Climb and
 Whirlpool. Existing saves that already contain an HM must receive the same
 field-action access. Field prompts work as before; currently usable HMs also

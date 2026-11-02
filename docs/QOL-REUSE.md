@@ -8,6 +8,29 @@ than inferred from a project's generation label.
 Before each new mod, search existing implementations and record the inspected
 sources, revision, compatibility and reuse decision here and in its issue.
 
+## X-menu input recovery (2026-11-02)
+
+The existing `FieldSystem_SwitchBottomScreenApp` deliberately ignores a request
+while an app is switching. The single-screen X-menu input gate can then reject
+every key if the original return request was ignored. The source-level
+reproducer executes those real menu and app-manager state machines, including
+panel creation and cleanup call ordering. It does not establish the natural
+trigger of the user's intermittent Instant-text report.
+
+A private native fixture subsequently makes one ordinary app-switch call
+while the X menu is open, then restores its original task. The older build
+remains on app3 and rejects keyboard actions and closing; recovery returns to
+app0, opens Options and closes to the field with Instant selected. The native
+comparison passes instruction lockstep. This is an injected transition for
+validation, not a captured player incident; its callback is never installed.
+
+Scoped upstream issue searches did not identify a compatible existing fix.
+Reuse the game's existing app-switch API, menu-panel destructor and `STATE_2`
+initialization handshake for recovery; leave the global switch contract and
+normal-build menu unchanged. No external implementation was copied. Track
+native validation and the unresolved incident reproduction in
+[issue #2](https://github.com/AlexGenovezos/pokeheartgold-single-screen/issues/2).
+
 ## Catching tutorial skip (2026-11-02)
 
 [IronMONHGSS](https://github.com/PyroMikeGit/IronMONHGSS/blob/main/README.md)
