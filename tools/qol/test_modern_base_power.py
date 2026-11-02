@@ -111,8 +111,8 @@ int main(void){
  c.trainerAIData.moveData[MOVE_TACKLE].power=0;
  assert(hit(&c,MOVE_TACKLE,0,0,0)==bpDamage(0));
  MoveDamageCalc u={0},v={0};u.ability=ABILITY_TECHNICIAN;
- assert(Qol_ModernBasePower(0,MOVE_TACKLE,CATEGORY_PHYSICAL,TYPE_NORMAL,&u,&v,0,4096,0,1,0,0,0)==0);
- assert(Qol_ModernBasePower(1,MOVE_TACKLE,CATEGORY_STATUS,TYPE_NORMAL,&u,&v,0,4096,0,1,0,0,0)==1);
+ assert(Qol_ModernBasePower(0,MOVE_TACKLE,CATEGORY_PHYSICAL,TYPE_NORMAL,&u,&v,0,4096,0,FALSE,1,0,0,0)==0);
+ assert(Qol_ModernBasePower(1,MOVE_TACKLE,CATEGORY_STATUS,TYPE_NORMAL,&u,&v,0,4096,0,FALSE,1,0,0,0)==1);
 #endif
  return 0;}
 ''')

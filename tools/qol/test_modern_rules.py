@@ -197,7 +197,11 @@ int GetBattlerAbility(BattleContext *ctx,int id) { return ABILITY_NONE; }
 static int GetBattlerHeldItemEffect(BattleContext *ctx,int id) { return 0; }
 static int GetHeldItemModifier(BattleContext *ctx,int id,int unused) { return 0; }
 static int BattleSystem_GetFieldSide(BattleSystem *bs,int id) { return id&1; }
+typedef signed long long s64;
+enum { QOL_DAMAGE_COMPATIBILITY, QOL_DAMAGE_ORDINARY_COMMAND };
 static int CalcMoveDamage(BattleSystem *bs,BattleContext *ctx,int move,int side,int field,int power,int type,int a,int d,int crit) { lastCrit=crit; return baseDamage; }
+// This fixture isolates critical/final arithmetic, not the numerical BP proof.
+int Qol_CalcMoveDamageInternal(BattleSystem *bs,BattleContext *ctx,int move,int side,int field,int power,int type,int a,int d,int crit,int origin,BOOL eligible) { assert(origin==QOL_DAMAGE_ORDINARY_COMMAND);return CalcMoveDamage(bs,ctx,move,side,field,power,type,a,d,crit); }
 static void BattleScriptIncrementPointer(BattleContext *ctx,int count) {}
 static int ApplyDamageRange(BattleSystem *bs,BattleContext *ctx,int damage) { return damage*(100-BattleSystem_Random(bs)%16)/100; }
 static int BattleSystem_GetPartySize(BattleSystem *bs,int id) { return 1; }
@@ -206,7 +210,7 @@ static int GetMonData(Pokemon *mon,int field,void *unused) { return field==MON_D
 static int GetMonBaseStat_HandleAlternateForm(int species,int form,int attr) { return attr==BASE_ATK ? baseDamage : 100; }
 static int BattleSystem_ApplyTypeEffectiveness(BattleSystem *bs,BattleContext *ctx,int move,int type,int a,int d,int damage,unsigned *flags) { return damage*effectiveness/10; }
 '''
-        actual = helper('Qol_ApplyCriticalDamage') + '\n'.join(game.function_source(COMMAND, name) for name in
+        actual = helper('Qol_IsMeFirstEligible', UTIL) + helper('Qol_ApplyCriticalDamage') + '\n'.join(game.function_source(COMMAND, name) for name in
             ('DamageCalcDefault', 'BtlCmd_CalcDamage', 'BtlCmd_CalcDamageRaw', 'BtlCmd_BeatUp', 'BtlCmd_ApplyTypeEffectiveness'))
         actual += game.function_source(PLAYER, 'BattleControllerPlayer_ApplyTypeEffectiveness')
         checks = r'''

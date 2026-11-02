@@ -275,8 +275,8 @@ int main(void) {
 }
 ''')
         # The controller invokes direct scripts before failure/UseMove/HpCalc;
-        # CalcMoveDamage explicitly excludes REMOVE_SCREENS from screen reduction.
-        calc=game.function_source('src/battle/battle_util.c','CalcMoveDamage')
+        # The shared formula explicitly excludes REMOVE_SCREENS from reduction.
+        calc=game.function_source('src/battle/battle_util.c','Qol_CalcMoveDamageInternal')
         self.assertEqual(calc.count('BATTLE_MOVE_DATA(ctx, moveNo).effect != MOVE_EFFECT_REMOVE_SCREENS'),2)
         direct=game.function_source(PLAYER,'BattleControllerPlayer_DirectSideEffect')
         self.assertIn('ctx->commandNext = CONTROLLER_COMMAND_26;',direct)

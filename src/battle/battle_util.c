@@ -1,5 +1,6 @@
 #include "qol_moves.h"
 #include "battle/battle_util.h"
+#include "battle/qol_damage_internal.h"
 
 #include "global.h"
 
@@ -5924,8 +5925,8 @@ static u32 Qol_GetScriptBasePowerModifier(int effect, int multiplier, const Move
 
 // Confirmed external BP events only, in pinned priority order. All inputs are
 // local snapshots; this collector never changes battle state or draws RNG.
-// Me First and semi-invulnerable/Minimize routes retain their prior owners.
-static u32 Qol_ModernBasePower(u32 power, int move, int category, int type, const MoveDamageCalc *user, const MoveDamageCalc *target, u16 baseSpecies, u32 scriptModifier, BOOL drySkin, BOOL helpingHand, BOOL charge, BOOL sport, BOOL adverseWeather) {
+// Semi-invulnerable/Minimize routes retain their prior owners.
+static u32 Qol_ModernBasePower(u32 power, int move, int category, int type, const MoveDamageCalc *user, const MoveDamageCalc *target, u16 baseSpecies, u32 scriptModifier, BOOL drySkin, BOOL meFirst, BOOL helpingHand, BOOL charge, BOOL sport, BOOL adverseWeather) {
     u32 modifier = 4096;
     int i;
 
@@ -5969,6 +5970,9 @@ static u32 Qol_ModernBasePower(u32 power, int move, int category, int type, cons
         || (user->item == HOLD_EFFECT_GIRATINA_BOOST && baseSpecies == SPECIES_GIRATINA && (type == TYPE_DRAGON || type == TYPE_GHOST))
         || (user->item == HOLD_EFFECT_LATI_SPECIAL && (baseSpecies == SPECIES_LATIOS || baseSpecies == SPECIES_LATIAS) && (type == TYPE_PSYCHIC || type == TYPE_DRAGON))) {
         modifier = Qol_ChainStatModifier(modifier, 4915); //15
+    }
+    if (meFirst) {
+        modifier = Qol_ChainStatModifier(modifier, 6144); //12
     }
     if (helpingHand) {
         modifier = Qol_ChainStatModifier(modifier, 6144); //10
@@ -6049,7 +6053,14 @@ BOOL Qol_MoveIgnoresTargetStatStages(int move) {
 #endif
 }
 
-int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit) {
+// Mirror execution's equal-count normalization without changing battle state.
+// Widen before subtraction; future counts retain the original negative delta.
+BOOL Qol_IsMeFirstEligible(BOOL flag, int total, int count) {
+    s64 localCount = (s64)count - (total == count);
+    return flag && (s64)total - localCount < 2;
+}
+
+int Qol_CalcMoveDamageInternal(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit, QolDamageOrigin origin, BOOL meFirstEligible) {
 #if !QOL_MODERN_BATTLE
     int i;
 #endif
@@ -6172,6 +6183,7 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
     movePower = Qol_ModernBasePower(movePower, moveNo, moveCategory, moveType, &calcAttacker, &calcTarget,
         Qol_GetBaseSpecies(battleSystem, ctx, battlerIdAttacker), scriptBasePowerModifier,
         moveType == TYPE_FIRE && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_DRY_SKIN),
+        origin == QOL_DAMAGE_ORDINARY_COMMAND && meFirstEligible,
         ctx->turnData[battlerIdAttacker].helpingHandFlag,
         (ctx->battleMons[battlerIdAttacker].moveEffectFlags & MOVE_EFFECT_FLAG_CHARGE) && moveType == TYPE_ELECTRIC,
         (moveType == TYPE_ELECTRIC && CheckMoveEffectOnField(battleSystem, ctx, MOVE_EFFECT_FLAG_MUD_SPORT))
@@ -6692,6 +6704,12 @@ int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u
 #endif
 
     return dmg + 2;
+}
+
+// Public ABI and compatibility behavior remain available to projections and
+// exceptional routes. Only the real ordinary-command gateway opts in.
+int CalcMoveDamage(BattleSystem *battleSystem, BattleContext *ctx, u32 moveNo, u32 sideCondition, u32 fieldCondition, u16 power, u8 type, u8 battlerIdAttacker, u8 battlerIdTarget, u8 crit) {
+    return Qol_CalcMoveDamageInternal(battleSystem, ctx, moveNo, sideCondition, fieldCondition, power, type, battlerIdAttacker, battlerIdTarget, crit, QOL_DAMAGE_COMPATIBILITY, FALSE);
 }
 
 int ApplyDamageRange(BattleSystem *battleSystem, BattleContext *ctx, int damage) {

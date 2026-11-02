@@ -1013,8 +1013,8 @@ Sharpness242 enabling occurs.
 
 Exact native Reckless12 and Facade/Brine20 values are consumed once only with
 their effect/state prerequisites; unknown multipliers preserve a legacy fallback.
-Me First retains both old numerical and lifecycle owners until D2a2 supplies
-explicit local route/projection provenance. Semi-invulnerable/Minimize doubles
+D2a1 retained both old Me First owners; the D2a2 section below supersedes its
+ordinary-command numerical owner with explicit local route provenance. Semi-invulnerable/Minimize doubles
 retain old placement and Technician eligibility until D3; conflicting pinned
 Fly/Bounce reference placement remains unresolved. Sports lifetime, Charge
 consumption, hypothetical AI/ambient-multiplier projection, exceptional routes
@@ -1059,3 +1059,59 @@ initial boot is separate. Seven save, eight frozen production/test and three
 artifact hashes matched. The253-test sweep belongs to f673; no full rerun was
 claimed for D2a1. Remaining Me First/final/lifecycle/projection/UI scope above
 still blocks installing the complete modern ruleset. Live app/ROM/save untouched.
+
+## Me First ordinary-command BP routes (D2a2)
+
+The single shared damage formula now has a private, unconditional origin and
+local eligibility interface. The unchanged public CalcMoveDamage ABI wraps it
+with compatibility/FALSE. Only DamageCalcDefault opts into ordinary-command
+provenance, using a pure signed64 predicate over existing flag/count/total. The
+worker never infers eligibility from ambient state, move identity, damage or an
+override. CalcDamage, CalcDamageRaw, Pursuit and called ordinary moves share that
+gateway; actual copied dispatch still installs moveNoCur.
+
+With modern battle enabled, Me First6144 joins the BP chain at priority12,
+between items15 and Helping Hand10, and only the old late numerical multiply is
+disabled. Equal-count decrement and stale-expiry clearing remain at their
+original execution boundary. Repeated hits/reset retain existing flag/count,
+Pursuit's producer/subscript SET20 stays2×, and PP/Pressure/Choice/acquisition/
+order/legality/RNG behavior stays intact. Future counts retain legacy negative
+delta math; corrupted counters that overflow the native lifecycle remain
+unsupported. Battle-off formula bodies and command tokens match accepted25716
+for all four type/move combinations. Flags remain independent/default off;
+public header, battle/context/save/packet layouts and resources do not change.
+
+AI, switching, confusion and Future Sight keep the public compatibility path.
+Beat Up/fixed/OHKO/returned damage keep independent routes without a new event
+or lifecycle. Copied exceptional moves retain that existing behavior. Numerical
+oracles include intrinsic41/Technician/Me First grouped92 versus sequential91,
+and native Ember40/Technician command42→41. Public/compatibilityTRUE/ordinaryFALSE
+match baseline over80,640 representative all-flag formula cases with state/RNG
+comparison. Focused actual-C acquisition/dispatcher/Pursuit/AI/exception tests,
+rolls/crits/repeated hits and the host/sanitizer commands are recorded in
+`docs/superpowers/plans/2026-11-01-gen9-me-first-routes.md`.
+
+This is source-only ordinary-command numerical support. Hypothetical AI/copied
+forecasting, delayed/confusion/Beat Up modernization, final Life Orb/Metronome/
+berry groups, semi-invulnerable/Minimize placement and Sharpness remain deferred.
+D2a1 Soul Dew stays intact; its bank221/item225 description remains pending.
+The final guarded SDK-free sweep passed120 methods in175.112s; the25 focused
+Me First/BP sanitizer methods passed in66.381s. Baseline replay retains exactly
+four intended modern numerical failures with no legacy/compiler failures, and
+all four battle-off body-token checks pass. Root owns fresh reviews and matching
+SDK/native41 validation before landing.
+The installed application, real ROM and real save are unchanged.
+
+D2a2 integration passed120 guarded SDK-free checks in175.112s and25 sanitizer
+checks in66.381s. Both fresh independent reviews passed31 selected methods
+across all eight flags (14 Me First,11 BP,six affected),80,640 differential rows,
+public ABI, four legacy body/command token comparisons and hashes/whitespace.
+The paired SDK ROM/resources/layout/native build passed. A fresh data-only
+ordinary-command RAM fixture confirmed42→41 damage with the same seed12,
+19 RNG calls/final state4175436897 and flag/count/total1/1/1→1/0/2. All1700
+compared battle frames matched every ARM9 instruction with zero fallbacks,
+guard failures or evictions. Initial boot is separate; actual acquisition and
+dispatch are host-tested, not inferred from this native command-state fixture.
+Ten frozen files, seven prior plus two new validation saves and three tested
+artifact hashes matched. No253-test full-suite rerun was claimed for D2a2.
+The installed four-QoL app, real ROM and real save remain untouched.

@@ -19,11 +19,12 @@ def native(name, path='src/battle/battle_util.c'):
 def damage_source():
     source=rules.COMMON+'#include "constants/qol_moves.h"\n'+r'''
 typedef struct {int power,type,category,effect,range;} Move;
-typedef struct {int hp,ability,status,item,statChanges[8];struct {int embargoFlag;} moveEffectData;unsigned moveEffectFlags;} Mon;
+typedef struct {int hp,ability,status,item,statChanges[8];struct {int embargoFlag;int meFirstFlag,meFirstCount;} moveEffectData;unsigned moveEffectFlags;} Mon;
 typedef struct {Mon battleMons[4];struct {int helpingHandFlag;} turnData[4];
  struct {Move moveData[NUM_MOVES+1];int calcTemp;} trainerAIData;
- int powerMultiplier,fieldCondition;struct {int moldBreakerFlag;} selfTurnData[4];int battleStatus;int selectedMonIndex[4];} BattleContext;
+ int powerMultiplier,fieldCondition;struct {int moldBreakerFlag;} selfTurnData[4];int battleStatus;int selectedMonIndex[4];int meFirstTotal;} BattleContext;
 typedef unsigned long long u64;
+typedef signed long long s64;
 typedef int Pokemon;
 static Pokemon partySpecies[4];
 static Pokemon *BattleSystem_GetPartyMon(BattleSystem *s,int b,int slot){return &partySpecies[b];}
@@ -44,7 +45,9 @@ static int MaskOfFlagNo(int n){return 1u<<n;}
     source+='#if QOL_MODERN_BATTLE\n'+rules.helper('Qol_HasPlusMinusAlly','src/battle/battle_util.c')+'#endif\n'
     source+=util[util.index('typedef struct MoveDamageCalc {'):util.index('} MoveDamageCalc;')+len('} MoveDamageCalc;')]
     source+='\n#if QOL_MODERN_BATTLE\n'+''.join(rules.helper(n,'src/battle/battle_util.c') for n in ('Qol_ChainStatModifier','Qol_ApplyStatModifier','Qol_GetBaseSpecies','Qol_CountFlowerGiftProviders','Qol_ModernOffenseStat','Qol_ModernDefenseStat'))+'#endif\n'
-    source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+'#if QOL_MODERN_BATTLE\n'+''.join(native(n) for n in ('Qol_GetScriptBasePowerModifier','Qol_ModernBasePower'))+'#endif\n'+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','CalcMoveDamage'))
+    private_header=(ROOT/'include/battle/qol_damage_internal.h').read_text()
+    source+='\n'+re.sub(r'^#include[^\n]*', '', private_header, flags=re.M)+'\n'
+    source+=''.join(rules.array(n) for n in ('sStatChangeTable','sTypeEnhancingItems','sPunchingMoves'))+'#if QOL_MODERN_BATTLE\n'+''.join(native(n) for n in ('Qol_GetScriptBasePowerModifier','Qol_ModernBasePower'))+'#endif\n'+''.join(native(n) for n in ('Qol_GetMoveOffenseSource','Qol_MoveUsesPhysicalDefense','Qol_MoveIgnoresTargetStatStages','Qol_GetMoveBasePower','Qol_IsMeFirstEligible','Qol_CalcMoveDamageInternal','CalcMoveDamage'))
     return source+r'''
 static BattleContext fixture(void){
  BattleContext c={0};memset(vars,0,sizeof(vars));memset(items,0,sizeof(items));c.powerMultiplier=10;

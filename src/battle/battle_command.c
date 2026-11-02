@@ -25,6 +25,7 @@
 #include "battle/battle_controller_player.h"
 #include "battle/battle_system.h"
 #include "battle/battle_util.h"
+#include "battle/qol_damage_internal.h"
 #include "msgdata/msg/msg_0197.h"
 
 #include "assert.h"
@@ -779,7 +780,12 @@ static void DamageCalcDefault(BattleSystem *battleSystem, BattleContext *ctx) {
         type = BATTLE_MOVE_DATA(ctx, ctx->moveNoCur).type;
     }
 
+#if QOL_MODERN_BATTLE
+    ctx->damage = Qol_CalcMoveDamageInternal(battleSystem, ctx, ctx->moveNoCur, ctx->fieldSideConditionFlags[BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdTarget)], ctx->fieldCondition, ctx->movePower, type, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->criticalMultiplier,
+        QOL_DAMAGE_ORDINARY_COMMAND, Qol_IsMeFirstEligible(ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.meFirstFlag, ctx->meFirstTotal, ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.meFirstCount));
+#else
     ctx->damage = CalcMoveDamage(battleSystem, ctx, ctx->moveNoCur, ctx->fieldSideConditionFlags[BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdTarget)], ctx->fieldCondition, ctx->movePower, type, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->criticalMultiplier);
+#endif
 
     ctx->damage = Qol_ApplyCriticalDamage(ctx->damage, ctx->criticalMultiplier);
 
@@ -796,7 +802,9 @@ static void DamageCalcDefault(BattleSystem *battleSystem, BattleContext *ctx) {
             ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.meFirstCount--;
         }
         if ((ctx->meFirstTotal - ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.meFirstCount) < 2) {
+#if !QOL_MODERN_BATTLE
             ctx->damage = ctx->damage * 15 / 10;
+#endif
         } else {
             ctx->battleMons[ctx->battlerIdAttacker].moveEffectData.meFirstFlag = 0;
         }
