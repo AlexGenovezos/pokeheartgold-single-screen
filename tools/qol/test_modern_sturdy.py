@@ -241,7 +241,7 @@ typedef struct {
     struct {int hp,maxHp,item,ability;unsigned status2,moveEffectFlags;} battleMons[4];
     struct {int endureFlag;} turnData[4];
     struct {int moldBreakerFlag;} selfTurnData[4];
-    unsigned moveStatusFlag,battleStatus,fieldCondition;
+    unsigned moveStatusFlag,battleStatus,fieldCondition;int fieldSideConditionFlags[2];
     int hpCalc,scriptNarcId,scriptFileId,battlerIdAttacker,battlerIdTarget,battlerIdTemp,
         abilityTemp,battlerIdAbility,recycleItem[4],selectedMonIndex[4],switchMonIndex[4],
         count,updates,animations,messages[8],tags[8],nicknames[8],abilities[8];
@@ -268,6 +268,8 @@ static int GetBattlerVar(BattleContext *c,int id,int field,void *unused){
     assert(0);return 0;}
 static void CopyBattleMonToPartyMon(BattleSystem *s,BattleContext *c,int id){}
 static void BattlerSetAbility(BattleContext *c,int id,int ability){}
+static int BattleSystem_GetFieldSide(BattleSystem *s,int id){return id&1;}
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(!"Unexpected Tailwind queue in Sturdy fixture");}
 """
         functions='\n'.join(game.function_source('src/battle/battle_util.c',name) for name in (
             'GetBattlerAbility','CheckBattlerAbilityIfNotIgnored'))+'\n'+'\n'.join(

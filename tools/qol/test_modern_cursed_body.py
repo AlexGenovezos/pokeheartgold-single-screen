@@ -327,6 +327,7 @@ int main(void) {
                 if(slot==1&&species==SPECIES_TORKOAL)expected=70;
                 if(slot==1&&species==SPECIES_FEEBAS)expected=12;
                 if(slot==1&&species==SPECIES_GALLADE)expected=242;
+                if(slot==1&&species==SPECIES_SHIFTRY)expected=241;
             }
             assert(p.abilities[slot]==expected);
             assert(GetMonBaseStatEx_HandleAlternateForm(NULL,species,0,slot?BASE_ABILITY_2:BASE_ABILITY_1)==expected);
@@ -342,6 +343,7 @@ int main(void) {
                 if(slot==1&&species==SPECIES_TORKOAL)expected=70;
                 if(slot==1&&species==SPECIES_FEEBAS)expected=12;
                 if(slot==1&&species==SPECIES_GALLADE)expected=242;
+                if(slot==1&&species==SPECIES_SHIFTRY)expected=241;
             }
             assert(p.abilities[slot]==expected);
         }
@@ -359,6 +361,7 @@ int main(void) {
             if(species==SPECIES_TORKOAL&&ability==73)expected=70;
             if(species==SPECIES_FEEBAS&&ability==33)expected=12;
             if(species==SPECIES_GALLADE&&ability==80)expected=242;
+            if(species==SPECIES_SHIFTRY&&ability==48)expected=241;
         }
         assert(Qol_GetStoredAbility(species,form,ability,pid)==expected);
         assert(stored(species,form,ability,pid)==expected);
@@ -366,7 +369,7 @@ int main(void) {
     int pairs[]={SPECIES_WINGULL,SPECIES_PELIPPER,SPECIES_TORKOAL,SPECIES_FEEBAS,SPECIES_GALLADE};
     for(int p=0;p<5;p++)for(int form=1;form<256;form++)for(int ability=0;ability<256;ability++)for(u32 pid=0;pid<4;pid++)
         assert(Qol_GetStoredAbility(pairs[p],form,ability,pid)==ability);
-    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&(id==130||id==172||id==242))));
+    for(int id=0;id<=65535;id++)assert(Qol_IsSupportedAbility(id)==(id<=123||(QOL_MODERN_BATTLE&&(id==130||id==172||id==241||id==242))));
     assert(NUM_ABILITIES==123);
     return 0;
 }
@@ -427,7 +430,7 @@ static void PokedexData_Delete(struct PokedexData *data){}
 static unsigned MaskOfFlagNo(int n){return 1u<<n;}
 '''+actual+'\n'
 
-    def test_real_encrypted_getter_preserves_bytes_and_native_new_mon_choice(self):
+    def encrypted_ability_source(self):
         header=(ROOT/'include/pokemon_types_def.h').read_text()
         structs=header[header.index('/**\n * @brief Block A'):header.index('union MailPatternData')]
         getter=game.function_source('src/pokemon.c','GetBoxMonDataInternal')
@@ -539,8 +542,11 @@ int main(void) {
  return 0;
 }
 '''
+        return source
+
+    def test_real_encrypted_getter_preserves_bytes_and_native_new_mon_choice(self):
         for flags in self.flags():
-            self.compile_run(source,*flags,'-Wno-unused-function','-Wno-unused-variable','-Wno-sign-compare')
+            self.compile_run(self.encrypted_ability_source(),*flags,'-Wno-unused-function','-Wno-unused-variable','-Wno-sign-compare')
 
 
 class CursedBodySdkTests(unittest.TestCase):
@@ -574,6 +580,9 @@ class CursedBodySdkTests(unittest.TestCase):
 enum {msg_0197_00750=750,msg_0197_00753=753};
 static int CreateNicknameTag(BattleContext *c,int b){return b;}
 static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}
+static int Qol_ContinueWindRider(BattleSystem *s,BattleContext *c){
+ assert(c->scriptFileId!=BATTLE_SUBSCRIPT_TAILWIND_START&&c->scriptFileId!=BATTLE_SUBSCRIPT_WIND_RIDER_STAT_UP);return 0;
+}
 #define GF_ASSERT assert
 typedef int NarcId;
 typedef struct {int id,tag,params[6];} BattleMessageData;

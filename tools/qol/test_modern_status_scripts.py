@@ -87,7 +87,7 @@ class ModernStatusSourceTests(unittest.TestCase):
     def test_battle_rules_always_applies_paralysis_after_numeric_changes(self):
         from unittest.mock import patch
         import modern_rom
-        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3), 'a/0/3/0': (2, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
+        with patch('modern_rom.rom_files', return_value={'a/0/0/1': (0, 0, 3), 'a/0/2/7': (1, 0, 3), 'a/0/3/0': (2, 0, 3)}), patch('modern_rom.modern_battle_resources', return_value=b'numeric') as numeric, patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, patch('modern_rom.modern_absorption_resources',side_effect=lambda data:data), patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data,modern_wind_rider_resources=lambda data,moves=False:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
         numeric.assert_called_once_with(b'rom')
         electric.assert_called_once_with(b'numeric')
@@ -182,10 +182,18 @@ typedef struct {int unused;} BattleSystem;
 typedef struct {int status,status2,hp,type1,type2;} BattleMon;
 typedef struct {int statusFlags;} SelfTurn;
 typedef struct {
+ unsigned fieldSideConditionFlags[2];int scriptNarcId,scriptFileId;
  const u32 *words; int pos,length,vars[70],ability,ignored,message,failed,tempData;
  int battlerIdAttacker,battlerIdAbility,turnOrder[4],moveNoCur,statChangeType;
  BattleMon battleMons[4]; SelfTurn selfTurnData[4];
 } BattleContext;
+enum {NARC_a_0_0_1};
+#if QOL_MODERN_BATTLE
+static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
+#endif
+#if QOL_MODERN_BATTLE
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(0);}
+#endif
 void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;assert(c->pos>=0 && c->pos<=c->length);}
 int BattleScriptReadWord(BattleContext *c){assert(c->pos<c->length);return c->words[c->pos++];}
 int *BattleScriptGetVarPointer(BattleSystem *s,BattleContext *c,int v){assert(v>=0&&v<70);return &c->vars[v];}

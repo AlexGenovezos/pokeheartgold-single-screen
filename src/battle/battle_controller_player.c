@@ -1,3 +1,4 @@
+#include "battle/qol_wind_events.h"
 #include "qol_moves.h"
 #include "battle/battle_controller_player.h"
 
@@ -150,6 +151,10 @@ BattleContext *BattleContext_New(BattleSystem *battleSystem) {
     BattleContext *ctx = (BattleContext *)Heap_Alloc(HEAP_ID_BATTLE, sizeof(BattleContext));
     MIi_CpuClearFast(0, (u32 *)ctx, sizeof(BattleContext));
 
+
+#if QOL_MODERN_BATTLE
+    Qol_WindEventsNew(ctx);
+#endif
     BattleContext_Init(ctx);
     BattleContext_InitBattleStart(battleSystem, ctx);
     BattleControllerPlayer_InitTrainerAIData(battleSystem, ctx);
@@ -174,6 +179,9 @@ BOOL BattleContext_Main(BattleSystem *battleSystem, BattleContext *ctx) {
 }
 
 void BattleContext_Delete(BattleContext *ctx) {
+#if QOL_MODERN_BATTLE
+    Qol_WindEventsDelete(ctx);
+#endif
     Heap_Free(ctx->trainerAIData.itemData);
     Heap_Free(ctx);
 }
@@ -2525,6 +2533,16 @@ static BOOL BattleSystem_CheckMoveHit(BattleSystem *battleSystem, BattleContext 
                     || (moveType == TYPE_WATER && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_STORM_DRAIN)))
             || (moveType == TYPE_FIRE && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_FLASH_FIRE
                 && (BATTLE_MOVE_DATA(ctx, move).power || move == MOVE_WILL_O_WISP)))) {
+        return FALSE;
+    }
+#endif
+#if QOL_MODERN_BATTLE
+    if (battlerIdTarget >= 0 && battlerIdTarget < BattleSystem_GetMaxBattlers(battleSystem)
+        && battlerIdAttacker != battlerIdTarget && ctx->battleMons[battlerIdTarget].hp
+        && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)
+        && Qol_WindMoveCanBeAbsorbed(move)
+        && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_WIND_RIDER
+        && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER) {
         return FALSE;
     }
 #endif

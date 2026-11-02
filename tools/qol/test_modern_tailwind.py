@@ -108,6 +108,15 @@ typedef struct {int battleType,battleOutcomeFlag,battleSpecial,safariBallCnt,reg
 #include "constants/message_tags.h"
 enum {NARC_a_0_0_1};
 static int messages,animations,lastMessage,poisonType;
+// Historical duration/alias fixtures have no Wind holder. Wind tests separately
+// execute the real registry, allocator, cast->304 dispatcher and complete VM.
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){
+ for(int b=0;b<4;b++)assert(c->battleMons[b].ability!=ABILITY_WIND_RIDER);
+}
+static void Qol_WindEventsNew(BattleContext *c){}
+static void Qol_WindEventsDelete(BattleContext *c){}
+static void Qol_WindEventsReset(BattleContext *c){}
+
 static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
 static int BattleSystem_GetBattlerIDBySide(BattleSystem *s,BattleContext *c,int side){
  if(side==BATTLER_CATEGORY_ATTACKER)return c->battlerIdAttacker;
@@ -471,7 +480,12 @@ int main(void){
         original=accepted(PLAYER);current=(ROOT/PLAYER).read_text()
         for types,moves in itertools.product((0,1),repeat=2):
             self.assertEqual(preprocess(current,types,moves),preprocess(original,types,moves))
-        for path in (UTIL,COMMAND,AI,'include/battle/battle.h','asm/trainer_ai_data.s'):
+        # Wind owns guarded changes in util/commands. Compare all battle-off
+        # tokens under every other flag, retaining exact native ABI/AI guards.
+        for path in (UTIL,COMMAND):
+            for types,moves in itertools.product((0,1),repeat=2):
+                self.assertEqual(preprocess((ROOT/path).read_text(),types,moves),preprocess(accepted(path),types,moves),path)
+        for path in (AI,'include/battle/battle.h','asm/trainer_ai_data.s'):
             self.assertEqual((ROOT/path).read_text(),accepted(path),path+' unexpectedly changed')
         old=accepted('include/constants/battle.h');new=(ROOT/'include/constants/battle.h').read_text()
         olddefines=re.findall(r'^#define SIDE_CONDITION_.*$',old,re.M)
@@ -554,7 +568,8 @@ class TailwindResourceTests(unittest.TestCase):
         banks=unpack_narc(modern_ability_description_resources((ROOT/'files/msgdata/msg.narc').read_bytes(),CHARMAP))[0]
         for bank in (720,721,722):
             words=unpack_messages(banks[bank])[0];self.assertEqual(len(words),243)
-            for row in (240,241):self.assertEqual(words[row],game_text(' -',CHARMAP))
+            self.assertEqual(words[240],game_text(' -',CHARMAP))
+            self.assertNotEqual(words[241],game_text(' -',CHARMAP))
             self.assertNotEqual(words[242],game_text(' -',CHARMAP))
 
     def test_script_source_changes_only_success_operand_and_rejects_drift(self):
@@ -643,7 +658,7 @@ class TailwindResourceTests(unittest.TestCase):
         scripts=('modern_battle_resources','modern_paralysis_resources','modern_weather_resources','modern_absorption_resources',
                  'modern_sturdy_resources','modern_cursed_body_resources','modern_competitive_resources',
                  'modern_oblivious_intimidate_resources','modern_simple_resources','modern_tailwind_resources',
-                 'modern_snow_effect_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources')
+                 'modern_snow_effect_resources','modern_drain_resources','modern_move_stat_resources','modern_move_effect_resources','modern_wind_rider_resources')
         owners=('modern_ability_description_resources','modern_simple_message_resources','modern_snow_message_resources',
                 'modern_soul_dew_message_resources','modern_tailwind_message_resources','extended_move_resources')
         before=unpack_narc(original)[0]

@@ -43,6 +43,7 @@ class AbilityDescriptionTests(unittest.TestCase):
                   114:'Draws in Water moves.\nAbsorbs them for Sp. Atk.',
                   130:'May disable a move that\nhits this Pokémon.',
                   172:'Stat loss from a foe\nsharply raises Sp. Atk.',
+                  241:'Wind moves and Tailwind\nraise Attack. Blocks wind.',
                   242:'Powers up slicing moves\nby 50%.'}
         self.assertEqual(len(words),243)
         for index,word in enumerate(words[:124]):
@@ -58,7 +59,9 @@ class AbilityDescriptionTests(unittest.TestCase):
             self.assertEqual(extended[131:172],[game_text(' -',ROOT/'charmap.txt')]*41)
             sharpness={720:'Sharpness',721:'SHARPNESS',722:expected[242]}
             self.assertEqual(extended[242],game_text(sharpness[bank],ROOT/'charmap.txt'))
-            self.assertEqual(extended[173:242],[game_text(' -',ROOT/'charmap.txt')]*69)
+            self.assertEqual(extended[173:241],[game_text(' -',ROOT/'charmap.txt')]*68)
+            wind={720:'Wind Rider',721:'WIND RIDER',722:expected[241]}
+            self.assertEqual(extended[241],game_text(wind[bank],ROOT/'charmap.txt'))
             if bank!=722:self.assertEqual(extended[:124],original_descriptions(bank))
         summary=(ROOT/'src/pokemon_summary_text.c').read_text()
         self.assertIn('NARC_msg_msg_0722_bin',summary)
@@ -142,7 +145,7 @@ class AbilityDescriptionTests(unittest.TestCase):
              patch('modern_rom.modern_competitive_resources',return_value=b'competitive') as competitive, \
              patch('modern_rom.modern_oblivious_intimidate_resources',return_value=b'oblivious') as oblivious, \
              patch.multiple('modern_rom', modern_simple_resources=lambda data:data,
-                            modern_tailwind_resources=lambda data:data,
+                            modern_tailwind_resources=lambda data:data,modern_wind_rider_resources=lambda data,moves=False:data,
                             modern_tailwind_message_resources=lambda data,charmap:data,
                             modern_simple_message_resources=lambda data,charmap:data,
                             modern_snow_message_resources=lambda data,charmap:data,

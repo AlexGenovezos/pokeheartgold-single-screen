@@ -45,7 +45,7 @@ def command_source():
     s = s.replace('int embargoFlag;', 'int embargoFlag,metronomeTurns;')
     s = s.replace('int powerMultiplier,fieldCondition;', '''int powerMultiplier,fieldCondition;
  int damage,criticalMultiplier,battlerIdAttacker,battlerIdTarget,moveType,moveNoCur,movePower;
- int fieldSideConditionFlags[2];''')
+ int fieldSideConditionFlags[2];int scriptNarcId,scriptFileId;''')
     return s + r'''
 static int scriptPosition;
 static void BattleScriptIncrementPointer(BattleContext *c,int n){scriptPosition+=n;}
@@ -91,6 +91,7 @@ static int GetBattlerSelectedMove(BattleContext *c,int b){return c->battleMons[b
 static int BattleSystem_GetMoveTarget(BattleSystem *s,BattleContext *c,int b,u16 move,int x,int y){return c->battlerIdTarget;}
 static void BattleSystem_TryRedirectMoveTarget(BattleSystem *s,BattleContext *c,int b,int move){}
 static void BattleScriptJump(BattleContext *c,int archive,int member){jumpArchive=archive;jumpMember=member;}
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(!"Unexpected Tailwind queue in Me First fixture");}
 static int CheckTruant(BattleContext *c,int b){return 0;}
 static int BattleMon_GetMoveIndex(Mon *m,int move){for(int i=0;i<4;i++)if(m->moves[i]==move)return i;assert(0);return 0;}
 static void CopyBattleMonToPartyMon(BattleSystem *s,BattleContext *c,int b){copies++;}
@@ -527,6 +528,28 @@ int main(void){
                 self.assertEqual(set(old_bodies), set(new_bodies) - {'Qol_GetTailwindTurns', 'Qol_SetTailwindTurns'})
                 for name, body in old_bodies.items():
                     if name != 'BattleControllerPlayer_UpdateFieldCondition':
-                        self.assertEqual(body, new_bodies[name], name)
+                        current = new_bodies[name]
+                        # Wind owns only allocation/release and a pure preaccuracy
+                        # hook. Strip these exact additions; every other byte in
+                        # all 74 original bodies remains protected by this guard.
+                        additions = {
+                            'BattleContext_New': '\n#if QOL_MODERN_BATTLE\n    Qol_WindEventsNew(ctx);\n#endif\n',
+                            'BattleContext_Delete': '#if QOL_MODERN_BATTLE\n    Qol_WindEventsDelete(ctx);\n#endif\n',
+                            'BattleSystem_CheckMoveHit': """#if QOL_MODERN_BATTLE
+    if (battlerIdTarget >= 0 && battlerIdTarget < BattleSystem_GetMaxBattlers(battleSystem)
+        && battlerIdAttacker != battlerIdTarget && ctx->battleMons[battlerIdTarget].hp
+        && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)
+        && Qol_WindMoveCanBeAbsorbed(move)
+        && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_WIND_RIDER
+        && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER) {
+        return FALSE;
+    }
+#endif
+""",
+                        }
+                        if name in additions:
+                            self.assertEqual(current.count(additions[name]), 1, name)
+                            current = current.replace(additions[name], '', 1)
+                        self.assertEqual(body, current, name)
             else:
                 self.assertEqual(old, (game.ROOT / path).read_text())

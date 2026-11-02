@@ -90,7 +90,7 @@ class ModernWeatherSourceTests(unittest.TestCase):
              patch('modern_rom.modern_paralysis_resources', return_value=b'electric') as electric, \
              patch('modern_rom.modern_weather_resources', return_value=b'finite') as weather, \
              patch('modern_rom.modern_absorption_resources', side_effect=lambda data:data), \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data,modern_wind_rider_resources=lambda data,moves=False:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files', side_effect=lambda rom, replacements: replacements):
             result = modern_rom.make_modern_rom(b'rom', None, types=False, battle_rules=True)
@@ -127,7 +127,14 @@ class ModernWeatherSourceTests(unittest.TestCase):
 typedef struct {int hp,sendOutFlag,ability;} BattleMon;
 typedef struct {BattleMon battleMons[4];int turnOrder[4],fieldCondition,battlerIdTemp,sendOutState;} BattleContext;
 int GetBattlerAbility(BattleContext *ctx,int id){return ctx->battleMons[id].ability;}
-int weather(BattleContext *ctx){int i,battlerId,script=0,flag=FALSE,maxBattlers=4;switch(2){
+#if QOL_MODERN_BATTLE
+static int Qol_BeginWindRiderEntry(void *s,BattleContext *c,int b){assert(0);return 0;}
+#endif
+int weather(BattleContext *ctx){int i,battlerId,script=0,flag=FALSE,maxBattlers=4;
+#if QOL_MODERN_BATTLE
+ void *battleSystem=0;
+#endif
+ switch(2){
 '''
         checks = r'''
 }return script;}
@@ -206,10 +213,17 @@ enum {UFC_STATE_RAIN,UFC_STATE_SANDSTORM,UFC_STATE_SUN,UFC_STATE_HAIL};
 enum {NARC_a_0_0_1=1};
 typedef struct {int unused;} BattleSystem;
 typedef struct {int item,ability;struct {int embargoFlag;} moveEffectData;} BattleMon;
-typedef struct {const u32 *words;int pos,length,fieldCondition,battlerIdTemp,readScript;
+typedef struct {unsigned fieldSideConditionFlags[2];int scriptNarcId,scriptFileId,battlerIdAttacker;
+ const u32 *words;int pos,length,fieldCondition,battlerIdTemp,readScript;
  struct {int weatherTurns;} fieldConditionData;BattleMon battleMons[4];
  struct {int id,tag;} buffMsg;int commandNext,command,tempData,stateFieldConditionUpdate;
 } BattleContext;
+#if QOL_MODERN_BATTLE
+static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
+#endif
+#if QOL_MODERN_BATTLE
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(0);}
+#endif
 void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;assert(c->pos>=0&&c->pos<=c->length);}
 int BattleScriptReadWord(BattleContext *c){assert(c->pos<c->length);return c->words[c->pos++];}
 int *BattleScriptGetVarPointer(BattleSystem *s,BattleContext *c,int v){

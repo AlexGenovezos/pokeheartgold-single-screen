@@ -37,6 +37,7 @@ typedef struct {
 } BattleContext;
 static int randomCalls,randomValue;
 static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}
+static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}
 static int CheckAbilityActive(BattleSystem *s,BattleContext *c,int mode,int mon,int ability){return 0;}
 static int GetBattlerHeldItemEffect(BattleContext *c,int id){return 0;}
 static int GetHeldItemModifier(BattleContext *c,int id,int unused){return 0;}
@@ -51,7 +52,7 @@ static void UnlockBattlerOutOfCurrentMove(BattleSystem *s,BattleContext *c,int a
         'BattleSystem_CheckMoveHit', 'BattleSystem_CheckMoveEffect',
         'BattleControllerPlayer_CheckMoveImmunity', path=PLAYER) + r'''
 static BattleContext fixture(int move) {
- BattleContext c={0};c.moveNoCur=move;c.battlerIdTarget=1;
+ BattleContext c={0};(void)BattleSystem_GetMaxBattlers;c.moveNoCur=move;c.battlerIdTarget=1;
  c.battleMons[0].hp=c.battleMons[1].hp=c.battleMons[1].maxHp=100;
  for(int b=0;b<4;b++)for(int s=0;s<8;s++)c.battleMons[b].statChanges[s]=6;
  c.trainerAIData.moveData[move].type=TYPE_NORMAL;

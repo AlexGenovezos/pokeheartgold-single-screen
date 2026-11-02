@@ -11,14 +11,15 @@ def modern_absorption_source(source):
     if hashlib.sha256(source.encode()).hexdigest()!=SOURCE_SHA256:
         raise ValueError('Absorption subscript differs from the expected source')
     anchor='    CompareMonDataToValue OPCODE_EQU, BATTLER_CATEGORY_DEFENDER, BMON_DATA_STAT_CHANGE_SPEED, 12, _032\n'
-    checks=''.join(f'    CheckAbility CHECK_OPCODE_HAVE, BATTLER_CATEGORY_DEFENDER, ABILITY_{ability}, _QolSpAttack\n'
+    checks='    CheckAbility CHECK_OPCODE_HAVE, BATTLER_CATEGORY_DEFENDER, ABILITY_WIND_RIDER, _QolWindAttack\n' + ''.join(f'    CheckAbility CHECK_OPCODE_HAVE, BATTLER_CATEGORY_DEFENDER, ABILITY_{ability}, _QolSpAttack\n'
                    for ability in ('LIGHTNINGROD','STORM_DRAIN'))
     # Reuse the original capped-stat message and presentation. Relative jumps
     # are assembled from labels; Motor Drive's complete path remains intact.
     boost=source[source.index(anchor):source.index('\n_032:')]
     boost=boost.replace('BMON_DATA_STAT_CHANGE_SPEED','BMON_DATA_STAT_CHANGE_SPATK')
     boost=boost.replace('BSCRIPT_VAR_MESSAGE, 3','BSCRIPT_VAR_MESSAGE, 4')
-    return source.replace(anchor,checks+anchor)+'\n_QolSpAttack:\n'+boost
+    wind=boost.replace('BMON_DATA_STAT_CHANGE_SPATK','BMON_DATA_STAT_CHANGE_ATK').replace('BSCRIPT_VAR_MESSAGE, 4','BSCRIPT_VAR_MESSAGE, 1')
+    return source.replace(anchor,checks+anchor)+'\n_QolSpAttack:\n'+boost+'\n_QolWindAttack:\n'+wind
 
 
 def modern_absorption_script(original,root=ROOT):

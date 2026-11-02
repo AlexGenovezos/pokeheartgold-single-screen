@@ -245,7 +245,7 @@ class SnowResourceTests(unittest.TestCase):
             'modern_absorption_resources','modern_sturdy_resources','modern_cursed_body_resources',
             'modern_competitive_resources','modern_oblivious_intimidate_resources','modern_simple_resources','modern_tailwind_resources',
             'modern_simple_message_resources','modern_ability_description_resources','modern_drain_resources',
-            'modern_move_stat_resources','modern_move_effect_resources','modern_soul_dew_message_resources','modern_tailwind_message_resources']
+            'modern_move_stat_resources','modern_move_effect_resources','modern_soul_dew_message_resources','modern_tailwind_message_resources','modern_wind_rider_resources']
         paths={p:(0,0,3) for p in ('a/0/0/8','a/0/2/7','a/0/6/8','a/0/0/1','a/0/3/0','a/0/1/1','a/0/0/0')}
         for types,battle,moves in ((False,False,False),(True,False,False),(False,False,True),(True,True,True),(False,True,False)):
             with self.subTest(types=types,battle=battle,moves=moves),ExitStack() as stack:
@@ -365,7 +365,7 @@ int main(void){(void)BattleSystem_Random(NULL);
         import test_modern_original_abilities as original
         source=original.accuracy_source()
         source=source.replace('static int CheckAbilityActive(BattleSystem *s,BattleContext *c,int mode,int mon,int ability){return 0;}',
-            'static int MaskOfFlagNo(int n){return 1u<<n;}\nstatic int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}\nstatic int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}\n'+native('CheckAbilityActive'))
+            'static int MaskOfFlagNo(int n){return 1u<<n;}\nstatic int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}\n'+native('CheckAbilityActive'))
         # CheckAbilityActive needs the actual accessor's declaration first.
         source=source.replace('static int MaskOfFlagNo(', 'u8 GetBattlerAbility(BattleContext *c,int b);\nstatic int MaskOfFlagNo(',1)
         source+=r'''

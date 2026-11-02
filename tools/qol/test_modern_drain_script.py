@@ -98,9 +98,17 @@ typedef int BOOL; typedef uint32_t u32; typedef uint16_t u16;
 #define GF_ASSERT(x) assert(x)
 typedef struct {int unused;} BattleSystem;
 typedef struct {
+ unsigned fieldSideConditionFlags[2];int scriptNarcId,scriptFileId,battlerIdAttacker;
  const u32 *words; int pos,length,vars[70],ability[2],battlerIdAbility;
  int bigRoot,healBlock,updates,applied,message;
 } BattleContext;
+enum {NARC_a_0_0_1};
+#if QOL_MODERN_BATTLE
+static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
+#endif
+#if QOL_MODERN_BATTLE
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(0);}
+#endif
 void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;assert(c->pos>=0&&c->pos<=c->length);}
 int BattleScriptReadWord(BattleContext *c){assert(c->pos<c->length);return c->words[c->pos++];}
 int *BattleScriptGetVarPointer(BattleSystem *s,BattleContext *c,int v){assert(v>=0&&v<70);return &c->vars[v];}

@@ -23,8 +23,13 @@ SHARPNESS_BANKS = {
     721: 'SHARPNESS',
     722: 'Powers up slicing moves\nby 50%.',
 }
+WIND_RIDER_BANKS = {
+    720: 'Wind Rider',
+    721: 'WIND RIDER',
+    722: 'Wind moves and Tailwind\nraise Attack. Blocks wind.',
+}
 SPARSE_ABILITIES = {130: {bank: entry[1] for bank, entry in ABILITY_BANKS.items()},
-                    172: COMPETITIVE_BANKS, 242: SHARPNESS_BANKS}
+                    172: COMPETITIVE_BANKS, 241: WIND_RIDER_BANKS, 242: SHARPNESS_BANKS}
 ABILITY_KEYS = {720: 7280, 721: 50258, 722: 26692}
 
 

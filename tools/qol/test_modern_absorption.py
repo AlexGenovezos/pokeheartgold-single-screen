@@ -24,7 +24,7 @@ class AbsorptionTests(unittest.TestCase):
 typedef int BattleSystem;
 enum {NARC_a_0_0_1};
 typedef struct {
-    struct {int ability,maxHp,status;unsigned moveEffectFlags;} battleMons[4];
+    struct {int ability,hp,maxHp,status;unsigned moveEffectFlags;} battleMons[4];
     struct {int moldBreakerFlag;} selfTurnData[4];
     struct {MoveTbl moveData[NUM_MOVES+1];} trainerAIData;
     unsigned fieldCondition,battleStatus;
@@ -84,7 +84,8 @@ int main(void) {
         prefix=updated.split('\n_QolSpAttack:\n')[0]
         checks=''.join(f'    CheckAbility CHECK_OPCODE_HAVE, BATTLER_CATEGORY_DEFENDER, ABILITY_{ability}, _QolSpAttack\n'
                        for ability in ('LIGHTNINGROD','STORM_DRAIN'))
-        self.assertEqual(prefix.replace(checks,''),source)
+        wind='    CheckAbility CHECK_OPCODE_HAVE, BATTLER_CATEGORY_DEFENDER, ABILITY_WIND_RIDER, _QolWindAttack\n'
+        self.assertEqual(prefix.replace(checks,'').replace(wind,''),source)
         self.assertIn('BMON_DATA_STAT_CHANGE_SPATK, 1',updated)
         self.assertIn('BSCRIPT_VAR_MESSAGE, 4',updated)
         for changed in (source+'\n',source.replace('BMON_DATA_STAT_CHANGE_SPEED','BMON_DATA_STAT_CHANGE_ATK'),updated):
@@ -119,7 +120,7 @@ int main(void) {
              patch('modern_rom.modern_paralysis_resources',return_value=b'electric'), \
              patch('modern_rom.modern_weather_resources',return_value=b'finite'), \
              patch('modern_rom.modern_absorption_resources',return_value=b'absorption') as absorb, \
-             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), \
+             patch('modern_rom.modern_sturdy_resources',side_effect=lambda data:data), patch('modern_rom.modern_cursed_body_resources',side_effect=lambda data:data), patch('modern_rom.modern_competitive_resources',side_effect=lambda data:data), patch('modern_rom.modern_oblivious_intimidate_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_resources',side_effect=lambda data:data), patch('modern_rom.modern_simple_message_resources',side_effect=lambda data,charmap:data), patch('modern_rom.modern_snow_message_resources',side_effect=lambda data,charmap:data), patch.multiple('modern_rom',modern_soul_dew_message_resources=lambda data,charmap:data,modern_tailwind_message_resources=lambda data,charmap:data,modern_tailwind_resources=lambda data:data,modern_wind_rider_resources=lambda data,moves=False:data), patch('modern_rom.modern_snow_effect_resources',return_value=b'snow'), \
              patch('modern_rom.modern_ability_description_resources',return_value=b'abilities'), \
              patch('modern_rom.replace_rom_files',side_effect=lambda rom,replacements:replacements):
             result=modern_rom.make_modern_rom(b'rom',None,types=False,battle_rules=True)
@@ -182,13 +183,16 @@ int main(void) {
 #include "constants/move_effects.h"
 typedef int BattleSystem;
 typedef struct {
-    struct {int ability,statChanges[8];unsigned status2,moveEffectFlags;struct {int micleBerryFlag;} moveEffectData;} battleMons[4];
+    struct {int ability,hp,statChanges[8];unsigned status2,moveEffectFlags;struct {int micleBerryFlag;} moveEffectData;} battleMons[4];
     struct {int moldBreakerFlag;} selfTurnData[4];
     struct {MoveTbl moveData[NUM_MOVES+1];} trainerAIData;
     unsigned fieldCondition,battleStatus,moveStatusFlag;int moveType;
 } BattleContext;
 static int randomCalls;
 static int BattleSystem_GetBattleType(BattleSystem *s){return 0;}
+#if QOL_MODERN_BATTLE
+static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}
+#endif
 static int CheckAbilityActive(BattleSystem *s,BattleContext *c,int mode,int mon,int ability){return 0;}
 static int GetBattlerHeldItemEffect(BattleContext *c,int id){return 0;}
 static int GetHeldItemModifier(BattleContext *c,int id,int unused){return 0;}

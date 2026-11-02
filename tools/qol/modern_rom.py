@@ -7,6 +7,7 @@ import struct
 from battle_scripts import modern_paralysis_script, modern_drain_script, modern_weather_script, WEATHER_SCRIPTS
 from snow_resources import modern_snow_effect_resources, modern_snow_message_resources
 from soul_dew_resources import modern_soul_dew_message_resources
+from wind_rider_scripts import modern_wind_rider_resources
 from tailwind_resources import modern_tailwind_resources, modern_tailwind_message_resources
 from next14_scripts import modern_move_stat_resources, modern_move_effect_resources
 from game_text import game_text
@@ -226,6 +227,9 @@ def make_modern_rom(rom, charmap, types=True, battle_rules=False, moves=False):
             # Cotton's +3 event needs the same nine encoded message templates.
             # Combined mode already produced them before Snow; do not duplicate.
             replacements['a/0/2/7'] = modern_simple_message_resources(read('a/0/2/7'), charmap)
+    if battle_rules:
+        # All original exact-299 owners and optional 299..303 moves run first.
+        replacements['a/0/0/1'] = modern_wind_rider_resources(read('a/0/0/1'), moves)
     return replace_rom_files(rom, replacements)
 
 

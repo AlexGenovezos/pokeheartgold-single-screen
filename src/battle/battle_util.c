@@ -1,6 +1,7 @@
 #include "qol_moves.h"
 #include "battle/battle_util.h"
 #include "battle/qol_damage_internal.h"
+#include "battle/qol_wind_events.h"
 
 #include "global.h"
 
@@ -45,6 +46,262 @@ static void TrainerAIData_ClearHeldItem(BattleContext *ctx, u8 battlerId);
 static int ChooseTraceTarget(BattleSystem *battleSystem, BattleContext *ctx, int battlerIdTarget1, int battlerIdTarget2);
 static BOOL IsFixedDamageMove(BattleContext *ctx, int moveNo);
 static int GetDynamicMoveType(BattleSystem *battleSystem, BattleContext *ctx, int battlerId, int moveNo);
+
+// QOL_WIND_EVENTS_BEGIN
+#if QOL_MODERN_BATTLE
+#define QOL_WIND_MAGIC 0x57494e44
+
+enum {
+    QOL_WIND_IDLE,
+    QOL_WIND_TAILWIND_QUEUED,
+    QOL_WIND_PRESENTING_SIDE,
+    QOL_WIND_PRESENTING_ENTRY
+};
+
+typedef struct QolWindEvents {
+    u32 magic;
+    u8 phase, pendingMask, cursor, order[4], side, savedValid;
+    u8 selectedMon[4], pad;
+    int savedBattlerIdTemp, savedBattlerIdStatChange, savedMsgTemp, savedWaitCounter;
+    int savedStackDepth;
+    NarcId savedStackNarcId[4];
+    int savedStackFileId[4], savedStackSeqNo[4];
+} QolWindEvents;
+
+typedef char QolWindEventsWordAligned[(sizeof(QolWindEvents) % 4 == 0) ? 1 : -1];
+
+// One live BattleContext: Battle_Run owns a single battle heap/overlay manager.
+// ARM overlay BSS stores ownership; the payload belongs to HEAP_ID_BATTLE.
+static struct {
+    BattleContext *owner;
+    QolWindEvents *state;
+} sQolWindOwner;
+
+static QolWindEvents *Qol_GetWindEvents(BattleContext *ctx) {
+    if (!ctx || sQolWindOwner.owner != ctx || !sQolWindOwner.state) {
+        GF_ASSERT(FALSE);
+        return NULL;
+    }
+    if (sQolWindOwner.state->magic != QOL_WIND_MAGIC) {
+        GF_ASSERT(FALSE);
+        return NULL;
+    }
+    return sQolWindOwner.state;
+}
+
+void Qol_WindEventsNew(BattleContext *ctx) {
+    QolWindEvents *state;
+    if (!ctx || sQolWindOwner.owner || sQolWindOwner.state) {
+        GF_ASSERT(FALSE);
+        return;
+    }
+    state = Heap_Alloc(HEAP_ID_BATTLE, sizeof(QolWindEvents));
+    if (!state) {
+        GF_ASSERT(FALSE);
+        return;
+    }
+    MIi_CpuClearFast(0, (u32 *)state, sizeof(QolWindEvents));
+    state->magic = QOL_WIND_MAGIC;
+    sQolWindOwner.owner = ctx;
+    sQolWindOwner.state = state;
+}
+
+void Qol_WindEventsDelete(BattleContext *ctx) {
+    QolWindEvents *state = Qol_GetWindEvents(ctx);
+    if (!state) {
+        return;
+    }
+    sQolWindOwner.owner = NULL;
+    sQolWindOwner.state = NULL;
+    MIi_CpuClearFast(0, (u32 *)state, sizeof(QolWindEvents));
+    Heap_Free(state);
+}
+
+void Qol_WindEventsReset(BattleContext *ctx) {
+    QolWindEvents *state = Qol_GetWindEvents(ctx);
+    if (!state) {
+        return;
+    }
+    if (state->phase != QOL_WIND_IDLE || state->pendingMask || state->savedValid) {
+        GF_ASSERT(FALSE);
+        return;
+    }
+    MIi_CpuClearFast(0, (u32 *)state, sizeof(QolWindEvents));
+    state->magic = QOL_WIND_MAGIC;
+}
+
+static void Qol_SaveWindPresentation(BattleContext *ctx, QolWindEvents *state) {
+    int i;
+    GF_ASSERT(!state->savedValid);
+    state->savedBattlerIdTemp = ctx->battlerIdTemp;
+    state->savedBattlerIdStatChange = ctx->battlerIdStatChange;
+    state->savedMsgTemp = ctx->msgTemp;
+    state->savedWaitCounter = ctx->waitCounter;
+    state->savedStackDepth = ctx->scriptStackDepth;
+    for (i = 0; i < 4; i++) {
+        state->savedStackNarcId[i] = ctx->scriptStackNarcId[i];
+        state->savedStackFileId[i] = ctx->scriptStackFileId[i];
+        state->savedStackSeqNo[i] = ctx->scriptStackSeqNo[i];
+    }
+    state->savedValid = TRUE;
+}
+
+static BOOL Qol_CheckWindStack(BattleContext *ctx, QolWindEvents *state) {
+    int i;
+    if (!state->savedValid || ctx->scriptStackDepth != state->savedStackDepth) {
+        GF_ASSERT(FALSE);
+        return FALSE;
+    }
+    for (i = 0; i < 4; i++) {
+        if (state->savedStackNarcId[i] != ctx->scriptStackNarcId[i]
+            || state->savedStackFileId[i] != ctx->scriptStackFileId[i]
+            || state->savedStackSeqNo[i] != ctx->scriptStackSeqNo[i]) {
+            GF_ASSERT(FALSE);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+static void Qol_FinishWindPresentation(BattleContext *ctx, QolWindEvents *state) {
+    ctx->battlerIdTemp = state->savedBattlerIdTemp;
+    ctx->battlerIdStatChange = state->savedBattlerIdStatChange;
+    ctx->msgTemp = state->savedMsgTemp;
+    ctx->waitCounter = state->savedWaitCounter;
+    MIi_CpuClearFast(0, (u32 *)state, sizeof(QolWindEvents));
+    state->magic = QOL_WIND_MAGIC;
+}
+
+static BOOL Qol_WindRecipientActive(BattleSystem *bs, BattleContext *ctx, int battler, int side) {
+    return battler >= 0 && battler < BattleSystem_GetMaxBattlers(bs)
+        && ctx->battleMons[battler].hp
+        && BattleSystem_GetFieldSide(bs, battler) == side
+        && (ctx->fieldSideConditionFlags[side] & SIDE_CONDITION_TAILWIND)
+        && GetBattlerAbility(ctx, battler) == ABILITY_WIND_RIDER;
+}
+
+static void Qol_ApplyWindBoost(BattleContext *ctx, int battler) {
+    // This self event cannot inherit the current opposing attacker's Mold Breaker.
+    // Wind Rider and Simple cannot be active simultaneously at this event.
+    ctx->battleMons[battler].statChanges[STAT_ATK]++;
+    ctx->battlerIdTemp = battler;
+    ctx->battlerIdStatChange = battler;
+    ctx->msgTemp = STAT_ATK;
+    ctx->waitCounter = 0;
+}
+
+void Qol_QueueTailwindStart(BattleSystem *bs, BattleContext *ctx, int side) {
+    QolWindEvents *state = Qol_GetWindEvents(ctx);
+    int i, battler, recipients = 0, maxBattlers = BattleSystem_GetMaxBattlers(bs);
+    u8 seen = 0, pending = 0;
+    if (!state) {
+        return;
+    }
+    if (state->phase != QOL_WIND_IDLE || state->pendingMask || state->savedValid
+        || side < 0 || side > 1 || maxBattlers < 1 || maxBattlers > BATTLER_MAX) {
+        GF_ASSERT(FALSE);
+        return;
+    }
+    // Validate the native order before publishing any part of the queue.
+    for (i = 0; i < maxBattlers; i++) {
+        battler = ctx->turnOrder[i];
+        if (battler < 0 || battler >= maxBattlers || (seen & (1 << battler))) {
+            GF_ASSERT(FALSE);
+            return;
+        }
+        seen |= 1 << battler;
+        if (Qol_WindRecipientActive(bs, ctx, battler, side)) {
+            pending |= 1 << battler;
+            recipients++;
+        }
+    }
+    if (recipients > 2) {
+        GF_ASSERT(FALSE);
+        return;
+    }
+    if (!pending) {
+        return;
+    }
+    state->side = side;
+    state->pendingMask = pending;
+    state->cursor = 0;
+    for (i = 0; i < maxBattlers; i++) {
+        state->order[i] = ctx->turnOrder[i];
+        state->selectedMon[i] = ctx->selectedMonIndex[i];
+    }
+    state->phase = QOL_WIND_TAILWIND_QUEUED;
+}
+
+BOOL Qol_BeginWindRiderEntry(BattleSystem *bs, BattleContext *ctx, int battler) {
+    QolWindEvents *state = Qol_GetWindEvents(ctx);
+    int side;
+    if (!state) {
+        return FALSE;
+    }
+    if (state->phase != QOL_WIND_IDLE || state->pendingMask || state->savedValid) {
+        GF_ASSERT(FALSE);
+        return FALSE;
+    }
+    if (battler < 0 || battler >= BattleSystem_GetMaxBattlers(bs)) {
+        GF_ASSERT(FALSE);
+        return FALSE;
+    }
+    side = BattleSystem_GetFieldSide(bs, battler);
+    if (!Qol_WindRecipientActive(bs, ctx, battler, side) || ctx->battleMons[battler].statChanges[STAT_ATK] >= 12) {
+        return FALSE;
+    }
+    Qol_SaveWindPresentation(ctx, state);
+    state->phase = QOL_WIND_PRESENTING_ENTRY;
+    Qol_ApplyWindBoost(ctx, battler);
+    return TRUE;
+}
+
+BOOL Qol_ContinueWindRider(BattleSystem *bs, BattleContext *ctx) {
+    QolWindEvents *state = Qol_GetWindEvents(ctx);
+    int battler, maxBattlers = BattleSystem_GetMaxBattlers(bs);
+    if (!state || state->phase == QOL_WIND_IDLE) {
+        return FALSE;
+    }
+    if (state->phase == QOL_WIND_TAILWIND_QUEUED) {
+        if (ctx->scriptFileId != BATTLE_SUBSCRIPT_TAILWIND_START) {
+            GF_ASSERT(FALSE);
+            return TRUE;
+        }
+        Qol_SaveWindPresentation(ctx, state);
+        state->phase = QOL_WIND_PRESENTING_SIDE;
+    } else {
+        if (ctx->scriptFileId != BATTLE_SUBSCRIPT_WIND_RIDER_STAT_UP) {
+            GF_ASSERT(FALSE);
+            return TRUE;
+        }
+        if (!Qol_CheckWindStack(ctx, state)) {
+            // Consume End without popping a corrupted caller if assertions are
+            // intercepted/disabled. Keep the active payload intact for diagnosis.
+            return TRUE;
+        }
+    }
+    if (state->phase == QOL_WIND_PRESENTING_SIDE) {
+        while (state->cursor < maxBattlers) {
+            battler = state->order[state->cursor++];
+            if (!(state->pendingMask & (1 << battler))) {
+                continue;
+            }
+            // Consume before mutation/load/yield so a resumed snapshot cannot replay it.
+            state->pendingMask &= ~(1 << battler);
+            if (Qol_WindRecipientActive(bs, ctx, battler, state->side)
+                && state->selectedMon[battler] == ctx->selectedMonIndex[battler]
+                && ctx->battleMons[battler].statChanges[STAT_ATK] < 12) {
+                Qol_ApplyWindBoost(ctx, battler);
+                ReadBattleScriptFromNarc(ctx, NARC_a_0_0_1, BATTLE_SUBSCRIPT_WIND_RIDER_STAT_UP);
+                return TRUE;
+            }
+        }
+    }
+    Qol_FinishWindPresentation(ctx, state);
+    return FALSE;
+}
+#endif
+// QOL_WIND_EVENTS_END
 
 void BattleSystem_GetBattleMon(BattleSystem *battleSystem, BattleContext *ctx, int battlerId, u8 selectedMon) {
     Pokemon *mon = BattleSystem_GetPartyMon(battleSystem, battlerId, selectedMon);
@@ -587,6 +844,11 @@ void SetBattlerVar(BattleContext *ctx, int battlerId, u32 id, void *data) {
         mon->statChanges[index] = *datas8;
     } break;
     case BMON_DATA_ABILITY:
+#if QOL_MODERN_BATTLE
+        if (mon->ability != *data8 && *data8 == ABILITY_WIND_RIDER) {
+            mon->sendOutFlag = FALSE;
+        }
+#endif
         mon->ability = *data8;
         break;
     case BMON_DATA_TYPE_1:
@@ -1745,6 +2007,9 @@ BOOL CheckTrainerMessage(BattleSystem *battleSystem, BattleContext *ctx) {
 // This is technically a correct function name but it doesn't account for the other battle context initilzation functions
 // which init different parts of the struct, so this can be more descriptive once the variables are ID'd
 void BattleContext_Init(BattleContext *ctx) {
+#if QOL_MODERN_BATTLE
+    Qol_WindEventsReset(ctx);
+#endif
     int battlerId;
 
     // related to damage calculation
@@ -2310,6 +2575,19 @@ int BattleSystem_ApplyTypeEffectiveness(BattleSystem *battleSystem, BattleContex
     u8 extraAttacker;
     u8 extraTarget;
 
+#if QOL_MODERN_BATTLE
+    // Also used by TrainerAI_CalcDamage: do not enter the mutating ability
+    // queries (or reveal Mold Breaker) for this pure prediction/immunity path.
+    if (battlerIdTarget >= 0 && battlerIdTarget < BATTLER_MAX
+        && battlerIdAttacker != battlerIdTarget && ctx->battleMons[battlerIdTarget].hp
+        && Qol_WindMoveCanBeAbsorbed(moveNo)
+        && GetBattlerAbility(ctx, battlerIdTarget) == ABILITY_WIND_RIDER
+        && GetBattlerAbility(ctx, battlerIdAttacker) != ABILITY_MOLD_BREAKER) {
+        *moveStatusFlag |= MOVE_STATUS_NO_EFFECT;
+        return 0;
+    }
+#endif
+
     seffectMod = 1;
 
     if (moveNo == MOVE_STRUGGLE) {
@@ -2406,6 +2684,15 @@ int BattleSystem_ApplyTypeEffectiveness(BattleSystem *battleSystem, BattleContex
 void CalcTypeEffectivenessFlags(BattleContext *ctx, int moveNo, int moveTypeDefault, int abilityAttacker, int abilityTarget, int item, int type1, int type2, u32 *moveStatusFlag) {
     int i;
     u8 moveType;
+
+#if QOL_MODERN_BATTLE
+    // These are the caller's known/guessed abilities, never hidden battler data.
+    if (Qol_WindMoveCanBeAbsorbed(moveNo) && abilityTarget == ABILITY_WIND_RIDER
+        && abilityAttacker != ABILITY_MOLD_BREAKER) {
+        *moveStatusFlag |= MOVE_STATUS_NO_EFFECT;
+        return;
+    }
+#endif
 
     if (moveNo == MOVE_STRUGGLE) {
         return;
@@ -3138,6 +3425,17 @@ int BattleContext_CheckMoveImmunityFromAbility(BattleContext *ctx, int battlerId
 
     script = BATTLE_SUBSCRIPT_NONE;
 
+#if QOL_MODERN_BATTLE
+    // Reject unrelated moves before the mutating Mold Breaker query.
+    if (battlerIdTarget >= 0 && battlerIdTarget < BATTLER_MAX
+        && battlerIdAttacker != battlerIdTarget && ctx->battleMons[battlerIdTarget].hp
+        && Qol_WindMoveCanBeAbsorbed(ctx->moveNoCur)
+        && !(ctx->battleStatus & BATTLE_STATUS_CHARGE_TURN)
+        && CheckBattlerAbilityIfNotIgnored(ctx, battlerIdAttacker, battlerIdTarget, ABILITY_WIND_RIDER)) {
+        return BATTLE_SUBSCRIPT_ABSORB_AND_SPEED_UP_1_STAGE;
+    }
+#endif
+
     if (GetBattlerAbility(ctx, battlerIdAttacker) == ABILITY_NORMALIZE) {
         moveType = TYPE_NORMAL;
     } else if (ctx->moveType) {
@@ -3341,6 +3639,15 @@ int TryAbilityOnEntry(BattleSystem *battleSystem, BattleContext *ctx) {
             for (i = 0; i < maxBattlers; i++) {
                 battlerId = ctx->turnOrder[i];
                 if (!ctx->battleMons[battlerId].sendOutFlag && ctx->battleMons[battlerId].hp) {
+#if QOL_MODERN_BATTLE
+                    if (ctx->battleMons[battlerId].ability == ABILITY_WIND_RIDER) {
+                        ctx->battleMons[battlerId].sendOutFlag = TRUE;
+                        if (Qol_BeginWindRiderEntry(battleSystem, ctx, battlerId)) {
+                            script = BATTLE_SUBSCRIPT_WIND_RIDER_STAT_UP;
+                            flag = TRUE;
+                        }
+                    }
+#endif
                     switch (GetBattlerAbility(ctx, battlerId)) {
                     case ABILITY_DRIZZLE:
                         ctx->battleMons[battlerId].sendOutFlag = TRUE;
@@ -7550,6 +7857,11 @@ int Qol_PreviewTypeEffectiveness(BattleContext *ctx, u16 moveNo, int attacker, i
     }
     attackerAbility = GetBattlerAbility(ctx, attacker);
     targetAbility = attackerAbility == ABILITY_MOLD_BREAKER ? ABILITY_NONE : GetBattlerAbility(ctx, target);
+#if QOL_MODERN_BATTLE
+    if (attacker != target && targetAbility == ABILITY_WIND_RIDER && Qol_WindMoveCanBeAbsorbed(moveNo)) {
+        return 0;
+    }
+#endif
     moveType = attackerAbility == ABILITY_NORMALIZE ? TYPE_NORMAL : BATTLE_MOVE_DATA(ctx, moveNo).type;
     item = GetBattlerHeldItemEffect(ctx, target);
     type1 = GetBattlerVar(ctx, target, BMON_DATA_TYPE_1, NULL);

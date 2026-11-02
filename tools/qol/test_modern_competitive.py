@@ -36,12 +36,16 @@ typedef struct {
  struct {int mistTurns;} fieldSideConditionData[2];
  struct {int moldBreakerFlag;} selfTurnData[4];
  struct {int id,tag,param[6];} buffMsg;
+ unsigned fieldSideConditionFlags[2];
  int battlerIdStatChange,battlerIdAttacker,battlerIdTarget,battlerIdTemp,statChangeParam,
  statChangeType,statChangeFlag,tempData,msgTemp,changeType,changeParam,moveNoCur,itemTemp,
  battleStatus,battleStatus2,fieldCondition,battleContinueFlag,scriptNarcId,scriptFileId,scriptSeqNo,scriptStackDepth;
  int scriptStackNarcId[4],scriptStackFileId[4],scriptStackSeqNo[4];u32 battleScriptBuffer[400];
 } BattleContext;
 static int BattleSystem_GetFieldSide(BattleSystem *s,int b){return b&1;}
+// No 160/304 is executed by these independent Competitive fixtures.
+static int Qol_ContinueWindRider(BattleSystem *s,BattleContext *c){assert(0);return 0;}
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(0);}
 static int maxBattlers=4;
 static int BattleSystem_GetMaxBattlers(BattleSystem *s){return maxBattlers;}
 static int CreateNicknameTag(BattleContext *c,int b){return b+100;}

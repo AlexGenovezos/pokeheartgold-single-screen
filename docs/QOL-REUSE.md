@@ -1238,3 +1238,53 @@ current real-save guards matched. See the Tailwind plan and ignored
 VM evidence rather than a native-frame capture. Wind Rider/Gas, dynamic mid-turn
 ordering and remaining Gen IX work are still unfinished; the installed four-QoL
 app and real game files remain unchanged.
+
+### Wind Rider241 and Shiftry's second ability
+
+The bounded Wind Rider implementation adds eligible wind-attack absorption,
+own-side Tailwind-start boosts and one entry/real ability-gain activation, then
+selectively assigns Shiftry's second slot. Stored form0 Early Bird48 maps only
+for odd original PIDs; explicit other choices and alternate forms stay intact.
+The separate88-byte ARM battle-heap payload and eight-byte owner registry preserve
+native battle/save/packet layouts. Completed160 tail-chains call-free304 while
+preserving all four native stack frames and the original return.
+
+The [implementation and validation record](superpowers/plans/2026-11-01-gen9-wind-rider.md)
+documents actual C/SDK execution, all eight resource branches, encrypted read
+nonmutation, scratch/AI boundaries and required root native acceptance. Sparse
+ability banks remain243 rows;240 is unsupported,242 stays Sharpness, and the
+72-move/336-row/237-species bounds remain unchanged. Gas recovery, dynamic
+mid-turn ordering and unsupported wind moves are future milestones. This change
+does not claim full Gen IX rules or authorize an installation.
+
+Worker focused gates:95 guarded host tests,26 serial ASan/UBSan/SDK tests
+with52 fresh pipeline assemblies, and10 genuine SDK C compilations passed.
+LSan is disabled on macOS; native paired-ROM/layout/snapshot acceptance and
+fresh root specification then quality reviews remain required before release.
+
+Fresh root spec and quality reviews passed with 60/21 guarded host tests plus
+independent actual-C edges. The matching all-three-modern-flags SDK/resources/
+layout/native build passed. The initial 364-test run found 21 compilation
+subtest failures across nine old fixture methods. Six test-only dependency fixes
+passed fresh spec/quality review, then 91 affected tests passed in 358.472 s
+and three additional Sharpness consumers passed in 13.111 s. Together with 355
+initial passing methods, these cover the complete 364-case collection; there is
+no claim of a single fully green 364-case rerun. The Wind resource matrix reused
+52 exact-profile genuine SDK assemblies; the focused final run assembled all 52
+freshly.
+
+Seven genuine trainer-doubles cases cover wind absorption, both Tailwind allies,
+Mold Breaker, Petal Blizzard spread, opposing Tailwind and blocked Whirlwind.
+Capped/suppressed holders and failed recast retain the correct independent
+behavior. Three restored yielding/drained queue phases preserve BSS/heap state
+and produce byte-identical full 4 MiB ARM RAM at the accepted endpoint. All 13
+stable comparisons matched every ARM 9 instruction across 46400 frames, with
+zero fallback/guards/evictions. Separate cold boot 2500 also matched every ARM 9
+instruction but had 1.24% fallback and 42 guards/evictions during loading.
+
+Fresh singles confirm Shiftry odd 241/even 34/custom even 48; its Summary text and
+Attack-rise message fit cleanly. Six copied-save hashes, frozen production/tests,
+tested artifacts and installed/current real-save/config guards matched. Native
+gain-route coverage is not claimed; actual SDK VM tests cover entry/gain and
+synchronous queue transitions. See the Wind plan for exact scope and evidence.
+The complete Gen IX ruleset remains unfinished and is not installed.

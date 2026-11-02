@@ -42,8 +42,10 @@ typedef struct {
  unsigned fieldSideConditionFlags[2];struct {int reflectTurns,lightScreenTurns;} fieldSideConditionData[2];
  int statChangeType,statChangeParam,statChangeFlag,battlerIdStatChange,battlerIdAttacker,battlerIdTarget,
  battlerIdTemp,battlerIdAbility,tempData,multiHitCount,multiHitCountTemp,checkMultiHit,moveNoCur,calcTemp;
+ int scriptNarcId,scriptFileId;
  const u32 *words;int pos,length,vars[70],updates,applied,message,damageCalls,criticalCalls;
 } BattleContext;
+enum {NARC_a_0_0_1};
 static int roll,randomCalls;
 static int BattleSystem_Random(BattleSystem *s){randomCalls++;return roll;}
 static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 2;}
@@ -53,6 +55,9 @@ static int BattleSystem_GetBattlerIDBySide(BattleSystem *s,BattleContext *c,int 
  switch(side){case BATTLER_CATEGORY_ATTACKER:return c->battlerIdAttacker;
  case BATTLER_CATEGORY_DEFENDER:return c->battlerIdTarget;
  case BATTLER_CATEGORY_SIDE_EFFECT_MON:return c->battlerIdStatChange;default:assert(0);return 0;}}
+#if QOL_MODERN_BATTLE
+static void Qol_QueueTailwindStart(BattleSystem *s,BattleContext *c,int side){assert(0);}
+#endif
 static void BattleScriptIncrementPointer(BattleContext *c,int n){c->pos+=n;assert(c->pos>=0&&c->pos<=c->length);}
 static int BattleScriptReadWord(BattleContext *c){assert(c->pos<c->length);return c->words[c->pos++];}
 static int *BattleScriptGetVarPointer(BattleSystem *s,BattleContext *c,int v){

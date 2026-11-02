@@ -26,6 +26,17 @@ def function_source(relative_path, name):
 
 class GameLogicTests(unittest.TestCase):
     def compile_run(self, source, *flags):
+        # Extracted legacy battle fixtures now call the shared pure Wind
+        # predicate. Link its actual production C only when the fixture does
+        # not already include it (modern-move fixtures include the whole TU).
+        # This preserves their existing SDK edges without a Python wind model.
+        if ('Qol_WindMoveCanBeAbsorbed(' in source
+                and not re.search(r'BOOL\s+Qol_WindMoveCanBeAbsorbed\([^;{}]*\)\s*\{', source)):
+            source = ('#include "constants/qol_moves.h"\n'
+                      'int Qol_IsWindMove(unsigned short);\n'
+                      'int Qol_WindMoveCanBeAbsorbed(unsigned short);\n' + source + '\n'
+                      + function_source('src/qol_moves.c', 'Qol_IsWindMove') + '\n'
+                      + function_source('src/qol_moves.c', 'Qol_WindMoveCanBeAbsorbed') + '\n')
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             (root / "check.c").write_text(source)

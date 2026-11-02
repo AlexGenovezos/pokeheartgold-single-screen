@@ -1,3 +1,4 @@
+#include "battle/qol_wind_events.h"
 #include "qol_moves.h"
 #include "battle/battle_command.h"
 
@@ -1539,6 +1540,11 @@ BOOL BtlCmd_UpdateVar(BattleSystem *battleSystem, BattleContext *ctx) {
     int val = BattleScriptReadWord(ctx);
 
     int *var = BattleScriptGetVarPointer(battleSystem, ctx, varId);
+#if QOL_MODERN_BATTLE
+    BOOL sideWord = var == (int *)&ctx->fieldSideConditionFlags[0]
+        || var == (int *)&ctx->fieldSideConditionFlags[1];
+    u32 oldSide = sideWord ? (u32)*var : 0;
+#endif
 
     switch (opcode) {
     case OPCODE_SET:
@@ -1592,6 +1598,18 @@ BOOL BtlCmd_UpdateVar(BattleSystem *battleSystem, BattleContext *ctx) {
         GF_ASSERT(FALSE);
         break;
     }
+
+#if QOL_MODERN_BATTLE
+    if (sideWord && ctx->scriptNarcId == NARC_a_0_0_1
+        && ctx->scriptFileId == BATTLE_SUBSCRIPT_TAILWIND_START
+        && opcode == OPCODE_FLAG_ON && varId == BSCRIPT_VAR_SIDE_CONDITION_ATTACKER
+        && var == (int *)&ctx->fieldSideConditionFlags[BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdAttacker)]
+        && !(oldSide & SIDE_CONDITION_TAILWIND) && ((u32)*var & SIDE_CONDITION_TAILWIND)) {
+        GF_ASSERT(((u32)*var & (SIDE_CONDITION_TAILWIND | QOL_TAILWIND_FOURTH_TURN))
+            == (SIDE_CONDITION_TAILWIND | QOL_TAILWIND_FOURTH_TURN));
+        Qol_QueueTailwindStart(battleSystem, ctx, BattleSystem_GetFieldSide(battleSystem, ctx->battlerIdAttacker));
+    }
+#endif
 
     return FALSE;
 }
@@ -6034,6 +6052,12 @@ BOOL BtlCmd_223(BattleSystem *battleSystem, BattleContext *ctx) {
 
 BOOL BtlCmd_EndScript(BattleSystem *battleSystem, BattleContext *ctx) {
 #if QOL_MODERN_BATTLE
+    if (ctx->scriptNarcId == NARC_a_0_0_1
+        && (ctx->scriptFileId == BATTLE_SUBSCRIPT_TAILWIND_START
+            || ctx->scriptFileId == BATTLE_SUBSCRIPT_WIND_RIDER_STAT_UP)
+        && Qol_ContinueWindRider(battleSystem, ctx)) {
+        return FALSE;
+    }
     if (ctx->scriptNarcId == NARC_a_0_0_1 && ctx->scriptFileId == BATTLE_SUBSCRIPT_UPDATE_STAT_STAGE) {
         int pending = ctx->statChangeFlag & QOL_STAT_CHANGE_COMPETITIVE_PENDING;
         ctx->statChangeFlag &= ~QOL_STAT_CHANGE_COMPETITIVE_PENDING;

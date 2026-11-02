@@ -134,3 +134,30 @@ BOOL Qol_IsSlicingMove(u16 moveId) {
     }
     return FALSE;
 }
+
+// Official Gen IX wind membership; Past moves have no extrapolated flags.
+BOOL Qol_IsWindMove(u16 moveId) {
+    switch (moveId) {
+    case MOVE_GUST:
+    case MOVE_WHIRLWIND:
+    case MOVE_BLIZZARD:
+    case MOVE_AEROBLAST:
+    case MOVE_ICY_WIND:
+    case MOVE_SANDSTORM:
+    case MOVE_TWISTER:
+    case MOVE_HEAT_WAVE:
+    case MOVE_AIR_CUTTER:
+    case MOVE_TAILWIND:
+#if QOL_MODERN_MOVES
+    case MOVE_PETAL_BLIZZARD:
+    case MOVE_FAIRY_WIND:
+#endif
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL Qol_WindMoveCanBeAbsorbed(u16 moveId) {
+    return Qol_IsSupportedMove(moveId) && Qol_IsWindMove(moveId)
+        && moveId != MOVE_SANDSTORM && moveId != MOVE_TAILWIND;
+}

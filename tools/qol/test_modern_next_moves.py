@@ -330,9 +330,10 @@ int main(void) {
         self.compile_run(source,'-DQOL_MODERN_MOVES=1','-DQOL_MODERN_BATTLE=1','-Wno-unused-function')
         import test_modern_original_abilities as original
         source=original.accuracy_source().replace('int protectFlag,roostFlag;','int protectFlag,roostFlag,magicCoatFlag,snatchFlag;')
+        source=source.replace('static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 4;}',
+                              'static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 2;}')
         source=source.replace('command,commandNext,script,hpCalc;', 'command,commandNext,script,hpCalc,moveNoTemp,moveStatus,moveNoMagicCoat,battlerIdMagicCoat,moveNoProtect[4],moveNoBattlerPrev[4],moveNoPrev,turnOrder[4],battlerIdTemp;')
         source+=r'''
-static int BattleSystem_GetMaxBattlers(BattleSystem *s){return 2;}
 static void CheckIgnorePressure(BattleContext *c,int a,int b){}
 static int BattleMon_GetMoveIndex(void *m,int move){return 0;}
 '''+native('BattleControllerPlayer_CheckMagicCoat',path=PLAYER)+r'''
